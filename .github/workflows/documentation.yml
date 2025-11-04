@@ -84,29 +84,34 @@ jobs:
     needs: build-docker
     environment: test    
     steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Install Azure CLI
+      uses: azure/cli@v2
+      with:
+        azcliversion: latest
 
-      - name: Set AKS context
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: Test_Environment
-          cluster-name: test-k8s-cluster
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Get build number from previous job
-        run: |
-          echo "BUILD_NUMBER=${{ needs.build-docker.outputs.build_number }}" >> $GITHUB_ENV
-          echo "Using build number: ${{ needs.build-docker.outputs.build_number }}"
+    - name: Set AKS context
+      uses: azure/aks-set-context@v4
+      with:
+        resource-group: Test_Environment
+        cluster-name: test-k8s-cluster
 
-      - name: Update deployment image
-        run: |
-          kubectl set image deployment/${{ env.APP_NAME }} \
-            ${{ env.APP_NAME }}=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
-          kubectl set image deployment/${{ env.APP_NAME }} \
-            copy-nginx-config=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+    - name: Get build number from previous job
+      run: |
+        echo "BUILD_NUMBER=${{ needs.build-docker.outputs.build_number }}" >> $GITHUB_ENV
+        echo "Using build number: ${{ needs.build-docker.outputs.build_number }}"
 
-      - name: Display deployed image
-        run: |
-          echo "Deployed image: ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}"
+    - name: Update deployment image
+      run: |
+        kubectl set image deployment/${{ env.APP_NAME }} \
+          ${{ env.APP_NAME }}=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+        kubectl set image deployment/${{ env.APP_NAME }} \
+          copy-nginx-config=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+
+    - name: Display deployed image
+      run: |
+        echo "Deployed image: ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}"
