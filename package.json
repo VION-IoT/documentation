@@ -1,0 +1,25 @@
+{
+  "name": "vion-docs",
+  "version": "0.0.1",
+  "private": true,
+  "description": "vion Documentation",
+  "author": "Jonas Bertsch <jonas.bertsch@vion-iot.com>",
+  "type": "module",
+  "scripts": {
+    "update": "pnpm run generate:dale && pnpm run fetch:cloudswagger",
+    "audit": "pnpm audit --audit-level moderate --prod",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs",
+    "serve": "vitepress dev docs",
+    "generate:dale": "dotnet tool restore && dotnet defaultdocumentation -j ./defaultdocumentation_sdk.json && dotnet defaultdocumentation -j ./defaultdocumentation_testkit.json && node filter-dale-docs.mjs",
+    "fetch:cloudswagger": "curl https://cloudapi.test.ecocoa.ch/swagger/v1/swagger.json -o docs/api/cloud/swagger.json"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vitepress-openapi": "^0.1.9"
+  },
+  "engines": {
+    "node": "^22",
+    "pnpm": "^10"
+  }
+}

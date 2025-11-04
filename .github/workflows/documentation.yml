@@ -1,0 +1,112 @@
+# Build and publish nhp-documentation-app Docker image to Azure Container Registry
+# Deploy to test-k8s-cluster
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  APP_NAME: nhp-documentation-app
+  REPOSITORY_NAME: nhp-documentation-app
+  CONTAINER_REGISTRY: ecocoach
+
+jobs:
+  build-docker:
+    runs-on: self-hosted
+    outputs:
+      build_number: ${{ steps.build_number.outputs.version }}
+    
+    steps:
+    - name: Generate build number # format YYYYMMDD.run_number (e.g., 20251103.4)
+      id: build_number
+      run: |
+        BUILD_NUMBER=$(date +'%Y%m%d').${{ github.run_number }}
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+        echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        echo "Generated build number: $BUILD_NUMBER"
+
+    - name: Login to ACR
+      run: |
+        echo ${{ secrets.ACR_PASSWORD }} | docker login ${{ env.CONTAINER_REGISTRY }}.azurecr.io \
+          --username ${{ secrets.ACR_USERNAME }} \
+          --password-stdin
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: 'package.json'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: '^10.0.0'
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Check vulnerabilities
+      run: pnpm run audit
+
+    - name: Build app
+      run: pnpm run build
+
+    - name: Create Dockerfile
+      run: |
+        cat > Dockerfile << 'EOF'
+        FROM nginxinc/nginx-unprivileged:stable-alpine-perl AS final
+        COPY docs/.vitepress/dist /usr/share/nginx/html
+        EXPOSE 8080
+        CMD ["nginx", "-g", "daemon off;"]
+        EOF
+
+    - name: Build Docker image
+      run: |
+        docker build \
+          -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:latest \
+          -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }} \
+          -f Dockerfile \
+          .
+        
+    - name: Push Docker image to ACR
+      run: |
+        docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:latest
+        docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs: build-docker
+    environment: test    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: Test_Environment
+          cluster-name: test-k8s-cluster
+
+      - name: Get build number from previous job
+        run: |
+          echo "BUILD_NUMBER=${{ needs.build-docker.outputs.build_number }}" >> $GITHUB_ENV
+          echo "Using build number: ${{ needs.build-docker.outputs.build_number }}"
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/${{ env.APP_NAME }} \
+            ${{ env.APP_NAME }}=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+          kubectl set image deployment/${{ env.APP_NAME }} \
+            copy-nginx-config=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+
+      - name: Display deployed image
+        run: |
+          echo "Deployed image: ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}"
