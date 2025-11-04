@@ -80,7 +80,7 @@ jobs:
         docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
 
   deploy-test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build-docker
     environment: test    
     steps:
