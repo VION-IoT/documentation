@@ -13,7 +13,6 @@ env:
   APP_NAME: nhp-documentation-app
   REPOSITORY_NAME: nhp-documentation-app
   CONTAINER_REGISTRY: ecocoach
-  AZURE_DEVOPS_FEED_URL: 'https://pkgs.dev.azure.com/ecocoachsmarthome/Ecocoach/_packaging/ecocoach.frontend/nuget/v3/index.json'
 
 jobs:
   build-docker:
