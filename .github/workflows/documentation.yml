@@ -103,9 +103,11 @@ jobs:
     - name: Update deployment image
       run: |
         kubectl set image deployment/${{ env.APP_NAME }} \
-          ${{ env.APP_NAME }}=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+          ${{ env.APP_NAME }}=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }} \
+          -n ${{ env.APP_NAME }}
         kubectl set image deployment/${{ env.APP_NAME }} \
-          copy-nginx-config=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+          copy-nginx-config=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }} \
+          -n ${{ env.APP_NAME }}
 
     - name: Display deployed image
       run: |
