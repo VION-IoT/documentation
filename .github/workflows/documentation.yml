@@ -57,21 +57,11 @@ jobs:
     - name: Build app
       run: pnpm run build
 
-    - name: Create Dockerfile
-      run: |
-        cat > Dockerfile << 'EOF'
-        FROM nginxinc/nginx-unprivileged:stable-alpine-perl AS final
-        COPY docs/.vitepress/dist /usr/share/nginx/html
-        EXPOSE 8080
-        CMD ["nginx", "-g", "daemon off;"]
-        EOF
-
     - name: Build Docker image
       run: |
         docker build \
           -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:latest \
           -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }} \
-          -f Dockerfile \
           .
         
     - name: Push Docker image to ACR
