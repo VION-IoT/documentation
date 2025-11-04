@@ -12,7 +12,7 @@ Inheritance [System.Object](https://docs.microsoft.com/en-us/dotnet/api/System.O
 
 <a name='Dale.Sdk.TestKit.ILoggerMockExtensions.VerifyLogContains_T_(thisMock_Microsoft.Extensions.Logging.ILogger_T__,string,Microsoft.Extensions.Logging.LogLevel,Times)'></a>
 
-## ILoggerMockExtensions.VerifyLogContains<T>(this Mock<ILogger<T>>, string, LogLevel, Times) Method
+## ILoggerMockExtensions.VerifyLogContains\<T\>(this Mock\<ILogger\<T\>\>, string, LogLevel, Times) Method
 
 Verifies that a log entry containing the specified string was logged at the specified log level the expected number  
 of times.

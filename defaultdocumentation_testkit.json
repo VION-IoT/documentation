@@ -1,6 +1,6 @@
 {
   "OutputDirectoryPath": "docs/api/dale/testkit",
-  "AssemblyFilePath": "../Dale/Dale.Sdk.TestKit/bin/Debug/netstandard2.1/Dale.Sdk.TestKit.dll",
+  "AssemblyFilePath": "C:/_rep/HardwarePlatform/Dale/Dale.Sdk.TestKit/bin/Debug/netstandard2.1/Dale.Sdk.TestKit.dll",
   "FileNameFactory": "Name",
   "GeneratedPages": "Types"
 }

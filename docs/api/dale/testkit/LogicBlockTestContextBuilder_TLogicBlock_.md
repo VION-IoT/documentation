@@ -1,7 +1,7 @@
 #### [Dale.Sdk.TestKit](index.md 'index')
 ### [Dale.Sdk.TestKit](index.md#Dale.Sdk.TestKit 'Dale.Sdk.TestKit')
 
-## LogicBlockTestContextBuilder<TLogicBlock> Class
+## LogicBlockTestContextBuilder\<TLogicBlock\> Class
 
 Fluent test builder to initialize LogicBlock instances for unit tests.
 
@@ -15,12 +15,12 @@ public class LogicBlockTestContextBuilder<TLogicBlock>
 
 `TLogicBlock`
 
-Inheritance [System.Object](https://docs.microsoft.com/en-us/dotnet/api/System.Object 'System.Object') &#129106; LogicBlockTestContextBuilder<TLogicBlock>
+Inheritance [System.Object](https://docs.microsoft.com/en-us/dotnet/api/System.Object 'System.Object') &#129106; LogicBlockTestContextBuilder\<TLogicBlock\>
 ### Methods
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContextBuilder_TLogicBlock_.Build()'></a>
 
-## LogicBlockTestContextBuilder<TLogicBlock>.Build() Method
+## LogicBlockTestContextBuilder\<TLogicBlock\>.Build() Method
 
 Initialize the logic block and apply any linked interfaces mapping.  
 After this returns the logic block's Configure(...) and Ready() will have been executed.
@@ -34,7 +34,7 @@ public Dale.Sdk.TestKit.LogicBlockTestContext Build();
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContextBuilder_TLogicBlock_.InitializeLogicBlock()'></a>
 
-## LogicBlockTestContextBuilder<TLogicBlock>.InitializeLogicBlock() Method
+## LogicBlockTestContextBuilder\<TLogicBlock\>.InitializeLogicBlock() Method
 
 Sends the InitializeLogicBlock message to the logic block to initialize it.
 
@@ -44,7 +44,7 @@ private void InitializeLogicBlock();
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContextBuilder_TLogicBlock_.SetLinkedInterfaces()'></a>
 
-## LogicBlockTestContextBuilder<TLogicBlock>.SetLinkedInterfaces() Method
+## LogicBlockTestContextBuilder\<TLogicBlock\>.SetLinkedInterfaces() Method
 
 Sets the linked interfaces on the logic block based on the configured mappings with the help of some reflection.
 
@@ -54,7 +54,7 @@ private void SetLinkedInterfaces();
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContextBuilder_TLogicBlock_.WithLogicInterfaceMapping_TInterface_(Dale.Sdk.Utils.InterfaceId)'></a>
 
-## LogicBlockTestContextBuilder<TLogicBlock>.WithLogicInterfaceMapping<TInterface>(InterfaceId) Method
+## LogicBlockTestContextBuilder\<TLogicBlock\>.WithLogicInterfaceMapping\<TInterface\>(InterfaceId) Method
 
 Adds a mapping to another logic block using the logic block's own implementation of the interface.
 
@@ -78,7 +78,7 @@ public Dale.Sdk.TestKit.LogicBlockTestContextBuilder<TLogicBlock> WithLogicInter
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContextBuilder_TLogicBlock_.WithLogicInterfaceMapping_TInterface_(System.Func_TLogicBlock,TInterface_,Dale.Sdk.Utils.InterfaceId)'></a>
 
-## LogicBlockTestContextBuilder<TLogicBlock>.WithLogicInterfaceMapping<TInterface>(Func<TLogicBlock,TInterface>, InterfaceId) Method
+## LogicBlockTestContextBuilder\<TLogicBlock\>.WithLogicInterfaceMapping\<TInterface\>(Func\<TLogicBlock,TInterface\>, InterfaceId) Method
 
 Adds a mapping to another logic block using a specific (self or delegated) implementation of the interface.
 

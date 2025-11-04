@@ -38,8 +38,48 @@ async function cleanupDirectory(outputDir, namespaceToKeep) {
         await unlink(filePath);
         filesRemoved++;
         console.log(colors.gray(`  Removed: ${mdFile}`));
-      } else { 
-        console.log(colors.gray(`  Kept:    ${mdFile}`));
+      } else {
+        // Fix angle brackets in headings for VitePress build compatibility
+        let fixedContent = content;
+        
+        // First, escape angle brackets in markdown headings (but not in code blocks)
+        fixedContent = fixedContent.replace(
+          /^(#{1,6}\s+)([^\n`]+)$/gm,
+          (match, prefix, headingText) => {
+            // Only process if the heading contains angle brackets and no backticks
+            if ((headingText.includes('<') || headingText.includes('>')) && !headingText.includes('`')) {
+              // First, remove any existing escape backslashes to avoid double-escaping
+              let unescaped = headingText.replace(/\\</g, '<').replace(/\\>/g, '>');
+              // Then escape all angle brackets in the heading
+              const escaped = unescaped.replace(/</g, '\\<').replace(/>/g, '\\>');
+              return prefix + escaped;
+            }
+            return match;
+          }
+        );
+        
+        // Second, fix angle brackets in "Inheritance" lines (not in code blocks or links)
+        fixedContent = fixedContent.replace(
+          /^(Inheritance .*)$/gm,
+          (match) => {
+            // Split by backticks to preserve inline code
+            const parts = match.split('`');
+            return parts.map((part, index) => {
+              // Only escape in non-code parts (even indices)
+              if (index % 2 === 0) {
+                return part.replace(/\\</g, '<').replace(/\\>/g, '>').replace(/</g, '\\<').replace(/>/g, '\\>');
+              }
+              return part;
+            }).join('`');
+          }
+        );
+        
+        if (fixedContent !== content) {
+          await writeFile(filePath, fixedContent, 'utf-8');
+          console.log(colors.green(`  Fixed:   ${mdFile} (escaped angle brackets)`));
+        } else {
+          console.log(colors.gray(`  Kept:    ${mdFile}`));
+        }
       }
     }
 

@@ -15,7 +15,7 @@ Inheritance [System.Object](https://docs.microsoft.com/en-us/dotnet/api/System.O
 
 <a name='Dale.Sdk.TestKit.ReflectionExtensions.GetPrivateField_TValue_(thisobject,string)'></a>
 
-## ReflectionExtensions.GetPrivateField<TValue>(this object, string) Method
+## ReflectionExtensions.GetPrivateField\<TValue\>(this object, string) Method
 
 Gets the value of a (possibly non-public) instance field and casts to [TValue](ReflectionExtensions.md#Dale.Sdk.TestKit.ReflectionExtensions.GetPrivateField_TValue_(thisobject,string).TValue 'Dale.Sdk.TestKit.ReflectionExtensions.GetPrivateField<TValue>(this object, string).TValue').
 
@@ -42,7 +42,7 @@ public static TValue? GetPrivateField<TValue>(this object instance, string field
 
 <a name='Dale.Sdk.TestKit.ReflectionExtensions.SetPrivateField_T_(thisT,string,object)'></a>
 
-## ReflectionExtensions.SetPrivateField<T>(this T, string, object) Method
+## ReflectionExtensions.SetPrivateField\<T\>(this T, string, object) Method
 
 Sets a (possibly non-public) instance field on [instance](ReflectionExtensions.md#Dale.Sdk.TestKit.ReflectionExtensions.SetPrivateField_T_(thisT,string,object).instance 'Dale.Sdk.TestKit.ReflectionExtensions.SetPrivateField<T>(this T, string, object).instance').  
 The field search walks the type hierarchy (base classes included).

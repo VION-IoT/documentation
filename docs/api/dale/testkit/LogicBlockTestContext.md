@@ -28,7 +28,7 @@ public void ClearRecordedMessages();
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContext.VerifyAnalogOutputSet(Dale.Sdk.Core.IAnalogOutput,System.Nullable_double_,double,System.Nullable_Times_)'></a>
 
-## LogicBlockTestContext.VerifyAnalogOutputSet(IAnalogOutput, Nullable<double>, double, Nullable<Times>) Method
+## LogicBlockTestContext.VerifyAnalogOutputSet(IAnalogOutput, Nullable\<double\>, double, Nullable\<Times\>) Method
 
 Assert that at the specified analog output was set with the given value.
 
@@ -55,7 +55,7 @@ public void VerifyAnalogOutputSet(Dale.Sdk.Core.IAnalogOutput? analogOutput=null
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContext.VerifyDigitalOutputSet(Dale.Sdk.Core.IDigitalOutput,System.Nullable_bool_,System.Nullable_Times_)'></a>
 
-## LogicBlockTestContext.VerifyDigitalOutputSet(IDigitalOutput, Nullable<bool>, Nullable<Times>) Method
+## LogicBlockTestContext.VerifyDigitalOutputSet(IDigitalOutput, Nullable\<bool\>, Nullable\<Times\>) Method
 
 Assert that at the specified digital output was set with the given value.
 
@@ -78,7 +78,7 @@ public void VerifyDigitalOutputSet(Dale.Sdk.Core.IDigitalOutput? digitalOutput=n
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContext.VerifySendCommand_TMessage_(System.Nullable_Dale.Sdk.Utils.InterfaceId_,System.Func_TMessage,bool_,System.Nullable_Times_)'></a>
 
-## LogicBlockTestContext.VerifySendCommand<TMessage>(Nullable<InterfaceId>, Func<TMessage,bool>, Nullable<Times>) Method
+## LogicBlockTestContext.VerifySendCommand\<TMessage\>(Nullable\<InterfaceId\>, Func\<TMessage,bool\>, Nullable\<Times\>) Method
 
 Assert that at least one SendCommand call was made with the give target and message.
 
@@ -107,7 +107,7 @@ public void VerifySendCommand<TMessage>(System.Nullable<Dale.Sdk.Utils.Interface
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContext.VerifySendRequest_TMessage_(System.Nullable_Dale.Sdk.Utils.InterfaceId_,System.Func_TMessage,bool_,System.Nullable_Times_)'></a>
 
-## LogicBlockTestContext.VerifySendRequest<TMessage>(Nullable<InterfaceId>, Func<TMessage,bool>, Nullable<Times>) Method
+## LogicBlockTestContext.VerifySendRequest\<TMessage\>(Nullable\<InterfaceId\>, Func\<TMessage,bool\>, Nullable\<Times\>) Method
 
 Assert that at least one SendRequest call was made with the give target and message.
 
@@ -136,7 +136,7 @@ public void VerifySendRequest<TMessage>(System.Nullable<Dale.Sdk.Utils.Interface
 
 <a name='Dale.Sdk.TestKit.LogicBlockTestContext.VerifySendStateUpdate_TMessage_(System.Func_TMessage,bool_,System.Nullable_Times_)'></a>
 
-## LogicBlockTestContext.VerifySendStateUpdate<TMessage>(Func<TMessage,bool>, Nullable<Times>) Method
+## LogicBlockTestContext.VerifySendStateUpdate\<TMessage\>(Func\<TMessage,bool\>, Nullable\<Times\>) Method
 
 Assert that at least one SendStateUpdate call was made with the give target and message.
 
