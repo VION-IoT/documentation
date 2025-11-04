@@ -13,6 +13,7 @@ env:
   APP_NAME: nhp-documentation-app
   REPOSITORY_NAME: nhp-documentation-app
   CONTAINER_REGISTRY: ecocoach
+  AZURE_DEVOPS_FEED_URL: 'https://pkgs.dev.azure.com/ecocoachsmarthome/Ecocoach/_packaging/ecocoach.frontend/nuget/v3/index.json'
 
 jobs:
   build-docker:
@@ -29,6 +30,14 @@ jobs:
         echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
         echo "Generated build number: $BUILD_NUMBER"
 
+    - name: Connect Azure DevOps NuGet feed
+      run: |
+        dotnet nuget add source ${{ env.AZURE_DEVOPS_FEED_URL }} \
+          --name "AzureDevOpsFeed" \
+          --username "AzureDevOps" \
+          --password ${{ secrets.AZURE_DEVOPS_PAT }} \
+          --store-password-in-clear-text
+        
     - name: Login to ACR
       run: |
         echo ${{ secrets.ACR_PASSWORD }} | docker login ${{ env.CONTAINER_REGISTRY }}.azurecr.io \
