@@ -29,14 +29,6 @@ jobs:
         echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
         echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
         echo "Generated build number: $BUILD_NUMBER"
-
-    - name: Connect Azure DevOps NuGet feed
-      run: |
-        dotnet nuget add source ${{ env.AZURE_DEVOPS_FEED_URL }} \
-          --name "AzureDevOpsFeed" \
-          --username "AzureDevOps" \
-          --password ${{ secrets.AZURE_DEVOPS_PAT }} \
-          --store-password-in-clear-text
         
     - name: Login to ACR
       run: |
