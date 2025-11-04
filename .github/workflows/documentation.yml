@@ -84,11 +84,6 @@ jobs:
     needs: build-docker
     environment: test    
     steps:
-    - name: Install Azure CLI
-      uses: azure/cli@v2
-      with:
-        azcliversion: latest
-
     - name: Azure Login
       uses: azure/login@v2
       with:
