@@ -9,7 +9,7 @@ Build your first LogicBlock in under 5 minutes.
 
 ## Prerequisites
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - A .NET IDE like Visual Studio 2022, JetBrains Rider, or VS Code
 - Access to the Vion Artifacts feed (currently the private ecocoach DevOps artifacts feed **ecocoach.csharplogicsystem** )
 
@@ -19,8 +19,7 @@ Build your first LogicBlock in under 5 minutes.
 
 ```bash
 # Add the NuGet feed (if not already added)
-dotnet nuget add source "https://pkgs.dev.azure.com/ecocoachsmarthome/Ecocoach/_packaging/ecocoach.csharplogicsystem/nuget/v3/index.json" \
-  --name "ecocoach.csharplogicsystem"
+dotnet nuget add source "https://pkgs.dev.azure.com/ecocoachsmarthome/Ecocoach/_packaging/ecocoach.csharplogicsystem/nuget/v3/index.json" --name "ecocoach.csharplogicsystem"
 
 # Install the template
 dotnet new install Vion.Library.Template
@@ -38,13 +37,15 @@ cd MyFirstVionLibrary
 
 This creates a solution `MyFirstVionLibrary.sln` with  two projects:
 - **MyFirstVionLibrary** - Your LogicBlock library (.NET Standard 2.1)
-- **MyFirstVionLibrary.DevHost** - Local development environment (.NET 9)
+- **MyFirstVionLibrary.DevHost** - Local development environment (.NET 10)
 
 ### 3. Open and Run
 
 **Visual Studio / Rider:**
 1. Open `MyFirstVionLibrary.sln`
-2. Right-click **MyFirstVionLibrary.DevHost** → **Set as Startup Project**
+2. Set the startup project:
+   - **Visual Studio:** Right-click `MyFirstVionLibrary.DevHost` in Solution Explorer → **Set as Startup Project**
+   - **Rider:** Select `MyFirstVionLibrary.DevHost` from the run configuration dropdown (top-right toolbar)
 3. Press **F5** to run
 
 **Command Line:**
@@ -62,24 +63,40 @@ The template includes a `HelloWorld` LogicBlock to get you started:
 ```csharp
 public class HelloWorld : LogicBlockBase
 {
-        private string _greeting = "Hello, World!";
+    private readonly ILogger<LogicBlockBase> _logger;
 
-        [ServiceProperty]
-        public string Greeting
-        {
-            get => _greeting;
-            set => SetField(ref _greeting, value);
-        }
+    /// <summary>
+    ///     A writable property for the greeting message
+    /// </summary>
+    [ServiceProperty]
+    public string Greeting { get; set; } = "Hello, World!";
 
-        [ServiceMeasuringPoint]
-        public int TimesGreeted { get; private set; }
+    /// <summary>
+    ///     A measuring point for the number of times greeted
+    /// </summary>
+    [ServiceMeasuringPoint]
+    public int TimesGreeted { get; private set; }
 
+    /// <inheritdoc />
+    public HelloWorld(ILogger<LogicBlockBase> logger) : base(logger)
+    {
+        _logger = logger;
+    }
+
+    /// <summary>
+    ///     Method called by the runtime periodically based on the Timer attribute.
+    /// </summary>
     [Timer(5)]
     public void Greet()
     {
         _logger.LogInformation(Greeting);
         TimesGreeted++;
-        OnPropertyChanged(nameof(TimesGreeted));
+    }
+
+    /// <inheritdoc />
+    protected override void Ready()
+    {
+        _logger.LogInformation($"{nameof(HelloWorld)} is ready.");
     }
 }
 ```
@@ -104,20 +121,16 @@ using Microsoft.Extensions.Logging;
 using System;
 using Dale.Sdk.Core;
 
-namespace VionIotLibraryTemplate
+namespace MyFirstVionLibrary
 {
     public class TemperatureMonitor : LogicBlockBase
     {
         private static readonly Random Random = new();
+        
         private readonly ILogger<LogicBlockBase> _logger;
-        private double _temperatureThreshold = 25.0;
 
-        [ServiceProperty]
-        public double TemperatureThreshold
-        {
-            get => _temperatureThreshold;
-            set => SetField(ref _temperatureThreshold, value);
-        }
+        [ServiceProperty] 
+        public double TemperatureThreshold { get; set; } = 25.0;
 
         [ServiceMeasuringPoint]
         public double CurrentTemperature { get; private set; }
@@ -142,9 +155,6 @@ namespace VionIotLibraryTemplate
             {
                 _logger.LogWarning($"Temperature alert! {CurrentTemperature}°C exceeds threshold of {TemperatureThreshold}°C");
             }
-
-            OnPropertyChanged(nameof(CurrentTemperature));
-            OnPropertyChanged(nameof(IsOverheated));
         }
 
         protected override void Ready()
@@ -274,10 +284,10 @@ Manually navigate to `http://localhost:5000` after starting the DevHost.
 
 ### Build Errors
 
-Ensure you have .NET 9 SDK installed:
+Ensure you have .NET 10 SDK installed:
 
 ```bash
-dotnet --version  # Should be 9.0.x or higher
+dotnet --version  # Should be 10.0.x or higher
 ```
 
 ## Next Steps
