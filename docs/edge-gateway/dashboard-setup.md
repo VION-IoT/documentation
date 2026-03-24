@@ -1,18 +1,40 @@
 ---
-title: Dashboard-Guided Setup
-description: Using the web dashboard to add and configure a new edge gateway device, including what happens behind the scenes.
+title: Dashboard Setup
+description: Configuring and managing an edge gateway after onboarding through the VION Dashboard.
 ---
 
-# Dashboard-Guided Setup
+# Dashboard Setup
 
-## Step-by-Step UI Flow for Adding a New Device
+After [onboarding](/edge-gateway/onboarding), you manage your edge gateway through the Dashboard. This page covers the key tasks after your gateway is connected.
 
-Walkthrough of each screen in the dashboard when onboarding a new device.
+## Navigating to Your Gateway
 
-## What Happens Behind the Scenes
+After onboarding completes, you'll be redirected to your project's logic configuration page. To find your gateway later:
 
-The API calls, certificate exchanges, and configuration steps triggered by the dashboard flow.
+1. Select your **tenant** and **project** from the navigation
+2. Go to **Project → Edge Gateways** to see all connected gateways
 
-## Verifying the Device Is Connected
+## Logic Configuration
 
-How to confirm that a newly added device is online, reporting data, and healthy.
+The logic configuration editor lets you:
+
+- **Deploy logic block libraries** — select and install libraries on the gateway
+- **Create logic block instances** — instantiate blocks from deployed libraries
+- **Wire contracts** — connect logic block contracts to service provider implementations
+- **Link interfaces** — connect logic block interfaces to enable inter-block communication
+- **Configure properties** — set initial values for configurable properties
+
+Changes to the logic configuration are pushed to the gateway in real time.
+
+## Monitoring Gateway Status
+
+The Dashboard shows the current status of each gateway:
+
+- **Connection state** — online / offline
+- **Deployed software** — versions of all deployed components
+- **Service providers** — registered hardware interfaces
+- **Logic block status** — running instances and their health
+
+## Software Updates
+
+Software updates (runtime, Mesh, monitoring agents) are managed through the platform's OTA update system powered by Mender. Updates are deployed from the platform level — no manual SSH access is required after initial onboarding.

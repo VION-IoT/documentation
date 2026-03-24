@@ -1,30 +1,195 @@
 ---
 title: Testing
-description: Writing and running tests for Dale logic blocks using the TestKit, including test contexts, mocking, and property assertions.
+description: Unit testing logic blocks with the Dale TestKit using mocks, test contexts, and assertion helpers.
 ---
 
 # Testing
 
-## TestKit Overview
+The Dale TestKit provides a minimal actor context for unit testing logic blocks. It records messages, mocks dependencies, and exposes helpers for verifying outputs, property changes, timers, and I/O behavior.
 
-What the Dale TestKit provides and why it is the recommended way to test logic blocks.
+## Overview
 
-## LogicBlockTestContext
+- TestKit provides a lightweight actor context that captures all outgoing messages.
+- Built on [Moq](https://github.com/moq/moq4) for mocking dependencies.
+- Tests follow the **Arrange-Act-Assert** pattern.
+- No real runtime or hardware is needed; everything is simulated in-process.
 
-The test context that wraps a logic block under test and provides inspection and control APIs.
+## Quick Start
 
-## LogicBlockTestContextBuilder
+For simple tests where you only need an initialized block:
 
-Using the builder pattern to configure a test context with mocks, initial state, and services.
+```csharp
+var block = new MyBlock(LogicBlockTestHelper.CreateLoggerMock().Object);
+block.InitializeForTest();
+// block is now ready to test
+```
 
-## Mocking Services
+`InitializeForTest()` runs the block through its initialization lifecycle so properties and I/O are wired up and ready.
 
-How to provide mock implementations of services for isolated unit testing.
+## Test Context Builder
 
-## Testing Properties
+For full control over the test environment, use the test context builder. This lets you configure interface mappings, persistent values, and injected services.
 
-Asserting on property values, verifying property change notifications, and testing computed properties.
+```csharp
+var testContext = block.CreateTestContext()
+    .WithLogicInterfaceMapping<IMyInterface>(remoteBlockId)
+    .WithPersistentValue(b => b.SavedValue, 42)
+    .WithServices(services => services.AddSingleton(mockService.Object))
+    .Build();
+```
 
-## Running Tests with `dale test`
+| Method                          | Purpose                                                  |
+|---------------------------------|----------------------------------------------------------|
+| `WithLogicInterfaceMapping`     | Wire a service interface to a remote block ID.           |
+| `WithPersistentValue`           | Pre-load a persisted property value.                     |
+| `WithServices`                  | Register additional services into the DI container.      |
+| `Build`                         | Finalize and return the test context.                    |
 
-Using the CLI to discover and execute tests, and interpreting test output.
+## Verifying Messages
+
+After triggering an action on the block, verify that it sent the expected messages:
+
+```csharp
+testContext.VerifySendRequest<MyRequest>(toId, msg => Assert.Equal(10, msg.Value));
+testContext.VerifySendStateUpdate<MyUpdate>();
+testContext.VerifySendCommand<MyCommand>(toId, times: Times.Once());
+```
+
+- `VerifySendRequest` checks that a request message was sent to a specific target with matching content.
+- `VerifySendStateUpdate` checks that a state update was broadcast.
+- `VerifySendCommand` checks that a command was sent, with optional call-count verification.
+
+## Verifying Property Changes
+
+Verify that service properties and measuring points changed to expected values:
+
+```csharp
+testContext.VerifyServicePropertyChanged(b => b.Temperature, val => Assert.Equal(22.0, val));
+testContext.VerifyServiceMeasuringPointChanged(b => b.Power, val => Assert.True(val > 0));
+```
+
+The lambda selector identifies the property by expression, and the assertion callback validates the new value.
+
+## Testing Timers
+
+Fire timer callbacks manually and inspect their configured intervals:
+
+```csharp
+block.FireTimer(lb => lb.OnTimer());
+var interval = block.GetTimerInterval(lb => lb.OnTimer());
+Assert.Equal(TimeSpan.FromSeconds(5), interval);
+```
+
+- `FireTimer` invokes the timer handler immediately without waiting for the real interval.
+- `GetTimerInterval` returns the `TimeSpan` the block registered for that timer.
+
+## Testing I/O
+
+Simulate hardware input changes and verify output writes:
+
+```csharp
+// Digital I/O
+block.DigitalInput.RaiseInputChanged(true);
+testContext.VerifyDigitalOutputSet(block.Led, true);
+
+// Analog I/O
+block.TemperatureSensor.RaiseInputChanged(22.5);
+testContext.VerifyAnalogOutputSet(block.Heater, value: 0.8, tolerance: 0.1);
+```
+
+- `RaiseInputChanged` simulates a hardware event on an input.
+- `VerifyDigitalOutputSet` asserts that a digital output was set to the expected boolean value.
+- `VerifyAnalogOutputSet` asserts that an analog output was set within a tolerance range.
+
+## Flushing Pending Actions
+
+When your block uses `InvokeSynchronizedAfter` to schedule deferred work, flush those pending actions before asserting:
+
+```csharp
+testContext.FlushPendingActions();
+```
+
+This processes all queued callbacks synchronously so you can verify their side effects immediately.
+
+## Complete Example
+
+A full test class for the PingPong sample, testing initialization, message handling, pause behavior, and timer interaction:
+
+```csharp
+public class PingBlockTests
+{
+    private readonly PingBlock _block;
+    private readonly LogicBlockTestContext _testContext;
+    private readonly LogicBlockId _pongBlockId = new("pong-block-1");
+
+    public PingBlockTests()
+    {
+        _block = new PingBlock(LogicBlockTestHelper.CreateLoggerMock().Object);
+        _testContext = _block.CreateTestContext()
+            .WithLogicInterfaceMapping<IPong>(_pongBlockId)
+            .WithPersistentValue(b => b.TotalPings, 0)
+            .Build();
+    }
+
+    [Fact]
+    public void InitialState_PingsPerSecondIsZero()
+    {
+        Assert.Equal(0, _block.PingsPerSecond);
+        Assert.False(_block.Pause);
+    }
+
+    [Fact]
+    public void SendsPingOnTimer()
+    {
+        _block.FireTimer(lb => lb.OnPingTimer());
+
+        _testContext.VerifySendRequest<PingRequest>(
+            _pongBlockId,
+            msg => Assert.True(msg.Timestamp > 0));
+    }
+
+    [Fact]
+    public void PauseStopsSendingPings()
+    {
+        _block.Pause = true;
+
+        _block.FireTimer(lb => lb.OnPingTimer());
+
+        _testContext.VerifySendRequest<PingRequest>(
+            _pongBlockId, times: Times.Never());
+    }
+
+    [Fact]
+    public void ReceivingPongUpdatesMeasuringPoint()
+    {
+        _block.HandleResponse(new PongResponse { PingId = 1 });
+
+        _testContext.VerifyServiceMeasuringPointChanged(
+            b => b.PingsPerSecond,
+            val => Assert.True(val > 0));
+    }
+
+    [Fact]
+    public void TimerIntervalIsFiveSeconds()
+    {
+        var interval = _block.GetTimerInterval(lb => lb.OnPingTimer());
+        Assert.Equal(TimeSpan.FromSeconds(5), interval);
+    }
+
+    [Fact]
+    public void PersistentValueIsRestored()
+    {
+        Assert.Equal(0, _block.TotalPings);
+    }
+}
+```
+
+## Running Tests
+
+Run all tests in your Dale project from the command line:
+
+```bash
+dale test
+```
+
+This discovers and executes all test projects in the solution, reporting results to the console.

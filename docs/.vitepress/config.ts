@@ -29,13 +29,21 @@ export default withMermaid(
       siteTitle: 'Docs',
 
       nav: [
-        { text: 'Guide', link: '/introduction/what-is-vion' },
+        { text: 'Introduction', link: '/introduction/what-is-vion' },
         { text: 'SDK', link: '/sdk/installation' },
-        { text: 'Cloud API', link: '/cloud-api/authentication' },
+        { text: 'Edge Gateway', link: '/edge-gateway/supported-devices' },
         {
-          text: 'Resources',
+          text: 'More',
           items: [
-            { text: 'API Reference (Scalar)', link: 'https://cloudapi.test.ecocoa.ch/scalar/v1', target: '_blank' },
+            { text: 'Cloud API', link: '/cloud-api/authentication' },
+            { text: 'Observability', link: '/observability/overview' },
+            { text: 'AI-Assisted Development', link: '/agentic/' },
+          ],
+        },
+        {
+          text: 'API Reference',
+          items: [
+            { text: 'Cloud API (Scalar)', link: 'https://cloudapi.test.ecocoa.ch/scalar/v1', target: '_blank' },
             { text: 'SDK API Reference', link: '/api-reference/' },
           ],
         },
@@ -59,12 +67,11 @@ export default withMermaid(
               { text: 'Installation & CLI', link: '/sdk/installation' },
               { text: 'Logic Blocks', link: '/sdk/logic-blocks' },
               { text: 'Properties & Measuring Points', link: '/sdk/properties' },
-              { text: 'Services & I/O', link: '/sdk/services' },
+              { text: 'Service Provider Contracts', link: '/sdk/services' },
               { text: 'Logic Interfaces', link: '/sdk/logic-interfaces' },
               { text: 'Persistence', link: '/sdk/persistence' },
               { text: 'Testing', link: '/sdk/testing' },
-              { text: 'Publishing', link: '/sdk/publishing' },
-              { text: 'CI/CD', link: '/sdk/ci-cd' },
+              { text: 'Publishing & CI/CD', link: '/sdk/publishing' },
             ],
           },
         ],

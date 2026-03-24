@@ -1,30 +1,209 @@
 ---
-title: Services & I/O
-description: Defining services with the Service attribute, working with service contracts, digital and analog I/O, and binding to service providers.
+title: Service Provider Contracts
+description: Connecting logic blocks to external hardware and services through service provider contracts — digital and analog I/O, Modbus, and custom providers.
 ---
 
-# Services & I/O
+# Service Provider Contracts
 
-## The `[Service]` Attribute
+Service provider contracts connect logic blocks to external service providers — hardware abstraction layers (HAL), protocol adapters (Modbus RTU), or any custom integration. The provider runs as a separate process on the edge gateway and communicates with the Dale runtime over MQTT.
 
-How to declare a service and what metadata the attribute accepts.
+## Built-in I/O Interfaces
 
-## Service Contracts
+Dale provides built-in interfaces for common I/O types:
 
-Defining the interface contract that a service exposes to consumers.
+| Interface | Description | Value Type |
+|-----------|-------------|------------|
+| `IDigitalInput` | Boolean input (button, switch, contact) | `bool` |
+| `IDigitalOutput` | Boolean output (LED, relay, valve) | `bool` |
+| `IAnalogInput` | Numeric input (temperature sensor, light sensor) | `double` |
+| `IAnalogOutput` | Numeric output (dimmer, valve position, fan speed) | `double` |
 
-## Digital I/O
+### Declaring I/O Contracts
 
-Working with digital inputs and outputs (on/off, true/false signals).
+Use `[ServiceProviderContract]` on a property to declare the I/O binding. The `defaultName` provides a human-readable label shown in the Dashboard during wiring.
 
-## Analog I/O
+```csharp
+[LogicBlockInfo("Toggle Light")]
+public class ToggleLightBlock : LogicBlockBase
+{
+    public ToggleLightBlock(ILogger logger) : base(logger) { }
 
-Working with analog inputs and outputs (continuous value signals).
+    [ServiceProviderContract(defaultName: "Button")]
+    public IDigitalInput Button { get; set; } = null!;
 
-## Binding to Service Providers
+    [ServiceProviderContract(defaultName: "LED")]
+    public IDigitalOutput Led { get; set; } = null!;
 
-How logic blocks discover and bind to service provider implementations at runtime.
+    [ServiceProperty("LED Enabled")]
+    [Importance(Importance.Primary)]
+    public bool LedEnabled { get; private set; }
 
-## The `[IoAttribute]`
+    protected override void Ready()
+    {
+        Button.InputChanged += (sender, value) =>
+        {
+            LedEnabled = value;
+            Led.Set(value);
+        };
+    }
+}
+```
 
-Decorating I/O points with `[IoAttribute]` to define direction, type, and metadata.
+### Handling Input Events
+
+Subscribe to `InputChanged` in the `Ready()` lifecycle method. The event fires whenever the physical (or simulated) input changes state.
+
+```csharp
+protected override void Ready()
+{
+    // Digital: value is a bool
+    Button.InputChanged += (sender, value) =>
+    {
+        Led.Set(value);
+    };
+
+    // Analog: value is a double
+    TemperatureSensor.InputChanged += (sender, value) =>
+    {
+        CurrentTemperature = value;
+        if (value > Threshold)
+            HeaterOutput.Set(0.0);
+    };
+}
+```
+
+### Writing to Outputs
+
+Call `Set()` on an output property at any time:
+
+```csharp
+Led.Set(true);
+HeaterOutput.Set(0.75); // 75% power
+```
+
+## Modbus RTU Example
+
+The `Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. You declare it with `[ServiceProviderContract]`, the runtime injects an implementation, and you use it to read and write Modbus registers directly.
+
+```csharp
+[LogicBlockInfo("EM122 Electricity Meter", "flashlight-line")]
+public class Em122ElectricityMeter : LogicBlockBase
+{
+    public Em122ElectricityMeter(ILogger logger) : base(logger) { }
+
+    [ServiceProviderContract("Modbus", "EM122 Modbus RTU")]
+    public IModbusRtu Modbus { get; set; } = null!;
+
+    [ServiceProperty("Unit ID")]
+    [Category(PropertyCategory.Configuration)]
+    public int UnitId { get; set; } = 1;
+
+    [ServiceProperty("Voltage L1", "V")]
+    [ServiceMeasuringPoint("Voltage L1", "V")]
+    public double VoltageL1 { get; private set; }
+
+    [ServiceProperty("Voltage L2", "V")]
+    [ServiceMeasuringPoint("Voltage L2", "V")]
+    public double VoltageL2 { get; private set; }
+
+    [ServiceProperty("Voltage L3", "V")]
+    [ServiceMeasuringPoint("Voltage L3", "V")]
+    public double VoltageL3 { get; private set; }
+
+    [ServiceProperty("Read Count")]
+    public int ReadCount { get; private set; }
+
+    [ServiceProperty("Error Count")]
+    public int ErrorCount { get; private set; }
+
+    protected override void Ready()
+    {
+        Modbus.IsEnabled = true;
+    }
+
+    // Poll every 2 seconds
+    [Timer(2)]
+    public void Poll()
+    {
+        // Batch read: 3 contiguous float registers starting at address 0
+        Modbus.ReadInputRegistersAsFloat(
+            UnitId,
+            startingAddress: 0,
+            quantity: 3,
+            successCallback: values =>
+            {
+                VoltageL1 = values[0];
+                VoltageL2 = values[1];
+                VoltageL3 = values[2];
+                ReadCount++;
+            },
+            errorCallback: OnError);
+    }
+
+    private void OnError(Exception ex)
+    {
+        ErrorCount++;
+        Logger.LogWarning(ex, "Modbus error at unit {UnitId}", UnitId);
+    }
+}
+```
+
+The `IModbusRtu` interface provides typed read/write methods for all standard Modbus operations:
+
+| Method | Modbus Function |
+|--------|----------------|
+| `ReadDiscreteInputs` | FC 2 — read discrete inputs |
+| `ReadCoils` / `WriteSingleCoil` / `WriteMultipleCoils` | FC 1, 5, 15 — coils |
+| `ReadInputRegistersAs{Float,Int,Short,...}` | FC 4 — read input registers |
+| `ReadHoldingRegistersAs{Float,Int,Short,...}` | FC 3 — read holding registers |
+| `WriteSingleHoldingRegister` / `WriteMultipleHoldingRegistersAs{Float,...}` | FC 6, 16 — write holding registers |
+
+All operations are callback-based and support configurable byte order, word order, and operation timeout:
+
+```csharp
+// Write a holding register with explicit byte order
+Modbus.WriteMultipleHoldingRegistersAsFloat(
+    UnitId,
+    registerAddress: 2,
+    values: new[] { 15.0f },
+    successCallback: () => Logger.LogInformation("Register written"),
+    errorCallback: OnError,
+    byteOrder: ByteOrder.MsbToLsb);
+```
+
+## Cardinality and Sharing
+
+Service provider contracts support cardinality and sharing options to control how many providers can be connected and whether they can be shared across blocks.
+
+### Cardinality
+
+| Value | Description |
+|-------|-------------|
+| `CardinalityType.Mandatory` | Exactly one provider must be connected (default). |
+| `CardinalityType.Optional` | Zero or one provider may be connected. |
+| `CardinalityType.Multiple` | Multiple providers can be connected. |
+
+### Sharing
+
+| Value | Description |
+|-------|-------------|
+| `SharingType.Shared` | Provider can be used by multiple blocks (default). |
+| `SharingType.Exclusive` | Provider is reserved for this block only. |
+
+```csharp
+[ServiceProviderContract(
+    defaultName: "Sensor",
+    cardinality: CardinalityType.Optional,
+    sharing: SharingType.Exclusive)]
+public IAnalogInput OptionalSensor { get; set; } = null!;
+```
+
+## Custom Service Providers
+
+::: tip
+It is possible to build your own service providers using the Dale SDK. A service provider is a standalone process that communicates with the Dale runtime over the local MQTT broker. Dale provides the topic infrastructure for safe message exchange but makes no assumptions about the payload format — you choose whatever serialization fits your use case.
+
+The [hal-sim](https://github.com/vion-iot/hal-sim) reference implementation demonstrates the full pattern — from declaring services and properties to handling state synchronization.
+
+Custom service providers are an advanced topic and will be documented separately.
+:::

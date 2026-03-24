@@ -1,22 +1,41 @@
 ---
 title: Supported Devices
-description: Hardware requirements, tested platforms, and network and OS prerequisites for running the VION edge gateway.
+description: Hardware requirements and tested devices for VION edge gateways.
 ---
 
 # Supported Devices
 
-## Hardware Requirements
+VION edge gateways run on any Linux device capable of running Docker. The platform is designed to be hardware-agnostic — if it runs Linux and has network access, it can likely be a VION edge gateway.
 
-Minimum CPU, RAM, and storage specifications for running the edge gateway.
+## Requirements
 
-## Tested Platforms
+| Requirement | Minimum |
+|-------------|---------|
+| **OS** | Debian-based Linux (Debian, Raspberry Pi OS, Ubuntu) |
+| **RAM** | 256 MB |
+| **Storage** | 4 GB free disk space |
+| **Network** | Internet access (HTTPS outbound) |
+| **Access** | SSH access for initial setup |
+| **Runtime** | Docker & Docker Compose (installed during setup) |
 
-List of hardware platforms that have been validated for production use.
+## Tested Devices
 
-## Network Requirements
+The following devices have been tested and are known to work well:
 
-Required network connectivity, ports, protocols, and firewall rules.
+| Device | Model | Architecture | Notes |
+|--------|-------|-------------|-------|
+| **Raspberry Pi 3** | Model B, B+ | armhf | Minimum viable hardware |
+| **Raspberry Pi 4** | Model B (2/4/8 GB) | arm64 | Recommended for development |
+| **Raspberry Pi 5** | All models | arm64 | Best performance |
+| **WAGO PFC200** | 750-8212, 750-8214 | armhf | Industrial PLC, Linux variant |
+| **Beckhoff CX** | CX9020 (Linux) | x86_64 | Industrial embedded PC |
 
-## OS Requirements
+::: tip Other Hardware
+If your target device is not listed above but meets the requirements, it will likely work. [Contact VION](https://vion.swiss) for compatibility verification and support for additional hardware platforms.
+:::
 
-Supported operating systems and versions, plus any required system-level dependencies.
+## Simulation Mode
+
+For evaluation and development, VION offers a **simulated edge gateway** that runs entirely in the cloud. No physical hardware is required — the platform spins up a simulated gateway environment that behaves like a real device.
+
+Select **Simulation** during the onboarding wizard in the Dashboard to get started without hardware.
