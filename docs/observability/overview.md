@@ -1,18 +1,51 @@
 ---
 title: Observability Overview
-description: Architecture overview of the VION observability stack, including Grafana, Prometheus, Mimir, and Alloy, and how data flows from devices to dashboards.
+description: Architecture of the VION observability stack and how telemetry flows from edge devices to dashboards.
 ---
 
 # Observability Overview
 
+VION provides a built-in observability stack that collects metrics, logs, and traces from your edge gateways and makes them available through Grafana dashboards.
+
 ## Architecture
 
-High-level diagram and description of the observability stack (Grafana, Prometheus, Mimir, Alloy) and how they interact.
+```mermaid
+flowchart LR
+    subgraph Edge["Edge Gateway"]
+        Dale["Dale Runtime"]
+        Mesh["Mesh Gateway"]
+        Alloy["Alloy Agent"]
+    end
 
-## What Data Is Collected
+    subgraph Cloud["VION Cloud"]
+        Mimir["Mimir<br/>(Metrics)"]
+        Loki["Loki<br/>(Logs)"]
+        Grafana["Grafana<br/>(Dashboards)"]
+    end
 
-The types of metrics, logs, and traces collected from edge devices and cloud services.
+    Dale -->|"OTLP"| Alloy
+    Mesh -->|"OTLP"| Alloy
+    Alloy -->|"Metrics"| Mimir
+    Alloy -->|"Logs"| Loki
+    Mimir --> Grafana
+    Loki --> Grafana
+```
 
-## Data Flow from Device to Dashboards
+## Data Flow
 
-How telemetry data moves from an edge device through Alloy, into Mimir, and becomes queryable in Grafana.
+1. **Edge components** (Dale runtime, Mesh gateway) emit telemetry via the OpenTelemetry Protocol (OTLP)
+2. **Alloy** (the OpenTelemetry collector running on the gateway) receives, batches, and forwards telemetry to the cloud
+3. **Mimir** stores metrics (Prometheus-compatible) and **Loki** stores logs
+4. **Grafana** provides dashboards to query and visualize the data
+
+## What Data Is Available
+
+| Data Type | Source | Storage | Query Language |
+|-----------|--------|---------|----------------|
+| **Metrics** | Gateway health, component uptime | Mimir | PromQL |
+| **Logs** | Structured logs from all edge components | Loki | LogQL |
+| **Traces** | Distributed traces across components | OpenTelemetry Collector | — |
+
+## Tenant Isolation
+
+All telemetry data is tagged with a `tenant_id` label. Each tenant can only see their own data — isolation is enforced at the Grafana level through teams and folders.

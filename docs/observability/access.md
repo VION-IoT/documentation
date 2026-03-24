@@ -1,22 +1,49 @@
 ---
 title: Accessing Grafana
-description: How to authenticate with Grafana, understand the URL structure, navigate permissions, and find available data sources.
+description: How to authenticate with Grafana and navigate the VION observability dashboards.
 ---
 
 # Accessing Grafana
 
+## URL
+
+Access Grafana at:
+
+| Environment | URL |
+|-------------|-----|
+| Test | `https://grafana.test.ecocoa.ch` |
+| Staging | `https://grafana.staging.ecocoa.ch` |
+| Production | `https://grafana.ecocoa.ch` |
+
 ## Authentication
 
-How to log in to Grafana and which identity provider is used.
+Grafana uses the same **Keycloak** identity provider as the rest of the VION platform. Log in with your VION account credentials via OAuth — no separate Grafana password is needed.
 
-## URL Structure
+Your Grafana account is automatically provisioned when you are added to a tenant.
 
-How Grafana URLs are organized (org, dashboard, panel) and how to construct direct links.
+## Permissions
 
-## Permissions Model
+| Role | What You Can Do |
+|------|----------------|
+| **Viewer** | View dashboards and data for your tenant |
+| **Editor** | Create custom dashboards, modify panels |
 
-Roles and permissions that control who can view, edit, and create dashboards.
+By default, tenant members are assigned the **Viewer** role. Contact your platform administrator for elevated access.
 
-## Available Data Sources
+## Navigation
 
-The pre-configured data sources (Mimir, Prometheus) and what each one provides.
+After login, you'll see your tenant's folder in the Grafana sidebar. Each tenant has a dedicated folder containing their pre-built dashboards:
+
+- **Overview** — gateway uptime, active gateways, error rate
+- **Logs** — searchable log stream from all edge components
+
+## Data Sources
+
+Two data sources are pre-configured:
+
+| Data Source | Type | What It Contains |
+|-------------|------|-----------------|
+| **Mimir** | Prometheus-compatible | Metrics (uptime, health, custom) |
+| **Loki** | Log aggregation | Structured logs from edge gateways |
+
+When creating custom dashboards or panels, select the appropriate data source for your query.

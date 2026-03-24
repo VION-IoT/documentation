@@ -1,26 +1,105 @@
 ---
 title: Integration Examples
-description: Practical code and curl examples for common VION Cloud API operations, including listing services, setting properties, and subscribing to events.
+description: Practical curl examples for common VION Cloud API operations.
 ---
 
 # Integration Examples
 
-## List Services for a Node
+These examples show common API operations using `curl`. All examples assume you have an access token (see [Authentication](/cloud-api/authentication)).
 
-How to retrieve all services associated with a specific node (curl and code example).
+For the full API reference, see the [Scalar API Documentation](https://cloudapi.test.ecocoa.ch/scalar/v1).
+
+```bash
+# Set these for the examples below
+TOKEN="<your-access-token>"
+API="https://cloudapi.test.ecocoa.ch"
+TENANT_ID="<your-tenant-id>"
+```
+
+::: tip Finding Your IDs
+Call `GET /Me` to see your tenant and integrator memberships with their IDs:
+```bash
+curl -H "Authorization: Bearer $TOKEN" $API/Me
+```
+:::
+
+## Get All Services
+
+Retrieve the complete service topology for a tenant — all services, properties, measuring points, and their current values:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  $API/Tenant/$TENANT_ID/Services
+```
+
+The response includes services grouped by edge gateway, with properties and measuring points nested under each service.
 
 ## Set a Property Value
 
-How to update a service property value via the API (curl and code example).
+Set a property on a specific service. You need the edge gateway ID, service provider identifier, service identifier, and property identifier:
 
-## Get Device Status
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "value": 22.5 }' \
+  "$API/Tenant/$TENANT_ID/Services/{edgeGatewayId}/{serviceProviderIdentifier}/{serviceIdentifier}/property/{propertyIdentifier}"
+```
 
-How to query the current status of an edge device (curl and code example).
+The value type must match the property type defined in the logic block (number, boolean, string, or enum).
 
-## Subscribe to Events
+## Subscribe to Property Updates
 
-How to set up an event subscription to receive real-time updates (curl and code example).
+Subscribe to receive real-time property value changes via MQTT:
 
-## Read a Measuring Point
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subscriptions": [
+      {
+        "edgeGatewayId": "<gateway-id>",
+        "serviceProviderIdentifier": "<sp-id>",
+        "serviceIdentifier": "<service-id>",
+        "propertyIdentifiers": ["Temperature", "Humidity"]
+      }
+    ]
+  }' \
+  "$API/Tenant/$TENANT_ID/Services/subscribeProperties"
+```
 
-How to retrieve the current value of a measuring point (curl and code example).
+## Query Measuring Point Data
+
+Retrieve time-series data for measuring points within a time range:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/Tenant/$TENANT_ID/MeasuringPoints/data?\
+timeRangeStart=2026-03-01T00:00:00Z&\
+timeRangeEnd=2026-03-24T00:00:00Z&\
+edgeGatewayIds={gatewayId}&\
+serviceProviderIdentifiers={spId}&\
+serviceIdentifiers={serviceId}&\
+measuringPointIdentifiers=Power,Energy"
+```
+
+## List Projects
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  $API/Tenant/$TENANT_ID/Projects
+```
+
+## List Logic Configurations
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  $API/Tenant/$TENANT_ID/LogicConfigurations
+```
+
+## Full API Reference
+
+These examples cover the most common operations. For the complete API with all endpoints, request/response schemas, and interactive testing:
+
+→ **[Scalar API Reference](https://cloudapi.test.ecocoa.ch/scalar/v1)**
