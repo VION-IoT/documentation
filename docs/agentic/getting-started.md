@@ -18,45 +18,26 @@ Create a new project with the Dale CLI:
 dale new MyProject
 ```
 
-This scaffolds a complete project with a library, DevHost, and test project. The AI agent can immediately start working.
+This scaffolds a complete project with a library, DevHost, and test project — including tailored **AGENTS.md** and **CLAUDE.md** files that give AI agents immediate context.
 
-## Give the Agent Context
+## Agent Context (Included Automatically)
 
-The most important step is giving your AI agent context about the Dale SDK. Two approaches:
+Projects created with `dale new` include an `AGENTS.md` file with:
 
-### Option 1: CLAUDE.md / AGENTS.md (Recommended)
+- All CLI commands and their usage
+- SDK conventions and attribute reference table
+- Project structure explanation
+- Code style rules (explicit usings, nullable enabled, netstandard2.1)
+- Common patterns (property change tracking, persistence, timers)
+- DevHost instructions
 
-Create a `CLAUDE.md` (or `AGENTS.md`) file in your project root. This file is automatically read by Claude Code and other AI tools that support it:
+A `CLAUDE.md` file is also included that references `AGENTS.md`, so Claude Code picks it up automatically. Other tools like Cursor and Windsurf read `AGENTS.md` directly.
 
-```markdown
-# MyProject
+::: tip
+If you're working on an existing project that doesn't have these files, run `dale new` in a temp directory and copy the generated `AGENTS.md` as a starting point. Customize it for your project's specific logic blocks and domain.
+:::
 
-Dale LogicBlock library for building automation.
-
-## Commands
-- `dale build` — Build the project
-- `dale test` — Run tests
-- `dale list --output json` — Introspect logic blocks
-- `dale dev` — Start DevHost with web UI at http://localhost:5000
-- `dale add logicblock <Name>` — Add a new logic block
-- `dale add serviceproperty <Name> --type <type>` — Add a property
-- `dale add measuringpoint <Name> --type <type>` — Add a measuring point
-- `dale add timer <MethodName> --interval <seconds>` — Add a timer
-
-## Patterns
-- Logic blocks extend `LogicBlockBase`
-- Properties use `[ServiceProperty]` and `[ServiceMeasuringPoint]` attributes
-- Hardware I/O uses `[ServiceProviderContract]` with interfaces like `IDigitalInput`
-- Inter-block communication uses contracts with `[Command]`, `[RequestResponse]`, `[StateUpdate]`
-- Tests use `LogicBlockTestHelper.CreateLoggerMock()` and `.InitializeForTest()`
-- Override `Ready()` to attach event handlers — it runs when the block is fully initialized
-
-## Build & Test
-Always run `dale build` after changes to check for errors.
-Always run `dale test` to verify logic.
-```
-
-### Option 2: Project Introspection
+## Project Introspection
 
 Have the agent run `dale list --output json` to understand the current project structure:
 

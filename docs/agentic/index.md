@@ -51,6 +51,31 @@ An AI agent with access to the Dale CLI and SDK documentation can:
 
 This workflow turns natural-language requirements into deployed IoT logic in minutes.
 
+## Agent-Ready Out of the Box
+
+When you scaffold a new project with `dale new`, the generated project includes tailored **AGENTS.md** and **CLAUDE.md** files. These files give AI agents immediate context about:
+
+- All available CLI commands
+- SDK conventions and attribute patterns
+- Project structure (library, test, DevHost)
+- Code style rules and common patterns
+- Persistence behavior and property conventions
+
+Any AI coding tool that supports agent instruction files (Claude Code, Cursor, Windsurf, etc.) will automatically pick up these conventions when opening the project.
+
+## Example Projects
+
+The [Dale repository](https://github.com/vion-iot/dale) includes complete example projects you can study or use as a starting point:
+
+| Example | What It Demonstrates |
+|---------|---------------------|
+| **PingPong** | Inter-block communication with contracts, commands, and state updates |
+| **ToggleLight** | Digital I/O with `IDigitalInput` and `IDigitalOutput` service provider contracts |
+| **Energy** | Complex multi-block energy management with batteries, PV, and grid simulation |
+| **ModbusRtu** | Reading Modbus RTU registers from an electricity meter (EM122) |
+
+These examples include tests and DevHost configurations — point an AI agent at one and ask it to explain, extend, or use it as a template.
+
 ## Tool-Agnostic
 
 This approach works with any AI coding tool that can run shell commands and edit files. The Dale CLI and SDK don't depend on any specific AI product — they provide the structure and feedback loop that any agent can use.
