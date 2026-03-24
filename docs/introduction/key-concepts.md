@@ -1,74 +1,89 @@
 ---
 title: Key Concepts
-description: Core terminology and mental model for the VION platform.
+description: The design principles and mental model behind the VION platform.
 ---
 
 # Key Concepts
 
-Understanding these concepts will help you work effectively with the VION platform.
+## Actor-Based Logic
 
-## Logic Block
+Every logic block in Dale is an **actor** — an isolated unit of computation with its own state that processes messages one at a time. This means:
 
-The fundamental building unit in Dale. A logic block is an **actor** — an independent unit of computation that:
-- Has its own state (properties, measuring points)
-- Processes messages asynchronously
-- Communicates with other logic blocks via logic interfaces
-- Binds to hardware or external systems via services
+- **No shared state** — logic blocks cannot directly access each other's data
+- **No locks or threading issues** — the runtime guarantees single-threaded execution per block
+- **Message-driven communication** — blocks exchange typed messages through contracts
 
-Logic blocks are defined as C# classes extending `LogicBlockBase` and decorated with attributes.
+You don't need to think about concurrency. Write straightforward sequential code and the runtime handles the rest. This is what makes Dale logic blocks reliable in production — even when dozens of blocks run on the same gateway.
 
-## Property
+## Declarative, Attribute-Driven Design
 
-An observable, configurable value on a logic block. Properties are the primary interface between logic blocks and the outside world (dashboard, cloud, other blocks).
+Dale uses C# attributes to describe what a logic block does rather than how the runtime should manage it:
 
-- Decorated with `[ServiceProperty]`
-- Can be read/written from the cloud and dashboard
-- Support categories, units, and display hints
-- Can be marked `[Persistent]` for state recovery after restart
+```csharp
+[ServiceProperty("Temperature", "°C")]
+[ServiceMeasuringPoint("Temperature", "°C")]
+[Importance(Importance.Primary)]
+public double Temperature { get; private set; }
+```
 
-## Measuring Point
+This single declaration tells the runtime to:
+- Expose a property called "Temperature" with unit °C
+- Publish its value as telemetry
+- Display it prominently in the Dashboard
 
-A read-only observable value, typically representing sensor data or computed metrics. Similar to properties but designed for telemetry — high-frequency data that flows from edge to cloud.
+The runtime, cloud, and UI all derive their behavior from these attributes. You declare intent once — everything else follows.
 
-## Service
+## Batteries Included
 
-A typed contract between a logic block and a **service provider** (hardware abstraction or external system). Services define the I/O interface:
-- Digital and analog inputs/outputs
-- Custom typed data channels
-- Declared with `[Service]` attribute and bound at configuration time
+VION provides a complete toolchain, not just an SDK:
 
-## Service Provider
+| Tool | Purpose |
+|------|---------|
+| **Dale CLI** | Scaffold, build, test, introspect, and publish — all from the command line |
+| **DevHost** | Run and debug logic blocks locally with a web UI, no hardware needed |
+| **TestKit** | Unit test logic blocks with a lightweight actor context, mocks, and assertions |
+| **Observability** | Grafana dashboards with metrics and logs from every gateway, out of the box |
 
-An external process that implements one or more service contracts. Service providers bridge the gap between Dale logic and the physical world:
-- Hardware Abstraction Layers (GPIO, Modbus, BACnet, etc.)
-- Protocol adapters
-- Simulated devices for testing
+The goal is that you go from idea to deployed IoT logic as fast as possible, without having to set up infrastructure.
 
-Service providers communicate with Dale via MQTT using FlatBuffers serialization.
+## Modern .NET
 
-## Logic Interface
+Dale embraces the .NET ecosystem rather than fighting it:
 
-A communication channel between logic blocks. Logic interfaces enable:
-- **Commands** — fire-and-forget messages
-- **Request/Response** — synchronous-style queries between blocks
-- **State updates** — one-to-many notifications
+- **Dependency injection** — logic blocks and services are registered in a standard `IServiceCollection`
+- **Standard logging** — `ILogger` everywhere, structured logging with OpenTelemetry
+- **NuGet packaging** — logic block libraries are standard NuGet packages
+- **Unit testing** — MSTest or any test framework, with the TestKit providing the actor harness
 
-Defined with `[Interface]` and connected at configuration time in the dashboard.
+If you know .NET, you already know how to build with Dale. There's no proprietary build system, no custom project format, no special IDE.
 
-## DevHost
+## Edge-First, Cloud-Connected
 
-A local development server that runs Dale logic blocks on your machine with a web UI. Allows you to:
-- Inspect and modify property values in real-time
-- Simulate service provider inputs
-- Debug logic block behavior without a physical device
+Logic runs on the edge gateway, not in the cloud. This means:
 
-## Node
+- **Low latency** — control loops execute locally in milliseconds
+- **Offline resilience** — logic continues running when the cloud is unreachable
+- **Data efficiency** — only relevant state changes are synced to the cloud
 
-A logical representation of an edge gateway in the VION cloud. Each node:
-- Runs a Dale runtime, Mesh gateway, and service providers
-- Has a unique identity and certificate
-- Belongs to a project within a tenant
+The cloud provides configuration management, monitoring, OTA updates, and a Dashboard — but the intelligence lives on the edge.
 
-## Project
+## Multi-Tenancy and RBAC
 
-A grouping of nodes within a tenant. Projects organize related devices — for example, all gateways in a single building or installation.
+The platform is built for system integrators serving multiple customers:
+
+- **Platform** → manages integrators
+- **Integrator** → your organization, manages tenants and develops logic block libraries
+- **Tenant** → your customer, manages their projects and gateways
+
+Each level has its own roles and permissions. A developer at the integrator level can publish libraries. An operator at the tenant level can configure and monitor gateways. Access is enforced at every layer — API, Dashboard, and CLI.
+
+## Agent-Ready Development
+
+The Dale CLI and SDK are designed with AI coding agents in mind:
+
+- **`dale new`** scaffolds a project with AGENTS.md and CLAUDE.md files for immediate AI agent context
+- **`dale list --output json`** gives agents machine-readable project introspection
+- **`dale add`** commands let agents scaffold code without writing boilerplate
+- **`dale build` / `dale test`** provide a fast feedback loop for iterative development
+
+The attribute-based, strongly-typed design gives AI agents clear patterns to follow — reducing hallucination and increasing reliability of generated code.
