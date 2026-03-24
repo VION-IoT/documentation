@@ -1,0 +1,77 @@
+/*
+ * VION Design Tokens
+ * Extracted from dashboard2/src/css/tokens.scss
+ * Source of truth: C:/_gh/dashboard2/src/css/tokens.scss
+ */
+
+@font-face {
+  font-family: 'Mona Sans';
+  src: url('/fonts/MonaSans-VariableFont_wdth,wght.ttf') format('truetype');
+  font-weight: 200 900;
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Primitive Colors */
+  --vion-color-off-white: #ffffff;
+  --vion-color-off-black: #000000;
+
+  /* Carrara (Warm Neutral) */
+  --vion-color-carrara-50: #f6f7f5;
+  --vion-color-carrara-100: #ebede8;
+  --vion-color-carrara-200: #d6d9cf;
+  --vion-color-carrara-300: #bbc1b0;
+  --vion-color-carrara-400: #a1a790;
+  --vion-color-carrara-500: #84896d;
+  --vion-color-carrara-600: #70725c;
+  --vion-color-carrara-700: #5d5e4e;
+  --vion-color-carrara-800: #4c4d41;
+  --vion-color-carrara-900: #282921;
+  --vion-color-carrara-950: #282921;
+
+  /* Wild Sand (Cool Neutral) */
+  --vion-color-wild-sand-50: #fafafa;
+  --vion-color-wild-sand-100: #f5f5f5;
+  --vion-color-wild-sand-200: #e7e5e4;
+  --vion-color-wild-sand-300: #d6d3d1;
+  --vion-color-wild-sand-400: #a8a29e;
+  --vion-color-wild-sand-500: #78716b;
+  --vion-color-wild-sand-600: #58534d;
+  --vion-color-wild-sand-700: #45403c;
+  --vion-color-wild-sand-800: #292524;
+  --vion-color-wild-sand-900: #1c1917;
+  --vion-color-wild-sand-950: #0b0a09;
+
+  /* Jagged Ice (Accent Teal) */
+  --vion-color-jagged-ice-50: #ecfbfa;
+  --vion-color-jagged-ice-100: #dcf2f1;
+  --vion-color-jagged-ice-200: #bde4e5;
+  --vion-color-jagged-ice-300: #8fcfd1;
+  --vion-color-jagged-ice-400: #52aeb2;
+  --vion-color-jagged-ice-500: #3f969b;
+  --vion-color-jagged-ice-600: #377c83;
+  --vion-color-jagged-ice-700: #32656c;
+  --vion-color-jagged-ice-800: #2f545b;
+  --vion-color-jagged-ice-900: #2b474e;
+  --vion-color-jagged-ice-950: #192f33;
+
+  /* Typography */
+  --vion-font-family: 'Mona Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --vion-font-weight-normal: 500;
+  --vion-font-weight-emphasized: 600;
+
+  /* Spacing */
+  --vion-padding-4: 4px;
+  --vion-padding-8: 8px;
+  --vion-padding-12: 12px;
+  --vion-padding-16: 16px;
+  --vion-padding-24: 24px;
+  --vion-padding-32: 32px;
+
+  /* Border Radius */
+  --vion-border-radius-sm: 4px;
+  --vion-border-radius-md: 8px;
+  --vion-border-radius-lg: 12px;
+}

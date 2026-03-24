@@ -1,0 +1,258 @@
+---
+title: Installation & CLI
+description: Install the Dale CLI and use it to scaffold, build, test, and publish logic block libraries.
+---
+
+# Installation & CLI
+
+::: warning Early Access
+The Dale CLI is currently distributed via a private Azure Artifacts feed. It will move to [nuget.org](https://www.nuget.org/) for public availability. Contact your VION representative for access.
+:::
+
+## Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
+
+## Install
+
+```bash
+dotnet tool install -g Dale.Cli
+```
+
+Verify the installation:
+
+```bash
+dale --version
+# dale 0.1.60 - Vion IoT
+```
+
+## Commands
+
+### `dale new` — Scaffold a Project
+
+Creates a new logic block library with DevHost and test projects.
+
+```bash
+dale new MyLibrary
+```
+
+Output:
+```
+✔ Created MyLibrary
+
+    MyLibrary/MyLibrary.csproj              (logic block library)
+    MyLibrary/MyLibrary.DevHost.csproj       (local dev host with web UI)
+    MyLibrary/MyLibrary.Test.csproj          (tests)
+
+  Next steps:
+    cd MyLibrary
+    dale build
+    dale test
+    dale dev                                (web UI at localhost:5000)
+```
+
+Use `--no-interactive` to skip prompts (useful in CI):
+
+```bash
+dale new MyLibrary --no-interactive
+```
+
+### `dale build` — Build
+
+Builds the project and all dependencies.
+
+```bash
+dale build
+```
+
+### `dale test` — Run Tests
+
+Runs unit tests using the Dale TestKit.
+
+```bash
+dale test
+# Passed!  - Failed: 0, Passed: 4, Skipped: 0, Total: 4
+```
+
+### `dale dev` — Local Development
+
+Starts the DevHost with a web UI for live testing.
+
+```bash
+dale dev
+# Web UI at http://localhost:5000
+```
+
+The DevHost lets you inspect and modify property values, simulate inputs, and debug logic block behavior — all in your browser.
+
+### `dale list` — Introspect Project
+
+Shows all logic blocks, contracts, properties, and measuring points.
+
+```bash
+dale list
+```
+
+```
+  Project: MyDemo (v0.0.1)
+  SDK: Dale.Sdk 0.1.60
+
+┌ HelloWorld ─────────────────┐
+│ Properties │ Greeting       │
+│ Measuring  │ TimesGreeted   │
+└─────────────────────────────┘
+
+┌ SmartLedController ──────────────────────────────────────────┐
+│ Contracts  │ Button (DigitalInput), LED (DigitalOutput)      │
+│ Properties │ Mode, LedEnabled, BlinkIntervalSeconds          │
+│ Measuring  │ ButtonPressed, TotalBlinks, ButtonPressCount    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Use `--output json` for machine-readable output (useful for CI/CD and AI agents):
+
+```bash
+dale list --output json
+```
+
+```json
+{
+  "packageId": "MyDemo",
+  "version": "0.0.1",
+  "sdkVersion": "0.1.60",
+  "logicBlocks": [
+    {
+      "name": "HelloWorld",
+      "contracts": [],
+      "services": [{
+        "properties": [{ "name": "Greeting", "type": "System.String" }],
+        "measuringPoints": [{ "name": "TimesGreeted", "type": "System.Int32" }]
+      }]
+    }
+  ]
+}
+```
+
+### `dale add` — Code Generation
+
+Add elements to a logic block without writing boilerplate.
+
+#### Add a Logic Block
+
+```bash
+dale add logicblock TemperatureController
+# ✔ Added logicblock TemperatureController to MyLibrary
+```
+
+#### Add a Property
+
+```bash
+dale add serviceproperty TargetTemp --type double --to TemperatureController
+# ✔ Added [ServiceProperty] double TargetTemp (private set) to TemperatureController
+```
+
+Options:
+| Flag | Description |
+|------|-------------|
+| `--type` (required) | C# type (`double`, `string`, `bool`, etc.) |
+| `--to` | Target logic block (auto-detected if only one exists) |
+| `--setter <private\|public>` | Setter visibility (default: `private`) |
+| `--default-name` | Display name for the property |
+| `--persistent` | Add `[Persistent]` attribute |
+
+#### Add a Measuring Point
+
+```bash
+dale add measuringpoint CurrentTemp --type double --to TemperatureController
+# ✔ Added [ServiceMeasuringPoint] double CurrentTemp to TemperatureController
+```
+
+#### Add a Timer
+
+```bash
+dale add timer CheckInterval --interval 5 --to TemperatureController
+# ✔ Added [Timer(5)] CheckInterval to TemperatureController
+```
+
+### `dale pack` — Package
+
+Creates a NuGet package (`.nupkg`) for distribution.
+
+```bash
+dale pack
+```
+
+### `dale upload` — Publish to Cloud
+
+Packages and uploads the library to VION Cloud in one step.
+
+```bash
+dale upload
+```
+
+Requires authentication via `dale login` first. For CI/CD, use service account credentials:
+
+```bash
+dale upload --client-id $CLIENT_ID --client-secret $CLIENT_SECRET
+```
+
+Options:
+| Flag | Description |
+|------|-------------|
+| `--client-id` | Keycloak client ID (for CI) |
+| `--client-secret` | Keycloak client secret (for CI) |
+| `--release-notes` | Release notes for this version |
+| `--environment` | Target environment (overrides stored config) |
+| `--integrator-id` | Integrator ID (overrides stored config) |
+
+### `dale login` / `dale logout` / `dale whoami` — Authentication
+
+```bash
+dale login                          # Opens browser for Keycloak OAuth
+dale login --environment production # Target a specific environment
+dale whoami                         # Show current identity
+dale logout                         # Clear stored credentials
+```
+
+### `dale config` — Configuration
+
+```bash
+dale config show                            # Show current config
+dale config set-environment production      # Switch environment
+dale config set-integrator                  # Select active integrator
+```
+
+Custom environments:
+
+```bash
+dale config set-environment custom \
+  --auth-url https://auth.example.com \
+  --api-url https://api.example.com
+```
+
+## Project Structure
+
+`dale new` creates three projects:
+
+```
+MyLibrary/
+├── MyLibrary/                    # Logic block library (netstandard2.1)
+│   ├── MyLibrary.csproj
+│   ├── DependencyInjection.cs    # Service registration
+│   ├── HelloWorld.cs             # Example logic block
+│   └── SmartLedController.cs     # Example with I/O contracts
+├── MyLibrary.DevHost/            # Local dev server (net10.0)
+│   └── MyLibrary.DevHost.csproj
+└── MyLibrary.Test/               # Unit tests (net10.0)
+    └── MyLibrary.Test.csproj
+```
+
+## Global Options
+
+All commands support these options:
+
+| Option | Description |
+|--------|-------------|
+| `--output <json\|table>` | Output format. `json` suppresses human-readable output and emits structured JSON — ideal for CI/CD pipelines and AI coding agents. |
+| `--project <path>` | Path to a specific `.csproj` file. Auto-detected if omitted. |
+| `--verbose` | Show detailed diagnostic output. |

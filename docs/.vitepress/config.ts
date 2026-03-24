@@ -1,97 +1,143 @@
 import { defineConfig } from 'vitepress'
-import { useSidebar } from 'vitepress-openapi'
-import spec from '../api/cloud/swagger.json' with { type: 'json' }
+import { withMermaid } from 'vitepress-plugin-mermaid'
+import llmstxt from 'vitepress-plugin-llms'
 
-const openApiSidebar = useSidebar({
-  spec,
-  // Optionally, you can specify a link prefix for all generated sidebar items.
-  linkPrefix: '/api/cloud/operations/',
-})
+export default withMermaid(
+  defineConfig({
+    title: 'VION Docs',
+    description: 'Documentation for the VION Edge Operations Platform',
+    lastUpdated: true,
+    cleanUrls: true,
 
-// https://vitepress.dev/reference/site-config
-export default defineConfig({
-  title: "vion Documentation",
-  description: "vion Developer docs",
-  themeConfig: {
-    // https://vitepress.dev/reference/default-theme-config
-    nav: [
-      { text: 'Getting Started', link: '/getting-started/' },
-      { text: 'Guides', link: '/guides/' },
-      { text: 'API Reference', link: '/api/' },
+    head: [
+      ['link', { rel: 'icon', type: 'image/svg+xml', href: '/vion-logo.svg' }],
     ],
-    sidebar: [
-      {
-        text: 'Getting Started',
-        link: '/getting-started/',
+
+    vite: {
+      plugins: [llmstxt()],
+      optimizeDeps: {
+        include: ['mermaid', 'dayjs'],
+        needsInterop: ['dayjs'],
       },
-      {
-        text: 'Core Concepts',
-        link: '/concepts/',
-        items: [
-          { text: 'Logic Blocks', link: '/concepts/logic-blocks' },
-          { text: 'Services', link: '/concepts/services' },
-          { text: 'I/O', link: '/concepts/i-o' },
-          { text: 'Logic Interfaces', link: '/concepts/logic-interfaces' },
-          { text: 'Dependency Injection', link: '/concepts/dependency-injection' },
-          { text: 'Terminology', link: '/concepts/terminology' },
-        ]
+      ssr: {
+        noExternal: ['vitepress-plugin-mermaid', 'mermaid'],
       },
-      {
-        text: 'Guides',
-        link: '/guides/',
-        items: [
-          { text: 'Create a library', link: '/guides/create-a-library' },
-          { text: 'Create a logic block', link: '/guides/create-a-logic-block' },
-          { text: 'Create a logic interface', link: '/guides/create-a-logic-interface' },
-          { text: 'Create a unit test', link: '/guides/create-a-unit-test' },
-          { text: 'Run locally', link: '/guides/run-locally' },
-          { text: 'Run on Device', link: '/guides/run-on-device' },
-          { text: 'Continuous Integration', link: '/guides/continuous-integration' },
-        ]
-      },
-      {
-        text: 'Best Practices',
-        link: '/best-practices/',
-      },
-      {
-        text: 'API Reference',
-        link: '/api/',
-        items: [
+    },
+
+    themeConfig: {
+      logo: '/vion-logo.svg',
+      siteTitle: 'Docs',
+
+      nav: [
+        { text: 'Guide', link: '/introduction/what-is-vion' },
+        { text: 'SDK', link: '/sdk/installation' },
+        { text: 'Cloud API', link: '/cloud-api/authentication' },
+        {
+          text: 'Resources',
+          items: [
+            { text: 'API Reference (Scalar)', link: 'https://cloudapi.test.ecocoa.ch/scalar/v1', target: '_blank' },
+            { text: 'SDK API Reference', link: '/api-reference/' },
+          ],
+        },
+      ],
+
+      sidebar: {
+        '/introduction/': [
           {
-            text: 'Dale SDK',
-            link: '/api/dale/index',
-            collapsed: true,
+            text: 'Introduction',
             items: [
-              { text: 'SDK', link: '/api/dale/sdk' },
-              { text: 'SDK TestKit', link: '/api/dale/testkit' },
-            ]
-          },
-          {
-            text: 'Cloud API',
-            // link: '/api/cloud/index'
-            collapsed: true,
-            items: [
-              {
-                text: 'Introduction',
-                link: '/api/cloud/introduction',
-              },
-              ...openApiSidebar.generateSidebarGroups(),
+              { text: 'What is VION?', link: '/introduction/what-is-vion' },
+              { text: 'Key Concepts', link: '/introduction/key-concepts' },
+              { text: 'Quick Start', link: '/introduction/quick-start' },
             ],
           },
-        ]
+        ],
+        '/sdk/': [
+          {
+            text: 'SDK Development',
+            items: [
+              { text: 'Installation & CLI', link: '/sdk/installation' },
+              { text: 'Logic Blocks', link: '/sdk/logic-blocks' },
+              { text: 'Properties & Measuring Points', link: '/sdk/properties' },
+              { text: 'Services & I/O', link: '/sdk/services' },
+              { text: 'Logic Interfaces', link: '/sdk/logic-interfaces' },
+              { text: 'Persistence', link: '/sdk/persistence' },
+              { text: 'Testing', link: '/sdk/testing' },
+              { text: 'Publishing', link: '/sdk/publishing' },
+              { text: 'CI/CD', link: '/sdk/ci-cd' },
+            ],
+          },
+        ],
+        '/agentic/': [
+          {
+            text: 'AI-Assisted Development',
+            items: [
+              { text: 'Overview', link: '/agentic/' },
+              { text: 'Getting Started', link: '/agentic/getting-started' },
+              { text: 'Recipes', link: '/agentic/recipes' },
+            ],
+          },
+        ],
+        '/edge-gateway/': [
+          {
+            text: 'Edge Gateway',
+            items: [
+              { text: 'Supported Devices', link: '/edge-gateway/supported-devices' },
+              { text: 'Onboarding', link: '/edge-gateway/onboarding' },
+              { text: 'Dashboard Setup', link: '/edge-gateway/dashboard-setup' },
+              { text: 'Troubleshooting', link: '/edge-gateway/troubleshooting' },
+            ],
+          },
+        ],
+        '/observability/': [
+          {
+            text: 'Observability',
+            items: [
+              { text: 'Overview', link: '/observability/overview' },
+              { text: 'Accessing Grafana', link: '/observability/access' },
+              { text: 'Dashboards & Metrics', link: '/observability/dashboards' },
+              { text: 'Limitations', link: '/observability/limitations' },
+            ],
+          },
+        ],
+        '/cloud-api/': [
+          {
+            text: 'Cloud API',
+            items: [
+              { text: 'Authentication', link: '/cloud-api/authentication' },
+              { text: 'Integration Examples', link: '/cloud-api/examples' },
+              { text: 'API Reference', link: '/cloud-api/reference' },
+            ],
+          },
+        ],
+        '/api-reference/': [
+          {
+            text: 'SDK API Reference',
+            items: [
+              { text: 'Overview', link: '/api-reference/' },
+            ],
+          },
+        ],
       },
-    ],
-    // Table of contents in the right sidebar (aside)
-    outline: {
-      level: [2, 3], // Show h2 and h3 headings
-      label: 'On this page'
+
+      socialLinks: [
+        { icon: 'github', link: 'https://github.com/vion-iot' },
+      ],
+
+      search: {
+        provider: 'local',
+      },
+
+      outline: {
+        level: [2, 3],
+      },
+
+      editLink: {
+        pattern: 'https://github.com/vion-iot/documentation/edit/main/docs/:path',
+        text: 'Edit this page on GitHub',
+      },
     },
-    search: {
-      provider: 'local'
-    },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/vion-iot' }
-    ],
-  },
-  ignoreDeadLinks: true, // Ignore dead links inside dale xml docs
-})
+
+    mermaid: {},
+  })
+)
