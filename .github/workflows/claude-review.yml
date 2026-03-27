@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize]
     paths:
       - 'docs/**/*.md'
+      - '!docs/api-reference/**'
+      - '!docs/STYLE.md'
 
 jobs:
   style-review:
@@ -49,7 +51,8 @@ jobs:
             ## Do NOT check
             - Files not changed in this PR
             - Code inside fenced code blocks (only check prose)
-            - docs/api-reference/index.md (auto-generated, never review)
+            - docs/api-reference/ (auto-generated, never review)
+            - docs/STYLE.md (it defines the rules, not subject to them)
             - Factual accuracy of SDK examples (separate concern)
 
             ## Output
