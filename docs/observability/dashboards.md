@@ -5,6 +5,8 @@ description: Pre-built Grafana dashboards and available metrics from VION edge g
 
 # Dashboards & Metrics
 
+VION provides pre-built Grafana dashboards for every tenant and supports creating custom dashboards against the full metrics and logs dataset.
+
 ## Pre-Built Dashboards
 
 Every tenant gets two dashboards automatically:

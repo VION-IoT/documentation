@@ -12,7 +12,7 @@ Properties and measuring points are how a logic block exposes its state to the o
 The `[ServiceProperty]` attribute makes a C# property visible to the VION platform. It appears on dashboards and can be read and written (if writable) by the runtime — meaning through the API and the Dashboard UI.
 
 ::: info
-Logic blocks do **not** read each other's service properties directly. Inter-block communication is done exclusively through [Logic Interfaces](./logic-interfaces.md) (commands, request/response, state updates).
+Logic blocks do **not** read each other's service properties directly. Inter-block communication is done exclusively through [logic interfaces](/sdk/logic-interfaces) (commands, request/response, state updates).
 :::
 
 ### Constructor
@@ -207,7 +207,7 @@ The `[Importance]` attribute controls whether a property appears on the compact 
 | `Normal` | Shown only in the detail view (default) |
 | `Hidden` | Excluded from the UI entirely |
 
-#### Example
+### Example
 
 ```csharp
 [ServiceProperty("Current Temperature", "°C")]
@@ -381,7 +381,7 @@ public double TotalEnergy { get; private set; }
 This is useful for cumulative counters and totals that should survive restarts.
 
 ::: tip
-For a deeper look at how the persistence system works, including serialization behavior and limitations, see [Persistence](./persistence.md).
+For a deeper look at how the persistence system works, including serialization behavior and limitations, see [Persistence](/sdk/persistence).
 :::
 
 ## Service Interfaces
@@ -442,7 +442,7 @@ public interface IPingService
 
 ## Using the Dale CLI
 
-The CLI can generate property and measuring point boilerplate for you.
+The Dale CLI can generate property and measuring point boilerplate for you.
 
 ### Add a Service Property
 
@@ -467,7 +467,7 @@ dale add measuringpoint CurrentTemp --type double --to ThermostatBlock
 
 ### Add Both at Once
 
-For a value that needs to be both a property and a measuring point, run both commands. The CLI detects the existing property and adds the second attribute:
+For a value that needs to be both a property and a measuring point, run both commands. The Dale CLI detects the existing property and adds the second attribute:
 
 ```bash
 dale add serviceproperty CurrentTemp --type double --to ThermostatBlock

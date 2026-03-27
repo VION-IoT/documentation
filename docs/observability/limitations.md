@@ -5,6 +5,8 @@ description: Known limitations of the VION observability stack.
 
 # Limitations
 
+This page documents known limits of the VION observability stack, including data retention, ingestion rates, and data filtering.
+
 ## Data Retention
 
 Metrics and logs are retained for a limited period. Retention is configured per environment and may vary. Contact your platform administrator for the exact retention period in your environment.
@@ -22,7 +24,7 @@ If the telemetry collector reaches its memory limit, it will start dropping data
 
 ## Queue and Buffering
 
-Telemetry data is buffered on the edge gateway when the cloud is temporarily unreachable:
+Telemetry data is buffered on the edge gateway when VION Cloud is temporarily unreachable:
 
 - **Queue storage**: File-backed, up to ~115 GB
 - **Retry strategy**: Exponential backoff (1s → 30s)

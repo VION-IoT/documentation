@@ -41,7 +41,7 @@ Output:
 ✔ Created MyLibrary
 
     MyLibrary/MyLibrary.csproj              (logic block library)
-    MyLibrary/MyLibrary.DevHost.csproj       (local dev host with web UI)
+    MyLibrary/MyLibrary.DevHost.csproj       (local DevHost with web UI)
     MyLibrary/MyLibrary.Test.csproj          (tests)
 
   Next steps:
@@ -133,18 +133,18 @@ dale list --output json
 }
 ```
 
-### `dale add` — Code Generation
+## `dale add` — Code Generation
 
 Add elements to a logic block without writing boilerplate.
 
-#### Add a Logic Block
+### Add a Logic Block
 
 ```bash
 dale add logicblock TemperatureController
 # ✔ Added logicblock TemperatureController to MyLibrary
 ```
 
-#### Add a Property
+### Add a Property
 
 ```bash
 dale add serviceproperty TargetTemp --type double --to TemperatureController
@@ -160,7 +160,7 @@ Options:
 | `--default-name` | Display name for the property |
 | `--persistent` | Add `[Persistent]` attribute |
 
-#### Add a Measuring Point
+### Add a Measuring Point
 
 ```bash
 dale add measuringpoint CurrentTemp --type double --to TemperatureController
@@ -170,7 +170,7 @@ dale add measuringpoint TotalEnergy --type double --to TemperatureController --p
 # ✔ Added [ServiceMeasuringPoint][Persistent] double TotalEnergy to TemperatureController
 ```
 
-#### Add a Timer
+### Add a Timer
 
 ```bash
 dale add timer CheckInterval --interval 5 --to TemperatureController
@@ -245,7 +245,7 @@ MyLibrary/
 │   ├── DependencyInjection.cs    # Service registration
 │   ├── HelloWorld.cs             # Example logic block
 │   └── SmartLedController.cs     # Example with I/O contracts
-├── MyLibrary.DevHost/            # Local dev server (net10.0)
+├── MyLibrary.DevHost/            # DevHost (net10.0)
 │   └── MyLibrary.DevHost.csproj
 └── MyLibrary.Test/               # Unit tests (net10.0)
     └── MyLibrary.Test.csproj

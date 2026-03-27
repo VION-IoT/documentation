@@ -1,19 +1,19 @@
 ---
-title: Logic Interfaces
+title: logic interfaces
 description: Connecting logic blocks together using interfaces, commands, request/response patterns, and state updates.
 ---
 
 # Logic Interfaces
 
-Logic Interfaces are the communication channels between Logic Blocks. They are defined as C# interfaces, and connections between them are configured at design time in the Dashboard. Each interface declares what messages it can send or receive, enabling blocks to collaborate without direct references to one another.
+logic interfaces are the communication channels between logic blocks. They are defined as C# interfaces, and connections between them are configured at design time in the Dashboard. Each interface declares what messages it can send or receive, enabling blocks to collaborate without direct references to one another.
 
 ## What are Logic Interfaces?
 
-A Logic Interface is a C# interface that a Logic Block implements to declare a communication endpoint. When two blocks implement complementary interfaces, the Dashboard allows you to wire them together so messages can flow between them.
+A logic interface is a C# interface that a logic block implements to declare a communication endpoint. When two blocks implement complementary interfaces, the Dashboard allows you to wire them together so messages can flow between them.
 
 Key characteristics:
 
-- **Defined as C# interfaces** attached to Logic Blocks
+- **Defined as C# interfaces** attached to logic blocks
 - **Connected at configuration time** in the Dashboard (not in code)
 - **Identified at runtime** by an `InterfaceId` that the framework provides
 - **Three message patterns**: Commands, Request/Response, and State Updates
@@ -193,7 +193,7 @@ public void HandleStateUpdate(InterfaceId sender, Toggling.ToggleReleased messag
 
 ## Implementing Both Sides
 
-Below is a complete example showing two Logic Blocks communicating through a toggle interface. The `ToggleSwitch` block sends state updates, and the `ToggleLight` block receives them.
+Below is a complete example showing two logic blocks communicating through a toggle interface. The `ToggleSwitch` block sends state updates, and the `ToggleLight` block receives them.
 
 ### The Contract
 

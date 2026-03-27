@@ -1,26 +1,26 @@
 ---
-title: "Logic Blocks"
-description: "Logic Blocks are the fundamental building unit of the Dale SDK. Each block is an independent actor that manages its own state and processes messages asynchronously."
+title: "logic blocks"
+description: "logic blocks are the fundamental building unit of the Dale SDK. Each block is an independent actor that manages its own state and processes messages asynchronously."
 ---
 
 # Logic Blocks
 
-Logic Blocks are the core building blocks of every Dale application. Each block represents a self-contained unit of logic that can receive inputs, maintain state, and produce outputs.
+logic blocks are the core building blocks of every Dale application. Each block represents a self-contained unit of logic that can receive inputs, maintain state, and produce outputs.
 
 ## What is a Logic Block?
 
-A Logic Block is an **actor** based on the [Proto.Actor](https://proto.actor/) model. This means each block is an independent unit of computation that:
+A logic block is an **actor** based on the [Proto.Actor](https://proto.actor/) model. This means each block is an independent unit of computation that:
 
 - Has its own internal state
 - Processes messages asynchronously, one at a time
 - Communicates with other blocks through message passing
 - Runs concurrently with other blocks without shared mutable state
 
-In C#, a Logic Block is defined as a class that extends `LogicBlockBase`.
+In C#, a logic block is defined as a class that extends `LogicBlockBase`.
 
 ## Creating a Logic Block
 
-A minimal Logic Block looks like this:
+A minimal logic block looks like this:
 
 ```csharp
 [LogicBlockInfo("My Block", "settings-line")]
@@ -39,7 +39,7 @@ The `LogicBlockInfo` attribute provides metadata used by the Dashboard, and the 
 
 ## Lifecycle
 
-Logic Blocks follow a well-defined lifecycle with three key methods you can override:
+logic blocks follow a well-defined lifecycle with three key methods you can override:
 
 | Method | When it runs | Typical use |
 |---|---|---|
@@ -47,7 +47,7 @@ Logic Blocks follow a well-defined lifecycle with three key methods you can over
 | `Ready()` | After configuration is applied and the block is ready to run | Attach event handlers, start processing |
 | `Stopping()` | Before the block is removed | Clean up resources, close connections |
 
-`Ready()` is abstract and must be overridden in every Logic Block. `Starting()` and `Stopping()` are virtual and can be overridden when needed.
+`Ready()` is abstract and must be overridden in every logic block. `Starting()` and `Stopping()` are virtual and can be overridden when needed.
 
 ```csharp
 [LogicBlockInfo("Sensor Reader", "sensor-line")]
@@ -87,7 +87,7 @@ The `[LogicBlockInfo]` attribute provides display metadata for the Dashboard. It
 
 ## Thread Safety
 
-Because Logic Blocks are actors, message processing is inherently single-threaded within each block. All property changes and message handling happen inside the actor context automatically.
+Because logic blocks are actors, message processing is inherently single-threaded within each block. All property changes and message handling happen inside the actor context automatically.
 
 However, if you need to execute code from an external callback or event (such as an OS event or a timer) back into the actor context, use the synchronization helpers:
 
@@ -114,7 +114,7 @@ These methods ensure that state mutations are always safe, even when triggered b
 
 ## Dependency Injection
 
-Logic Blocks are resolved through dependency injection. You register them in a class that implements `IConfigureServices`:
+logic blocks are resolved through dependency injection. You register them in a class that implements `IConfigureServices`:
 
 ```csharp
 public class DependencyInjection : IConfigureServices
@@ -128,7 +128,7 @@ public class DependencyInjection : IConfigureServices
 
 Key rules:
 
-- Logic Blocks **must** be registered as `Transient`. The runtime creates a new instance for each block placed in a project.
+- logic blocks **must** be registered as `Transient`. The runtime creates a new instance for each block placed in a project.
 - External services (HTTP clients, database connections, custom services) can be injected through the constructor alongside the required `ILogger`.
 
 ```csharp
@@ -148,14 +148,14 @@ public class MyBlock : LogicBlockBase
 }
 ```
 
-## Using the dale CLI
+## Using the Dale CLI
 
-The fastest way to create a new Logic Block is with the `dale` CLI:
+The fastest way to create a new logic block is with the `dale` CLI:
 
 ```bash
 dale add logicblock MyBlock
 ```
 
-This scaffolds a new Logic Block class with the correct base class, attribute, and lifecycle methods already in place.
+This scaffolds a new logic block class with the correct base class, attribute, and lifecycle methods already in place.
 
 For CLI installation and full command reference, see the [Installation](/sdk/installation) page.

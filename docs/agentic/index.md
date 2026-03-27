@@ -18,7 +18,7 @@ A logic block is essentially a class with:
 
 This is exactly the kind of structured, pattern-driven code that AI agents excel at generating.
 
-## The CLI as the Agent's Interface
+## The Dale CLI as the Agent's Interface
 
 The Dale CLI gives AI agents a complete development feedback loop:
 

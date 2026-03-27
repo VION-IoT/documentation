@@ -72,7 +72,7 @@ The Dashboard polls for deployment status every 15 seconds with a 30-minute time
 
 - Verify the Mesh container is running: `sudo docker ps | grep mesh`
 - Check Mesh logs: `sudo docker logs mesh`
-- Verify MQTT connectivity to the cloud broker
+- Verify MQTT connectivity to VION Cloud broker
 - Check that the device certificate is valid: `step certificate inspect device-cert.pem`
 
 ## Network Requirements

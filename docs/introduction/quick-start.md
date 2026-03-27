@@ -30,7 +30,7 @@ dale --version
 dale new my-first-library
 ```
 
-The CLI will interactively prompt you for:
+The Dale CLI will interactively prompt you for:
 - **Package ID** — a unique identifier for your library (e.g., `com.mycompany.my-first-library`)
 - **Author** — your name or organization
 - **First logic block name** — the name of your first logic block class
@@ -97,7 +97,7 @@ dale pack
 
 ## Publish to VION Cloud
 
-To upload your library to the cloud, you need a VION account. If you don't have one yet, you can start with the **trial workflow** in the [VION Dashboard](https://dashboard.vion.swiss) — it guides you through account creation and your first upload.
+To upload your library to VION Cloud, you need a VION account. If you don't have one yet, you can start with the **trial workflow** in the [VION Dashboard](https://dashboard.vion.swiss) — it guides you through account creation and your first upload.
 
 ```bash
 dale login
@@ -108,7 +108,7 @@ Once uploaded, your logic block library is available for deployment to edge gate
 
 ## Next Steps
 
-- [Logic Blocks](/sdk/logic-blocks) — learn about lifecycle, state, and attributes
+- [logic blocks](/sdk/logic-blocks) — learn about lifecycle, state, and attributes
 - [Properties & Measuring Points](/sdk/properties) — observable state and telemetry
 - [Testing](/sdk/testing) — unit testing with TestKit and DevHost
 - [AI-Assisted Development](/agentic/) — use AI coding agents with VION

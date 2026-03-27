@@ -1,6 +1,7 @@
 ---
 layout: home
 title: VION Documentation
+description: Documentation for the VION Edge Operations Platform.
 titleTemplate: Edge Operations Platform
 
 hero:

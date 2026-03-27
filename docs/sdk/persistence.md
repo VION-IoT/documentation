@@ -5,14 +5,14 @@ description: How Dale automatically saves and restores logic block property valu
 
 # Persistence
 
-Dale automatically saves and restores property values across restarts so that Logic Blocks can pick up where they left off. Values are saved periodically (every 60 seconds) and on graceful shutdown, and they are restored before `Ready()` is called.
+Dale automatically saves and restores property values across restarts so that logic blocks can pick up where they left off. Values are saved periodically (every 60 seconds) and on graceful shutdown, and they are restored before `Ready()` is called.
 
 ## How Persistence Works
 
 The persistence system runs in the background with no manual intervention required:
 
 1. **Save** -- Every 60 seconds, and when the node shuts down gracefully, all persistent property values are written to local storage.
-2. **Restore** -- When the node starts, saved values are read from storage and applied to each Logic Block's properties **before** `Ready()` is called.
+2. **Restore** -- When the node starts, saved values are read from storage and applied to each logic block's properties **before** `Ready()` is called.
 
 This means that by the time your `Ready()` method executes, any previously saved state is already available on the block's properties.
 
@@ -70,7 +70,7 @@ The following types are supported by the persistence system:
 There are a few constraints to keep in mind:
 
 - **Complex objects** such as `List<T>`, `Dictionary<TKey, TValue>`, and custom classes are **not supported**. Only the primitive types and enums listed above can be persisted.
-- **Persistence is per-node**. Saved state lives on the local node and is not synced to the cloud or across nodes.
+- **Persistence is per-node**. Saved state lives on the local node and is not synced to VION Cloud or across nodes.
 - **60-second save interval**. Because values are saved periodically, up to 60 seconds of recent changes may be lost if the node crashes (as opposed to shutting down gracefully).
 - **Graceful shutdown** writes all pending state immediately, so no data is lost during planned restarts.
 

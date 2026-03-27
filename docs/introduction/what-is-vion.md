@@ -14,7 +14,7 @@ flowchart LR
     subgraph You["You Develop"]
         direction TB
         CLI["Dale CLI"]
-        Code["Logic Blocks<br/><small>C# / .NET</small>"]
+        Code["logic blocks<br/><small>C# / .NET</small>"]
         CLI --- Code
     end
 
@@ -42,7 +42,7 @@ flowchart LR
     style Edge fill:#f6f7f5,stroke:#5d5e4e,stroke-width:2px,color:#282921
 ```
 
-You write logic in C#. The cloud manages deployment and monitoring. The edge runs the logic close to the hardware.
+You write logic in C#. VION Cloud manages deployment and monitoring. The edge runs the logic close to the hardware.
 
 ## Development Workflow
 
@@ -96,7 +96,7 @@ flowchart TB
     style CloudBox fill:#32656c,stroke:#2b474e,stroke-width:2px,color:#ffffff
 ```
 
-**Logic runs on the edge** — close to the hardware, with millisecond latency and offline resilience. The cloud handles configuration, deployment, and monitoring but is not in the critical path.
+**Logic runs on the edge** — close to the hardware, with millisecond latency and offline resilience. VION Cloud handles configuration, deployment, and monitoring but is not in the critical path.
 
 ## Who Is It For
 
@@ -105,9 +105,9 @@ flowchart TB
     Platform["<b>VION Platform</b>"]
     Int1["<b>Integrator A</b><br/><small>Develops logic libraries</small>"]
     Int2["<b>Integrator B</b><br/><small>Develops logic libraries</small>"]
-    T1["Tenant 1<br/><small>Customer</small>"]
-    T2["Tenant 2<br/><small>Customer</small>"]
-    T3["Tenant 3<br/><small>Customer</small>"]
+    T1["Tenant 1<br/><small>End user</small>"]
+    T2["Tenant 2<br/><small>End user</small>"]
+    T3["Tenant 3<br/><small>End user</small>"]
 
     Platform --> Int1
     Platform --> Int2
@@ -131,6 +131,6 @@ VION is built for **system integrators** — companies that develop IoT solution
 
 - **[Key Concepts](/introduction/key-concepts)** — design principles and mental model
 - **[Quick Start](/introduction/quick-start)** — build and run your first logic block
-- **[SDK Development](/sdk/installation)** — dive into the SDK
+- **[SDK Development](/sdk/installation)** — dive into the Dale SDK
 
 </div>

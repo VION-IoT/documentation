@@ -34,7 +34,7 @@ flowchart LR
 ## Data Flow
 
 1. **Edge components** (Dale runtime, Mesh gateway) emit telemetry via the OpenTelemetry Protocol (OTLP)
-2. **Alloy** (the OpenTelemetry collector running on the gateway) receives, batches, and forwards telemetry to the cloud
+2. **Alloy** (the OpenTelemetry collector running on the gateway) receives, batches, and forwards telemetry to VION Cloud
 3. **Mimir** stores metrics (Prometheus-compatible) and **Loki** stores logs
 4. **Grafana** provides dashboards to query and visualize the data
 

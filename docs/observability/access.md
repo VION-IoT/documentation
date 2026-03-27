@@ -5,6 +5,8 @@ description: How to authenticate with Grafana and navigate the VION observabilit
 
 # Accessing Grafana
 
+Grafana provides dashboards for monitoring your edge gateways. This page covers authentication, URL structure, and navigation.
+
 ## URL
 
 Access Grafana at:

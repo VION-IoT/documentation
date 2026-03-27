@@ -59,13 +59,13 @@ If you know .NET, you already know how to build with Dale. There's no proprietar
 
 ## Edge-First, Cloud-Connected
 
-Logic runs on the edge gateway, not in the cloud. This means:
+Logic runs on the edge gateway, not in VION Cloud. This means:
 
 - **Low latency** — control loops execute locally in milliseconds
-- **Offline resilience** — logic continues running when the cloud is unreachable
-- **Data efficiency** — only relevant state changes are synced to the cloud
+- **Offline resilience** — logic continues running when VION Cloud is unreachable
+- **Data efficiency** — only relevant state changes are synced to VION Cloud
 
-The cloud provides configuration management, monitoring, OTA updates, and a Dashboard — but the intelligence lives on the edge.
+VION Cloud provides configuration management, monitoring, OTA updates, and a Dashboard — but the intelligence lives on the edge.
 
 ## Multi-Tenancy and RBAC
 
@@ -73,7 +73,7 @@ The platform is built for system integrators serving multiple customers:
 
 - **Platform** → manages integrators
 - **Integrator** → your organization, manages tenants and develops logic block libraries
-- **Tenant** → your customer, manages their projects and gateways
+- **Tenant** → your tenant, manages their projects and gateways
 
 Each level has its own roles and permissions. A developer at the integrator level can publish libraries. An operator at the tenant level can configure and monitor gateways. Access is enforced at every layer — API, Dashboard, and CLI.
 

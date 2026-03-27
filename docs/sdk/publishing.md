@@ -29,7 +29,7 @@ For local development, authenticate via the browser:
 dale login
 ```
 
-This opens your browser, authenticates via OIDC, and stores tokens locally in `~/.dale/credentials.json`. The CLI refreshes tokens automatically when they expire.
+This opens your browser, authenticates via OIDC, and stores tokens locally in `~/.dale/credentials.json`. The Dale CLI refreshes tokens automatically when they expire.
 
 If you belong to multiple integrators, `dale login` prompts you to select one:
 
@@ -92,7 +92,7 @@ This runs `dotnet pack -c Release` and outputs the package location. The version
 ```
 
 ::: tip
-Increment the `<Version>` before each upload — the cloud rejects duplicate versions.
+Increment the `<Version>` before each upload — VION Cloud rejects duplicate versions.
 :::
 
 ## Uploading
