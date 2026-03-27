@@ -107,46 +107,66 @@ dale dev
 
 Open `http://localhost:5000` in your browser. The DevHost shows your logic blocks with controls to inspect properties, modify writable values, and watch measuring points update in real-time.
 
-## Add Your Own Property
+## Add Your Own Logic Block
 
-Use the Dale CLI to add a service property without writing boilerplate:
-
-```bash
-dale add serviceproperty TargetTemperature --type double --to HelloWorld
-```
-
-This generates the property with the correct attributes. Open `HelloWorld.cs` to see the result:
-
-```csharp
-[ServiceProperty]
-public double TargetTemperature { get; set; }
-```
-
-Add a measuring point for the current temperature:
+The scaffolded HelloWorld shows the basics. Now create a second logic block — a simple thermostat controller:
 
 ```bash
-dale add measuringpoint CurrentTemperature --type double --to HelloWorld
+dale add logicblock Thermostat
 ```
 
-Now use them in the timer:
+Open `SmartThermostat/Thermostat.cs` and replace the generated code:
 
 ```csharp
-[Timer(5)]
-public void Greet()
+using Dale.Sdk.Core;
+using Microsoft.Extensions.Logging;
+
+public class Thermostat : LogicBlockBase
 {
-    // Simulate a temperature reading
-    CurrentTemperature = 18.0 + Random.Shared.NextDouble() * 4.0;
+    private readonly ILogger _logger;
 
-    if (CurrentTemperature < TargetTemperature)
-        _logger.LogInformation("Heating: {Current}°C → {Target}°C", CurrentTemperature, TargetTemperature);
-    else
-        _logger.LogInformation("Target reached: {Current}°C", CurrentTemperature);
+    [ServiceProperty("Target Temperature", "°C")]
+    public double TargetTemperature { get; set; } = 21.0;
 
-    TimesGreeted++;
+    [ServiceProperty("Heating Active")]
+    [ServiceMeasuringPoint("Heating Active")]
+    public bool HeatingActive { get; private set; }
+
+    [ServiceMeasuringPoint("Current Temperature", "°C")]
+    public double CurrentTemperature { get; private set; }
+
+    public Thermostat(ILogger logger) : base(logger)
+    {
+        _logger = logger;
+    }
+
+    [Timer(2)]
+    public void Poll()
+    {
+        // In production, this would read from a sensor via a service provider contract.
+        // For local testing, the DevHost UI lets you set CurrentTemperature manually.
+        HeatingActive = CurrentTemperature < TargetTemperature;
+
+        _logger.LogInformation(
+            "Thermostat: {Current:F1}°C / {Target:F1}°C → {State}",
+            CurrentTemperature, TargetTemperature,
+            HeatingActive ? "HEATING" : "idle");
+    }
+
+    protected override void Ready()
+    {
+        _logger.LogInformation("Thermostat ready. Target: {Target}°C", TargetTemperature);
+    }
 }
 ```
 
-Run `dale dev` again and watch the temperature values update in the DevHost UI.
+This logic block has:
+- **`TargetTemperature`** — a writable property that operators can adjust from the Dashboard
+- **`CurrentTemperature`** — a measuring point (in production, read from a sensor via a [service provider contract](/sdk/services))
+- **`HeatingActive`** — both a property and a measuring point, computed from the other two
+- **`[Timer(2)]`** — polls every 2 seconds
+
+Run `dale dev` and open the DevHost. You can change `TargetTemperature` and `CurrentTemperature` through the UI and watch `HeatingActive` respond in real-time.
 
 ## Run Tests
 
