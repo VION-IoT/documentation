@@ -138,7 +138,7 @@ Extension methods on `IModbusRtu` for simulating Modbus responses in tests.
 
 **Methods:**
 
-- `SimulateReadResponse<T>(IModbusRtu, LogicBlockTestContext<T>, Byte[], ushort?)` — Simulates a successful read response by invoking the pending request's callback with the given data. The data bytes are processed through the same callback chain as in production (SwapBytes, CastFromBytes, etc.).
+- `SimulateReadResponse<T>(IModbusRtu, LogicBlockTestContext<T>, byte[], ushort?)` — Simulates a successful read response by invoking the pending request's callback with the given data. The data bytes are processed through the same callback chain as in production (SwapBytes, CastFromBytes, etc.).
   - `modbusRtu`: The Modbus RTU contract instance.
   - `testContext`: The test context containing recorded messages.
   - `responseData`: The raw response bytes (big-endian by default, matching Modbus wire format).
@@ -175,12 +175,12 @@ Helpers for constructing Modbus response byte arrays in big-endian (MSB-first) o
 
 **Methods:**
 
-- `FromFloats(Single[])` — Converts float values to big-endian bytes (4 bytes each).
-- `FromShorts(Int16[])` — Converts short values to big-endian bytes (2 bytes each).
-- `FromUShorts(UInt16[])` — Converts ushort values to big-endian bytes (2 bytes each).
-- `FromInts(Int32[])` — Converts int values to big-endian bytes (4 bytes each).
-- `FromDoubles(Double[])` — Converts double values to big-endian bytes (8 bytes each).
-- `FromBools(Boolean[])` — Packs boolean values into bytes using Modbus coil/discrete input bit packing. Each byte holds up to 8 coils, LSB first within each byte.
+- `FromFloats(float[])` — Converts float values to big-endian bytes (4 bytes each).
+- `FromShorts(short[])` — Converts short values to big-endian bytes (2 bytes each).
+- `FromUShorts(ushort[])` — Converts ushort values to big-endian bytes (2 bytes each).
+- `FromInts(int[])` — Converts int values to big-endian bytes (4 bytes each).
+- `FromDoubles(double[])` — Converts double values to big-endian bytes (8 bytes each).
+- `FromBools(bool[])` — Packs boolean values into bytes using Modbus coil/discrete input bit packing. Each byte holds up to 8 coils, LSB first within each byte.
 
 ---
 
@@ -199,14 +199,14 @@ Provides Modbus RTU read and write operations.
 
 **Methods:**
 
-- `ReadDiscreteInputs(int, ushort, ushort, Action<Boolean[]>, Action<Exception>, TimeSpan?)` — Reads discrete inputs from a Modbus device (Function Code 2).
+- `ReadDiscreteInputs(int, ushort, ushort, Action<bool[]>, Action<Exception>, TimeSpan?)` — Reads discrete inputs from a Modbus device (Function Code 2).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `quantity`: The number of discrete inputs to read.
   - `successCallback`: The callback invoked when the operation succeeds.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadCoils(int, ushort, ushort, Action<Boolean[]>, Action<Exception>, TimeSpan?)` — Reads coils from a Modbus device (Function Code 1).
+- `ReadCoils(int, ushort, ushort, Action<bool[]>, Action<Exception>, TimeSpan?)` — Reads coils from a Modbus device (Function Code 1).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `quantity`: The number of coils to read.
@@ -220,29 +220,21 @@ Provides Modbus RTU read and write operations.
   - `successCallback`: The callback invoked when the operation succeeds.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleCoils(int, ushort, Boolean[], Action, Action<Exception>, TimeSpan?)` — Writes multiple coils to a Modbus device (Function Code 15).
+- `WriteMultipleCoils(int, ushort, bool[], Action, Action<Exception>, TimeSpan?)` — Writes multiple coils to a Modbus device (Function Code 15).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the coils.
   - `successCallback`: The callback invoked when the operation succeeds.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersRaw(int, ushort, ushort, Action<Byte[]>, Action<Exception>, TimeSpan?)` — Reads input registers as raw bytes from a Modbus device (Function Code 4).
+- `ReadInputRegistersRaw(int, ushort, ushort, Action<byte[]>, Action<Exception>, TimeSpan?)` — Reads input registers as raw bytes from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `quantity`: The number of registers to read.
   - `successCallback`: The callback invoked when the operation succeeds.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsShort(int, ushort, ushort, Action<Int16[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads input registers as signed 16-bit integers from a Modbus device (Function Code 4).
-  - `unitIdentifier`: The unit identifier (slave address).
-  - `startingAddress`: The starting address to read from.
-  - `quantity`: The number of registers to read.
-  - `successCallback`: The callback invoked when the operation succeeds.
-  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
-  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
-  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsUShort(int, ushort, ushort, Action<UInt16[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads input registers as unsigned 16-bit integers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsShort(int, ushort, ushort, Action<short[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads input registers as signed 16-bit integers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `quantity`: The number of registers to read.
@@ -250,7 +242,15 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsInt(int, ushort, uint, Action<Int32[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as signed 32-bit integers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsUShort(int, ushort, ushort, Action<ushort[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads input registers as unsigned 16-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsInt(int, ushort, uint, Action<int[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as signed 32-bit integers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 32-bit integers to read.
@@ -259,7 +259,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsUInt(int, ushort, uint, Action<UInt32[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as unsigned 32-bit integers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsUInt(int, ushort, uint, Action<uint[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as unsigned 32-bit integers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 32-bit integers to read.
@@ -268,7 +268,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsFloat(int, ushort, uint, Action<Single[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as 32-bit floating-point numbers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsFloat(int, ushort, uint, Action<float[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as 32-bit floating-point numbers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 32-bit floating-point numbers to read.
@@ -277,7 +277,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsLong(int, ushort, uint, Action<Int64[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as signed 64-bit integers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsLong(int, ushort, uint, Action<long[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as signed 64-bit integers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 64-bit integers to read.
@@ -286,7 +286,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `ABCD`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsULong(int, ushort, uint, Action<UInt64[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as unsigned 64-bit integers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsULong(int, ushort, uint, Action<ulong[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as unsigned 64-bit integers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 64-bit integers to read.
@@ -295,7 +295,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `ABCD`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadInputRegistersAsDouble(int, ushort, uint, Action<Double[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as 64-bit floating-point numbers from a Modbus device (Function Code 4).
+- `ReadInputRegistersAsDouble(int, ushort, uint, Action<double[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as 64-bit floating-point numbers from a Modbus device (Function Code 4).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 64-bit floating-point numbers to read.
@@ -312,22 +312,14 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `textEncoding`: The text encoding to use for decoding the string. Default is `Ascii`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersRaw(int, ushort, ushort, Action<Byte[]>, Action<Exception>, TimeSpan?)` — Reads holding registers as raw bytes from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersRaw(int, ushort, ushort, Action<byte[]>, Action<Exception>, TimeSpan?)` — Reads holding registers as raw bytes from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `quantity`: The number of registers to read.
   - `successCallback`: The callback invoked when the operation succeeds.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsShort(int, ushort, ushort, Action<Int16[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads holding registers as signed 16-bit integers from a Modbus device (Function Code 3).
-  - `unitIdentifier`: The unit identifier (slave address).
-  - `startingAddress`: The starting address to read from.
-  - `quantity`: The number of registers to read.
-  - `successCallback`: The callback invoked when the operation succeeds.
-  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
-  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
-  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsUShort(int, ushort, ushort, Action<UInt16[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads holding registers as unsigned 16-bit integers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsShort(int, ushort, ushort, Action<short[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads holding registers as signed 16-bit integers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `quantity`: The number of registers to read.
@@ -335,7 +327,15 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsInt(int, ushort, uint, Action<Int32[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as signed 32-bit integers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsUShort(int, ushort, ushort, Action<ushort[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads holding registers as unsigned 16-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsInt(int, ushort, uint, Action<int[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as signed 32-bit integers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 32-bit integers to read.
@@ -344,7 +344,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsUInt(int, ushort, uint, Action<UInt32[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as unsigned 32-bit integers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsUInt(int, ushort, uint, Action<uint[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as unsigned 32-bit integers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 32-bit integers to read.
@@ -353,7 +353,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsFloat(int, ushort, uint, Action<Single[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as 32-bit floating-point numbers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsFloat(int, ushort, uint, Action<float[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as 32-bit floating-point numbers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 32-bit floating-point numbers to read.
@@ -362,7 +362,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsLong(int, ushort, uint, Action<Int64[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as signed 64-bit integers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsLong(int, ushort, uint, Action<long[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as signed 64-bit integers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 64-bit integers to read.
@@ -371,7 +371,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `ABCD`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsULong(int, ushort, uint, Action<UInt64[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as unsigned 64-bit integers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsULong(int, ushort, uint, Action<ulong[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as unsigned 64-bit integers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 64-bit integers to read.
@@ -380,7 +380,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
   - `wordOrder`: The word order the data is received in. Default is `ABCD`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `ReadHoldingRegistersAsDouble(int, ushort, uint, Action<Double[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as 64-bit floating-point numbers from a Modbus device (Function Code 3).
+- `ReadHoldingRegistersAsDouble(int, ushort, uint, Action<double[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as 64-bit floating-point numbers from a Modbus device (Function Code 3).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to read from.
   - `count`: The number of 64-bit floating-point numbers to read.
@@ -413,14 +413,14 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersRaw(int, ushort, Byte[], Action, Action<Exception>, TimeSpan?)` — Writes multiple holding registers as raw bytes to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersRaw(int, ushort, byte[], Action, Action<Exception>, TimeSpan?)` — Writes multiple holding registers as raw bytes to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The raw byte values to write to the registers.
   - `successCallback`: The callback invoked when the operation succeeds.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsShort(int, ushort, Int16[], Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes multiple holding registers as signed 16-bit integers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsShort(int, ushort, short[], Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes multiple holding registers as signed 16-bit integers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -428,7 +428,7 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsUShort(int, ushort, UInt16[], Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes multiple holding registers as unsigned 16-bit integers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsUShort(int, ushort, ushort[], Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes multiple holding registers as unsigned 16-bit integers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -436,16 +436,7 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsInt(int, ushort, Int32[], Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as signed 32-bit integers to a Modbus device (Function Code 16).
-  - `unitIdentifier`: The unit identifier (slave address).
-  - `startingAddress`: The starting address to write to.
-  - `values`: The values to write to the registers.
-  - `successCallback`: The callback invoked when the operation succeeds.
-  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
-  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
-  - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
-  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsUInt(int, ushort, UInt32[], Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as unsigned 32-bit integers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsInt(int, ushort, int[], Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as signed 32-bit integers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -454,7 +445,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsFloat(int, ushort, Single[], Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as 32-bit floating-point numbers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsUInt(int, ushort, uint[], Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as unsigned 32-bit integers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -463,7 +454,16 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsLong(int, ushort, Int64[], Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as signed 64-bit integers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsFloat(int, ushort, float[], Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as 32-bit floating-point numbers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsLong(int, ushort, long[], Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as signed 64-bit integers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -472,7 +472,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `wordOrder`: The word order to write the data in. Default is `ABCD`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsULong(int, ushort, UInt64[], Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as unsigned 64-bit integers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsULong(int, ushort, ulong[], Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as unsigned 64-bit integers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -481,7 +481,7 @@ Provides Modbus RTU read and write operations.
   - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
   - `wordOrder`: The word order to write the data in. Default is `ABCD`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
-- `WriteMultipleHoldingRegistersAsDouble(int, ushort, Double[], Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as 64-bit floating-point numbers to a Modbus device (Function Code 16).
+- `WriteMultipleHoldingRegistersAsDouble(int, ushort, double[], Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as 64-bit floating-point numbers to a Modbus device (Function Code 16).
   - `unitIdentifier`: The unit identifier (slave address).
   - `startingAddress`: The starting address to write to.
   - `values`: The values to write to the registers.
@@ -521,6 +521,8 @@ Extension methods to verify log output on ILogger mocks.
 
 ### LogicBlockBaseExtensions
 
+Extension methods to initialize logic blocks for testing with a fluent builder API.
+
 **Methods:**
 
 - `InitializeForTest<T>(T)` — Initializes the given logic block for testing, returning a typed test context.
@@ -530,9 +532,41 @@ Extension methods to verify log output on ILogger mocks.
 
 ### LogicBlockTestContext
 
+Test-friendly minimal actor context that records messages sent by the logic block. Use the provided query/assertion helpers to inspect recorded messages. testContext.VerifyServicePropertyChanged(lb => lb.Power, value => Assert.AreEqual(3.5, value));
+
+**Methods:**
+
+- `VerifySendCommand<T>(InterfaceId?, Action<T>, Times?)` — Assert that a SendCommand call was made with the given target and message. testContext.VerifySendCommand&lt;PingRequest&gt;(mappedPong, msg => Assert.AreEqual(42, msg.Value));
+- `VerifySendRequest<T>(InterfaceId?, Action<T>, Times?)` — Assert that a SendRequest call was made with the given target and message. testContext.VerifySendRequest&lt;PingRequest&gt;(mappedPong, msg => Assert.AreEqual(42, msg.Value));
+- `VerifySendStateUpdate<T>(Action<T>, Times?)` — Assert that a SendStateUpdate call was made with the given message. testContext.VerifySendStateUpdate&lt;MyState&gt;(msg => Assert.AreEqual(expected, msg.Value));
+- `VerifyServicePropertyChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service property change was recorded for the specified property. testContext.VerifyServicePropertyChanged(lb => lb.Power, value => Assert.AreEqual(3.5, value));
+- `VerifyServiceMeasuringPointChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service measuring point change was recorded for the specified property. testContext.VerifyServiceMeasuringPointChanged(lb => lb.Temperature, value => Assert.AreEqual(22.5, value));
+- `GetContractMessages<T>(string)` — Returns all recorded contract messages of the specified data type, optionally filtered by contract identifier. Useful for TestKit extensions that need to extract pending requests for response simulation.
+- `ClearRecordedMessages` — Clear recorded messages, e.g. if the test arranging phase triggers messages, that should be ignored.
+- `FlushPendingActions` — Execute all actions queued by . In the real actor system these run after a delay; in tests they are captured and executed on demand so you can feed responses between the scheduling and the execution. sut.OnTimer(); // sends requests, queues Calculate sut.HandleResponse(id, response); // feed response data testContext.FlushPendingActions(); // now Calculate() runs
+
 ---
 
 ### LogicBlockTestContextBuilder
+
+Fluent test builder to initialize LogicBlock instances for unit tests.
+
+**Methods:**
+
+- `WithLogicInterfaceMapping<T>(Func<T, T>, InterfaceId)` — Adds a mapping to another logic block using a specific (self or delegated) implementation of the interface.
+- `WithLogicInterfaceMapping<T>(InterfaceId)` — Adds a mapping to another logic block using the logic block's own implementation of the interface.
+- `WithPersistentValue<T>(Expression<Func<T, T>>, T)` — Registers a persistent value to be restored after initialization, simulating a restart with previously saved state. var testContext = block.CreateTestContext() .WithPersistentValue(lb => lb.MaxPower, 42.0) .WithPersistentValue(lb => lb.Mode, OperatingMode.Manual) .Build();
+- `WithServices(Action<IServiceCollection>)` — Registers additional DI services for logic block initialization. Use this to register services required by contract types (e.g. Modbus RTU).
+- `WithoutAutoStart` — Prevents the logic block from being started after initialization. By default, the builder starts the block so that service property changes produce messages. Use this when testing initialization or pre-start behavior.
+- `Build` — Initialize the logic block and apply any linked interfaces mapping. After this returns the logic block's Configure(...), Ready(), and Starting() will have been executed and the block is ready to process messages. Use to skip starting.
+- `InitializeLogicBlock` — Sends the InitializeLogicBlock message to the logic block to initialize it. Auto-discovers service identifiers from [Service] attributes so that service property and measuring point changes are routed correctly when the block is started.
+- `RegisterContractAssemblyServices(IServiceCollection)` — Auto-discovers contract properties on the logic block, finds `IConfigureServices` implementations in each contract assembly, and invokes them. Mirrors what the full Dale runtime does with shared assembly discovery.
+- `DiscoverContractIds` — Discovers contract identifiers from properties whose type has [ServiceProviderContractType]. Generates a LogicBlockContractId for each so that contracts are fully initialized in tests.
+- `DiscoverServiceIds` — Discovers service identifiers from [Service] attributes on the logic block class and its properties.
+- `RestorePersistentState` — If persistent values were registered, resolves their persistence keys and sends a RestorePersistentDataRequest.
+- `ResolvePersistenceKey(string)` — Resolves a C# property name to its persistence key by searching the service binder's bindings. Falls back to the opt-in key format (_direct.{PropertyName}) if not found as a service property.
+- `StartLogicBlock` — If auto-start was requested, sends StartLogicBlockRequest and clears the infrastructure messages produced during startup (initial state publishes, periodic save scheduling).
+- `SetLinkedInterfaces` — Sets the linked interfaces on the logic block based on the configured mappings with the help of some reflection.
 
 ---
 
@@ -555,9 +589,9 @@ Extension methods for simulating timer ticks in unit tests. Uses reflection to a
 **Methods:**
 
 - `FireTimer(LogicBlockBase, string)` — Fires a timer callback by its identifier. The identifier is typically the method name unless overridden via `[Timer(identifier: "custom")]`.
-- `FireTimer<T>(T, Action<``0}>)` — Fires a timer callback using a method selector expression for type-safety. The method must be accessible from the test. block.FireTimer((MyBlock lb) => lb.OnTimer());
+- `FireTimer<T>(T, Expression<Action<T>>)` — Fires a timer callback using a method selector expression for type-safety. The method must be accessible from the test. block.FireTimer((MyBlock lb) => lb.OnTimer());
 - `GetTimerInterval(LogicBlockBase, string)` — Returns the configured interval for the specified timer.
-- `GetTimerInterval<T>(T, Action<``0}>)` — Returns the configured interval for the specified timer using a method selector expression. var interval = block.GetTimerInterval((MyBlock lb) => lb.OnTimer());
+- `GetTimerInterval<T>(T, Expression<Action<T>>)` — Returns the configured interval for the specified timer using a method selector expression. var interval = block.GetTimerInterval((MyBlock lb) => lb.OnTimer());
 
 ---
 
@@ -584,6 +618,12 @@ Extension methods to validate Moq Times constraints against actual invocation co
 ### CardinalityType
 
 Specifies the cardinality of a dependency or contract binding.
+
+**Fields/Values:**
+
+- `Mandatory` — The binding is required and must be fulfilled.
+- `Optional` — The binding is optional and may be left unbound.
+- `Multiple` — Multiple bindings are allowed.
 
 ---
 
@@ -622,6 +662,11 @@ Defines the directional relationship between the two sides of a contract.
 
 Specifies whether a dependency must already exist or can be created on demand.
 
+**Fields/Values:**
+
+- `MustExist` — The dependency must already exist.
+- `AllowCreateNew` — The dependency is created on demand if it does not exist.
+
 ---
 
 ### DisplayAttribute
@@ -649,6 +694,13 @@ Plugin assemblies must contain an implementation of this interface. The host cal
 ### Importance
 
 Declares the UI importance level of a service property or measuring point.
+
+**Fields/Values:**
+
+- `Normal` — Shown only in detail views.
+- `Primary` — Shown prominently on dashboard tiles (large display).
+- `Secondary` — Shown on dashboard tiles (small display).
+- `Hidden` — Not shown in the UI.
 
 ---
 
@@ -716,6 +768,13 @@ Controls persistence behavior for properties. - On writable service properties: 
 
 Semantic category for a service property or measuring point.
 
+**Fields/Values:**
+
+- `Status` — Reflects current operational state.
+- `Configuration` — A user-configurable setting.
+- `Action` — A triggerable action.
+- `Metric` — A measured or calculated value.
+
 ---
 
 ### RequestResponseAttribute
@@ -770,11 +829,21 @@ Defines a relation to another service interface. A matching declaration (same Re
 
 Specifies the direction of a service relation (inwards or outwards).
 
+**Fields/Values:**
+
+- `Inwards` — This service is the target (end) of the relation.
+- `Outwards` — This service is the source (start) of the relation.
+
 ---
 
 ### SharingType
 
 Specifies whether a dependency or contract binding is shared or exclusive.
+
+**Fields/Values:**
+
+- `Shared` — The binding can be shared with other consumers.
+- `Exclusive` — The binding is exclusive to a single consumer.
 
 ---
 
@@ -793,6 +862,14 @@ Marks a property as an operational status indicator. The property should be an e
 ### StatusSeverity
 
 Severity level for status indicator enum values.
+
+**Fields/Values:**
+
+- `Success` — Indicates a healthy or successful state.
+- `Info` — Informational status.
+- `Warning` — Indicates a potential issue.
+- `Error` — Indicates a failure or critical issue.
+- `Neutral` — No specific severity.
 
 ---
 
