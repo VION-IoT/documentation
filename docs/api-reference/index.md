@@ -130,6 +130,179 @@ Represents a digital output that can be used to communicate with hardware.
 
 ---
 
+## Dale.Sdk.Http
+
+### ILogicBlockHttpClient
+
+Provides non-blocking HTTP client functionality for logic blocks.
+
+**Methods:**
+
+- `GetJson<T>(IActorDispatcher, string, Action<T>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP GET request and passes the deserialized JSON response to the callback.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `url`: The URL to send the GET request to.
+  - `successCallback`: Callback invoked with the deserialized response on success.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `PostJson<T, T2>(IActorDispatcher, string, T, Action<T2>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body and passes the deserialized JSON response to the callback.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `url`: The URL to send the POST request to.
+  - `body`: The object to serialize as the JSON request body.
+  - `successCallback`: Callback invoked with the deserialized response on success.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `PostJson<T>(IActorDispatcher, string, T, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body. The callback is invoked on success without a response body.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `url`: The URL to send the POST request to.
+  - `body`: The object to serialize as the JSON request body.
+  - `successCallback`: Callback invoked when the request succeeds.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `PutJson<T, T2>(IActorDispatcher, string, T, Action<T2>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body and passes the deserialized JSON response to the callback.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block). Errors are always logged, regardless of whether an error callback is specified.
+  - `url`: The URL to send the PUT request to.
+  - `body`: The object to serialize as the JSON request body.
+  - `successCallback`: Callback invoked with the deserialized response on success.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `PutJson<T>(IActorDispatcher, string, T, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body. The callback is invoked on success without a response body.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `url`: The URL to send the PUT request to.
+  - `body`: The object to serialize as the JSON request body.
+  - `successCallback`: Callback invoked when the request succeeds.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `DeleteJson<T>(IActorDispatcher, string, Action<T>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request and passes the deserialized JSON response to the callback.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `url`: The URL to send the DELETE request to.
+  - `successCallback`: Callback invoked with the deserialized response on success.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `Delete(IActorDispatcher, string, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request. The callback is invoked on success without a response body.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `url`: The URL to send the DELETE request to.
+  - `successCallback`: Callback invoked when the request succeeds.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `headers`: HTTP headers to include in the request.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+- `SendRequest(IActorDispatcher, HttpRequestMessage, Action<HttpResponseMessage>, Action<Exception>, TimeSpan?)` — Performs a non-blocking HTTP request and passes the `HttpResponseMessage` to the callback.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `request`: The `HttpRequestMessage` to send.
+  - `successCallback`: Callback invoked with the `HttpResponseMessage` on success.
+  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+
+---
+
+### ServiceCollectionExtensions
+
+Extension methods for setting up logic block HTTP client services in an `IServiceCollection`.
+
+**Methods:**
+
+- `AddDaleHttpSdk(IServiceCollection, Action<HttpClient>)` — Adds HTTP services to the specified `IServiceCollection`.
+  - `serviceCollection`: The `IServiceCollection` to add services to.
+  - `configureClient`: Action to configure additional settings and/or override defaults.
+
+---
+
+## Dale.Sdk.Modbus.Core.Conversion
+
+### ByteOrder
+
+Specifies the byte order for multibyte values.
+
+> The Modbus protocol standard defines `MsbToLsb` (big-endian) as the standard byte order. However, not all devices respect this standard, so both byte orders are supported.
+
+**Fields/Values:**
+
+- `MsbToLsb` — Most significant byte first (big-endian).
+- `LsbToMsb` — Least significant byte first (little-endian).
+
+---
+
+### TextEncoding
+
+Specifies the text encoding format for string conversion.
+
+**Fields/Values:**
+
+- `Ascii` — ASCII encoding (7-bit character set).
+- `Utf8` — UTF-8 encoding (variable-length, 1-4 bytes per character).
+- `Utf16Le` — UTF-16 Little Endian encoding (2 or 4 bytes per character).
+- `Utf16Be` — UTF-16 Big Endian encoding (2 or 4 bytes per character).
+
+---
+
+### WordOrder32
+
+Specifies the word order for 32-bit values composed of two 16-bit words.
+
+**Fields/Values:**
+
+- `MswToLsw` — Most significant word first (big-endian word order).
+- `LswToMsw` — Least significant word first (little-endian word order).
+
+---
+
+### WordOrder64
+
+Specifies the word order for 64-bit values composed of four 16-bit words.
+
+**Fields/Values:**
+
+- `ABCD` — Big-endian word order most significant word to least significant word (A is the most significant word).
+- `DCBA` — Little-endian word order least significant to most significant word (D is the least significant word).
+- `CDAB` — Mid-big-endian word order, big endian because when CD and AB are swapped it results in ABCD which is big-endian (A is the most significant word).
+- `BADC` — Mid-little-endian word order, little endian because when BA and DC are swapped it results in DCBA which is little-endian (D is the least significant word).
+
+---
+
+## Dale.Sdk.Modbus.Core.Exceptions
+
+### ModbusException
+
+Represents errors that occur during Modbus communication.
+
+**Properties:**
+
+- `ExceptionCode` — The Modbus exception code. A value of -1 indicates that there is no specific exception code.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `ModbusException` class with a specified error message and a default exception code of -1.
+  - `message`: The error message that describes the Modbus communication failure.
+- *Constructor* — Initializes a new instance of the `ModbusException` class with a specified Modbus exception code and error message.
+  - `exceptionCode`: The Modbus exception code identifying the type of failure.
+  - `message`: The error message that describes the Modbus communication failure.
+
+---
+
+### ModbusExceptionCode
+
+Specifies the Modbus exception type.
+
+**Fields/Values:**
+
+- `Ok` — Only used by the server to indicated that no exception should be returned to the client.
+- `IllegalFunction` — The function code received in the query is not an allowable action for the server.
+- `IllegalDataAddress` — The data address received in the query is not an allowable address for the server.
+- `IllegalDataValue` — A value contained in the query data field is not an allowable value for server.
+- `ServerDeviceFailure` — An unrecoverable error occurred while the server was attempting to perform the requested action.
+- `Acknowledge` — Specialized use in conjunction with programming commands. The server has accepted the request and is processing it, but a long duration of time will be required to do so.
+- `ServerDeviceBusy` — Specialized use in conjunction with programming commands. The engaged in processing a long–duration program command.
+- `MemoryParityError` — Specialized use in conjunction with function codes 20 and 21 and reference type 6, to indicate that the extended file area failed to pass a consistency check.
+- `GatewayPathUnavailable` — Specialized use in conjunction with gateways, indicates that the gateway was unable to allocate an internal communication path from the input port to the output port for processing the request.
+- `GatewayTargetDeviceFailedToRespond` — Specialized use in conjunction with gateways, indicates that no response was obtained from the target device.
+
+---
+
 ## Dale.Sdk.Modbus.Rtu.TestKit
 
 ### IModbusRtuExtensions
@@ -498,6 +671,420 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `textEncoding`: The text encoding to use for encoding the string. Default is `Ascii`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+
+---
+
+## Dale.Sdk.Modbus.Tcp
+
+### ServiceCollectionExtensions
+
+Extension methods for setting up Modbus TCP services in an `IServiceCollection`.
+
+**Methods:**
+
+- `AddDaleModbusTcpSdk(IServiceCollection)` — Adds Modbus TCP services to the specified `IServiceCollection`.
+  - `serviceCollection`: The `IServiceCollection` to add services to.
+
+---
+
+## Dale.Sdk.Modbus.Tcp.Client.LogicBlock
+
+### ILogicBlockModbusTcpClient
+
+Provides non-blocking Modbus TCP client functionality for logic blocks.
+
+**Properties:**
+
+- `IsEnabled` — Gets or sets whether the client is enabled. Default is `false`.
+- `QueueCapacity` — Gets or sets the maximum number of requests that can be queued. Default is 100.
+- `QueueOverflowPolicy` — Gets or sets the policy for handling new requests when the queue is full. Default is `DropOldest`.
+- `QueuedRequestCount` — Gets the current number of requests queued for execution.
+- `ConnectionTimeout` — Gets or sets the timeout for connection attempts to the Modbus TCP server.
+- `Port` — Gets or sets the port number used to connect to the Modbus TCP server.
+- `IpAddress` — Gets or sets the IP address of the Modbus TCP server.
+- `DefaultOperationTimeout` — Gets or sets the default timeout for Modbus operations. Default is 1 second.
+
+**Methods:**
+
+- `Disconnect(IActorDispatcher, Action, Action<Exception>)` — Manually disconnects from the Modbus TCP server.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. Errors are always logged, regardless of whether an error callback is specified.
+- `ReadDiscreteInputs(int, ushort, ushort, IActorDispatcher, Action<bool[]>, Action<Exception>, TimeSpan?)` — Reads discrete inputs from a Modbus device (Function Code 2).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of discrete inputs to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadCoils(int, ushort, ushort, IActorDispatcher, Action<bool[]>, Action<Exception>, TimeSpan?)` — Reads coils from a Modbus device (Function Code 1).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of coils to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteSingleCoil(int, ushort, bool, IActorDispatcher, Action, Action<Exception>, TimeSpan?)` — Writes a single coil to a Modbus device (Function Code 5).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `registerAddress`: The address of the coil to write.
+  - `value`: The value to write to the coil.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleCoils(int, ushort, bool[], IActorDispatcher, Action, Action<Exception>, TimeSpan?)` — Writes multiple coils to a Modbus device (Function Code 15).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the coils.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersRaw(int, ushort, ushort, IActorDispatcher, Action<byte[]>, Action<Exception>, TimeSpan?)` — Reads input registers as raw bytes from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsShort(int, ushort, ushort, IActorDispatcher, Action<short[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads input registers as signed 16-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsUShort(int, ushort, ushort, IActorDispatcher, Action<ushort[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads input registers as unsigned 16-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsInt(int, ushort, uint, IActorDispatcher, Action<int[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as signed 32-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 32-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsUInt(int, ushort, uint, IActorDispatcher, Action<uint[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as unsigned 32-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 32-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsFloat(int, ushort, uint, IActorDispatcher, Action<float[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads input registers as 32-bit floating-point numbers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 32-bit floating-point numbers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsLong(int, ushort, uint, IActorDispatcher, Action<long[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as signed 64-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 64-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsULong(int, ushort, uint, IActorDispatcher, Action<ulong[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as unsigned 64-bit integers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 64-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsDouble(int, ushort, uint, IActorDispatcher, Action<double[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads input registers as 64-bit floating-point numbers from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 64-bit floating-point numbers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadInputRegistersAsString(int, ushort, ushort, IActorDispatcher, Action<string>, Action<Exception>, TextEncoding, TimeSpan?)` — Reads input registers as a string from a Modbus device (Function Code 4).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `textEncoding`: The text encoding to use for decoding the string. Default is `Ascii`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersRaw(int, ushort, ushort, IActorDispatcher, Action<byte[]>, Action<Exception>, TimeSpan?)` — Reads holding registers as raw bytes from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsShort(int, ushort, ushort, IActorDispatcher, Action<short[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads holding registers as signed 16-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsUShort(int, ushort, ushort, IActorDispatcher, Action<ushort[]>, Action<Exception>, ByteOrder, TimeSpan?)` — Reads holding registers as unsigned 16-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsInt(int, ushort, uint, IActorDispatcher, Action<int[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as signed 32-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 32-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsUInt(int, ushort, uint, IActorDispatcher, Action<uint[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as unsigned 32-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 32-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsFloat(int, ushort, uint, IActorDispatcher, Action<float[]>, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Reads holding registers as 32-bit floating-point numbers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 32-bit floating-point numbers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsLong(int, ushort, uint, IActorDispatcher, Action<long[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as signed 64-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 64-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsULong(int, ushort, uint, IActorDispatcher, Action<ulong[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as unsigned 64-bit integers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 64-bit integers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsDouble(int, ushort, uint, IActorDispatcher, Action<double[]>, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Reads holding registers as 64-bit floating-point numbers from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `count`: The number of 64-bit floating-point numbers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order the data is received in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is received in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `ReadHoldingRegistersAsString(int, ushort, ushort, IActorDispatcher, Action<string>, Action<Exception>, TextEncoding, TimeSpan?)` — Reads holding registers as a string from a Modbus device (Function Code 3).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to read from.
+  - `quantity`: The number of registers to read.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `textEncoding`: The text encoding to use for decoding the string. Default is `Ascii`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteSingleHoldingRegister(int, ushort, short, IActorDispatcher, Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes a single holding register as a signed 16-bit integer to a Modbus device (Function Code 6).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `registerAddress`: The address of the register to write.
+  - `value`: The value to write to the register.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteSingleHoldingRegister(int, ushort, ushort, IActorDispatcher, Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes a single holding register as an unsigned 16-bit integer to a Modbus device (Function Code 6).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `registerAddress`: The address of the register to write.
+  - `value`: The value to write to the register.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersRaw(int, ushort, byte[], IActorDispatcher, Action, Action<Exception>, TimeSpan?)` — Writes multiple holding registers as raw bytes to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The raw byte values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsShort(int, ushort, short[], IActorDispatcher, Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes multiple holding registers as signed 16-bit integers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsUShort(int, ushort, ushort[], IActorDispatcher, Action, Action<Exception>, ByteOrder, TimeSpan?)` — Writes multiple holding registers as unsigned 16-bit integers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsInt(int, ushort, int[], IActorDispatcher, Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as signed 32-bit integers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsUInt(int, ushort, uint[], IActorDispatcher, Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as unsigned 32-bit integers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsFloat(int, ushort, float[], IActorDispatcher, Action, Action<Exception>, ByteOrder, WordOrder32, TimeSpan?)` — Writes multiple holding registers as 32-bit floating-point numbers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `MswToLsw`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsLong(int, ushort, long[], IActorDispatcher, Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as signed 64-bit integers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsULong(int, ushort, ulong[], IActorDispatcher, Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as unsigned 64-bit integers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsDouble(int, ushort, double[], IActorDispatcher, Action, Action<Exception>, ByteOrder, WordOrder64, TimeSpan?)` — Writes multiple holding registers as 64-bit floating-point numbers to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `values`: The values to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `byteOrder`: The byte order to write the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to write the data in. Default is `ABCD`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+- `WriteMultipleHoldingRegistersAsString(int, ushort, string, IActorDispatcher, Action, Action<Exception>, TextEncoding, TimeSpan?)` — Writes multiple holding registers as a string to a Modbus device (Function Code 16).
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address to write to.
+  - `value`: The string value to write to the registers.
+  - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
+  - `successCallback`: The callback invoked when the operation succeeds.
+  - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see . Errors are always logged, regardless of whether an error callback is specified.
+  - `textEncoding`: The text encoding to use for encoding the string. Default is `Ascii`.
+  - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+
+---
+
+### ILogicBlockModbusTcpClientFactory
+
+Factory for creating instances of `ILogicBlockModbusTcpClient`.
+
+**Methods:**
+
+- `Create` — Creates a new instance of `ILogicBlockModbusTcpClient`.
+
+---
+
+## Dale.Sdk.Modbus.Tcp.Client.Request
+
+### QueueOverflowPolicy
+
+Defines the behavior when the request queue is full.
+
+**Fields/Values:**
+
+- `DropOldest` — Drops the oldest request in the queue when a new request is enqueued.
+- `DropNewest` — Drops the newest request in the queue (not the one being enqueued) when a new request is enqueued.
+- `RejectNew` — Rejects the new request being enqueued, invoking its error callback immediately.
+
+---
+
+### RequestDroppedException
+
+Exception thrown when a request is dropped from the queue. This occurs when the queue is full and the overflow policy rejects the request, or when attempting to enqueue a request after the queue has been disposed.
+
+**Properties:**
+
+- `RequestName` — Gets the name of the dropped request.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `RequestDroppedException` class.
+  - `requestName`: The name of the request that was dropped.
+  - `reason`: The reason the request was dropped (e.g., "queue full", "queue disposed").
 
 ---
 
