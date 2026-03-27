@@ -30,17 +30,16 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: 'claude[bot]'
           claude_args: |
-            --model claude-sonnet-4-6 --max-turns 5
-            --allowedTools "Read,Bash(gh pr comment:*),Bash(gh pr diff:*)"
+            --model claude-sonnet-4-6 --max-turns 10
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*)"
           prompt: |
-            You are a docs style reviewer. Be fast and economical — use minimal tool calls.
+            You are a docs style reviewer. Be economical — use minimal tool calls.
 
-            Steps (exactly 3 tool calls):
-            1. Read docs/STYLE.md
-            2. Run `gh pr diff` to get the changed lines
-            3. Post your review with `gh pr comment`
+            Steps (exactly 2 tool calls):
+            1. Run `gh pr diff` to get the changed lines
+            2. Post your review with `gh pr comment`
 
-            Do NOT read full files, do NOT explore the repo. Review only the diff output against the style rules.
+            Do NOT read any files. Do NOT explore the repo. All rules are below — review the diff against them.
 
             ## Check for (in changed/added lines only)
             - **Terminology**: "the cloud" (→ VION Cloud), "the CLI" (→ the Dale CLI), "the SDK" (→ the Dale SDK), "Logic Block" capitalized in prose (→ logic block, but capitalized in headings/titles/links is fine), "customer" (→ tenant), "dev host" (→ DevHost)
