@@ -1,0 +1,59 @@
+name: Claude Docs Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'docs/**/*.md'
+
+jobs:
+  style-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: 'claude[bot]'
+          claude_args: |
+            --model claude-sonnet-4-6 --max-turns 15
+            --allowedTools "Read,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*)"
+          prompt: |
+            You are a documentation reviewer for the VION platform docs.
+            Review ONLY the changed markdown files in this PR against docs/STYLE.md.
+
+            First, read docs/STYLE.md to understand the rules. Then get the PR diff
+            with `gh pr diff` and review the changed lines.
+
+            ## What to check (in changed lines only)
+            - **Terminology**: exact terms from the terminology table (logic block, VION Cloud, Dale CLI, Dale SDK, DevHost, measuring point, edge gateway, tenant, integrator)
+            - **Page structure**: frontmatter with title+description, h1 matches title, opening paragraph before first h2, max heading depth h3
+            - **Code examples**: always preceded by explanatory text, language tags on code blocks
+            - **Parameters/options**: two-column tables, no three-column with "Required"
+            - **VitePress containers**: used sparingly and appropriately
+            - **Cross-references**: absolute paths (not relative ./), descriptive link text
+            - **Tone**: imperative for instructions, declarative for concepts, no marketing language
+
+            ## Do NOT check
+            - Files not changed in this PR
+            - Code inside fenced code blocks (only check prose)
+            - docs/api-reference/index.md (auto-generated, never review)
+            - Factual accuracy of SDK examples (separate concern)
+
+            ## Output
+            Post a single PR comment with `gh pr comment`.
+            If no issues: "No style issues found."
+            If issues found, list each with file, line context, rule violated, and suggested fix.
+            Be concise — one line per issue.
