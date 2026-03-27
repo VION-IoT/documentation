@@ -8,7 +8,7 @@ Use these exact forms. Never substitute synonyms.
 
 | Term | Usage | Never use |
 |------|-------|-----------|
-| logic block | Lowercase in prose: "a logic block handles..." | LogicBlock (only in code), block (ambiguous), component |
+| logic block | Lowercase in prose: "a logic block handles..." Capitalized in headings, titles, and link text: "[Logic Blocks](/sdk/logic-blocks)" | LogicBlock (only in code), block (ambiguous), component |
 | service property | "a service property is readable by the runtime" | property (alone, when ambiguous), field |
 | measuring point | "measuring points are read-only" | metric, measurement, sensor value |
 | service provider contract | "the service provider contract binds I/O" | I/O binding (alone), hardware contract |
