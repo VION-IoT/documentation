@@ -1,6 +1,6 @@
 ---
 title: Quick Start
-description: Create, extend, test, and run a logic block library in 15 minutes.
+description: Create, extend, test, and run your first logic block library in 15 minutes.
 ---
 
 # Quick Start
