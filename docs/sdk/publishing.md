@@ -125,8 +125,11 @@ Pass credentials via `--client-id` and `--client-secret`:
 dale upload \
   --client-id <your-client-id> \
   --client-secret <your-client-secret> \
-  --release-notes "Build ${BUILD_NUMBER}"
+  --release-notes "Build ${BUILD_NUMBER}" \
+  --skip-duplicate
 ```
+
+The `--skip-duplicate` flag treats version conflicts (409) as success instead of failure — this makes CI pipelines safe to re-run without failing on already-published versions.
 
 ### Cross-Environment Deployment
 
@@ -166,7 +169,8 @@ jobs:
           dale upload \
             --client-id ${{ secrets.DALE_CLIENT_ID }} \
             --client-secret ${{ secrets.DALE_CLIENT_SECRET }} \
-            --release-notes "Release ${{ github.ref_name }}"
+            --release-notes "Release ${{ github.ref_name }}" \
+            --skip-duplicate
 ```
 
 ### Azure DevOps Pipeline Example
@@ -191,7 +195,8 @@ steps:
       dale upload \
         --client-id $(DALE_CLIENT_ID) \
         --client-secret $(DALE_CLIENT_SECRET) \
-        --release-notes "Release $(Build.SourceBranchName)"
+        --release-notes "Release $(Build.SourceBranchName)" \
+        --skip-duplicate
     displayName: 'Upload to VION Cloud'
 ```
 

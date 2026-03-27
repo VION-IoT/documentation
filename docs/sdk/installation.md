@@ -165,6 +165,9 @@ Options:
 ```bash
 dale add measuringpoint CurrentTemp --type double --to TemperatureController
 # ✔ Added [ServiceMeasuringPoint] double CurrentTemp to TemperatureController
+
+dale add measuringpoint TotalEnergy --type double --to TemperatureController --persistent
+# ✔ Added [ServiceMeasuringPoint][Persistent] double TotalEnergy to TemperatureController
 ```
 
 #### Add a Timer
@@ -204,6 +207,7 @@ Options:
 | `--release-notes` | Release notes for this version |
 | `--environment` | Target environment (overrides stored config) |
 | `--integrator-id` | Integrator ID (overrides stored config) |
+| `--skip-duplicate` | Treat 409 Conflict (version already exists) as success — safe for CI re-runs |
 
 ### `dale login` / `dale logout` / `dale whoami` — Authentication
 
