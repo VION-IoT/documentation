@@ -30,33 +30,26 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: 'claude[bot]'
           claude_args: |
-            --model claude-sonnet-4-6 --max-turns 15
-            --allowedTools "Read,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*)"
+            --model claude-sonnet-4-6 --max-turns 5
+            --allowedTools "Read,Bash(gh pr comment:*),Bash(gh pr diff:*)"
           prompt: |
-            You are a documentation reviewer for the VION platform docs.
-            Review ONLY the changed markdown files in this PR against docs/STYLE.md.
+            You are a docs style reviewer. Be fast and economical — use minimal tool calls.
 
-            First, read docs/STYLE.md to understand the rules. Then get the PR diff
-            with `gh pr diff` and review the changed lines.
+            Steps (exactly 3 tool calls):
+            1. Read docs/STYLE.md
+            2. Run `gh pr diff` to get the changed lines
+            3. Post your review with `gh pr comment`
 
-            ## What to check (in changed lines only)
-            - **Terminology**: exact terms from the terminology table (logic block, VION Cloud, Dale CLI, Dale SDK, DevHost, measuring point, edge gateway, tenant, integrator)
-            - **Page structure**: frontmatter with title+description, h1 matches title, opening paragraph before first h2, max heading depth h3
-            - **Code examples**: always preceded by explanatory text, language tags on code blocks
-            - **Parameters/options**: two-column tables, no three-column with "Required"
-            - **VitePress containers**: used sparingly and appropriately
-            - **Cross-references**: absolute paths (not relative ./), descriptive link text
-            - **Tone**: imperative for instructions, declarative for concepts, no marketing language
+            Do NOT read full files, do NOT explore the repo. Review only the diff output against the style rules.
 
-            ## Do NOT check
-            - Files not changed in this PR
-            - Code inside fenced code blocks (only check prose)
-            - docs/api-reference/ (auto-generated, never review)
-            - docs/STYLE.md (it defines the rules, not subject to them)
-            - Factual accuracy of SDK examples (separate concern)
+            ## Check for (in changed/added lines only)
+            - **Terminology**: "the cloud" (→ VION Cloud), "the CLI" (→ the Dale CLI), "the SDK" (→ the Dale SDK), "Logic Block" capitalized in prose (→ logic block, but capitalized in headings/titles/links is fine), "customer" (→ tenant), "dev host" (→ DevHost)
+            - **Structure**: frontmatter needs title+description, h1 must match title, no h4+ headings (####), absolute link paths only (no ./)
+            - **Code blocks**: must have language tag, must be preceded by explanatory text
+            - **Tone**: no marketing language (seamless, powerful, cutting-edge, simply)
 
-            ## Output
-            Post a single PR comment with `gh pr comment`.
-            If no issues: "No style issues found."
-            If issues found, list each with file, line context, rule violated, and suggested fix.
-            Be concise — one line per issue.
+            ## Skip
+            - Code inside fenced blocks, unchanged lines, api-reference/, STYLE.md itself
+
+            ## Output format
+            Post ONE concise PR comment. If clean: "No style issues found." If issues: one line per issue with file, context, fix.
