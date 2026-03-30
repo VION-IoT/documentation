@@ -50,7 +50,11 @@ The value type must match the property type defined in the logic block (number, 
 
 ## Subscribe to Property Updates
 
-Subscribe to receive real-time property value changes via MQTT:
+Subscribing tells the edge gateway to start publishing property values to the cloud MQTT broker. This is a two-step process:
+
+**Step 1: Subscribe via REST API**
+
+This triggers the edge gateway to begin sending updates for the specified properties:
 
 ```bash
 curl -X POST \
@@ -68,6 +72,10 @@ curl -X POST \
   }' \
   "$API/Tenant/$TENANT_ID/Services/subscribeProperties"
 ```
+
+**Step 2: Connect to the MQTT broker**
+
+To actually receive the updates, connect an MQTT client to the cloud broker and subscribe to the relevant topics. The [Dashboard](https://vion.test.ecocoa.ch/) uses this pattern internally — see its MQTT client implementation for a reference.
 
 ## Query Measuring Point Data
 
