@@ -70,11 +70,10 @@ VION Cloud provides configuration management, monitoring, OTA updates, and a Das
 
 ## Multi-Tenancy and RBAC
 
-The platform is built for system integrators serving multiple customers:
+VION is built for system integrators serving multiple customers:
 
-- **Platform** → manages integrators
 - **Integrator** → your organization, manages tenants and develops logic block libraries
-- **Tenant** → your tenant, manages their projects and gateways
+- **Tenant** → your customer, manages their projects and gateways
 
 Each level has its own roles and permissions. A developer at the integrator level can publish libraries. An operator at the tenant level can configure and monitor gateways. Access is enforced at every layer — API, Dashboard, and CLI.
 

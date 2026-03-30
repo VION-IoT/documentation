@@ -30,7 +30,7 @@ Your Grafana account is automatically provisioned when you are added to a tenant
 | **Viewer** | View dashboards and data for your tenant |
 | **Editor** | Create custom dashboards, modify panels |
 
-By default, tenant members are assigned the **Viewer** role. Contact your platform administrator for elevated access.
+By default, tenant members are assigned the **Viewer** role. Contact [VION support](https://vion.swiss) for elevated access.
 
 ## Navigation
 

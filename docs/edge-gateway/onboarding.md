@@ -67,7 +67,7 @@ curl -X 'GET' '<url-shown-in-dashboard>' \
 ```
 
 ::: info
-The script URL is unique to your platform environment. Always use the exact URL shown in the Dashboard — do not copy it from this documentation.
+The script URL is unique to your environment. Always use the exact URL shown in the Dashboard — do not copy it from this documentation.
 :::
 
 **Run the script:**
@@ -104,7 +104,7 @@ The Device ID is generated once per device. If the script detects an existing ID
 
 After you enter the Device ID, the script automatically:
 
-1. Downloads the platform root CA certificate
+1. Downloads the VION root CA certificate
 2. Generates an EC P-384 key pair on the device
 3. Creates a Certificate Signing Request (CSR)
 4. Sends the CSR to the VION CA for signing

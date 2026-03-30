@@ -80,7 +80,6 @@ The API uses a scoped URL pattern reflecting the multi-tenancy hierarchy:
 | Level | URL Pattern | Example |
 |-------|-------------|---------|
 | **Common** | `/<controller>` | `GET /Me` |
-| **Platform** | `/Platform/{platformId}/<controller>` | `GET /Platform/{id}/Integrators` |
 | **Integrator** | `/Integrator/{integratorId}/<controller>` | `POST /Integrator/{id}/LogicBlockLibraryVersions` |
 | **Tenant** | `/Tenant/{tenantId}/<controller>` | `GET /Tenant/{id}/Services` |
 

@@ -25,7 +25,7 @@ curl -H "Authorization: Bearer $TOKEN" $API/Me
 
 ## Get All Services
 
-Retrieve the complete service topology for a tenant — all services, properties, measuring points, and their current values:
+Retrieve the complete service topology for a tenant — all services, properties, and measuring points:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
@@ -75,7 +75,36 @@ curl -X POST \
 
 **Step 2: Connect to the MQTT broker**
 
-To actually receive the updates, connect an MQTT client to the cloud broker and subscribe to the relevant topics. The [Dashboard](https://vion.test.ecocoa.ch/) uses this pattern internally — see its MQTT client implementation for a reference.
+To receive the updates, connect an MQTT 5.0 client to the cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the API response that tells you exactly which MQTT topic to subscribe to.
+
+Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js):
+
+```js
+import mqtt from "mqtt";
+
+const client = mqtt.connect("wss://ws.test.ecocoa.ch:443", {
+  protocolVersion: 5,
+  username: "",
+  password: TOKEN, // JWT access token from authentication
+});
+
+// Topic from the Services API response (ServiceProperty.topic)
+const topic =
+  "v1/{env}/{tenantId}/{edgeGatewayId}/cloud/sw/properties/state/{serviceProviderIdentifier}/{serviceIdentifier}";
+
+client.on("connect", () => {
+  client.subscribe(topic);
+});
+
+client.on("message", (topic, message, packet) => {
+  const schema = packet.properties?.userProperties?.schema;
+  if (schema === "PropertiesStatePayload") {
+    const { propertiesState } = JSON.parse(message.toString());
+    // propertiesState: [{ propertyIdentifier: "Temperature", value: 22.5 }, ...]
+    console.log(propertiesState);
+  }
+});
+```
 
 ## Query Measuring Point Data
 
