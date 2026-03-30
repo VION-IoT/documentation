@@ -67,7 +67,7 @@ export default withMermaid(
               { text: 'Installation & CLI', link: '/sdk/installation' },
               { text: 'Logic Blocks', link: '/sdk/logic-blocks' },
               { text: 'Properties & Measuring Points', link: '/sdk/properties' },
-              { text: 'Service Provider Contracts', link: '/sdk/services' },
+              { text: 'Hardware & External Services', link: '/sdk/services' },
               { text: 'Logic Interfaces', link: '/sdk/logic-interfaces' },
               { text: 'Persistence', link: '/sdk/persistence' },
               { text: 'Testing', link: '/sdk/testing' },

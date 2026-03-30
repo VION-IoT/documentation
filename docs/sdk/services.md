@@ -1,11 +1,11 @@
 ---
-title: Service Provider Contracts
-description: Connecting logic blocks to external hardware and services through service provider contracts — digital and analog I/O, Modbus, and custom providers.
+title: Hardware & External Services
+description: Connecting logic blocks to hardware I/O, Modbus devices, and external APIs through service provider contracts and utility packages.
 ---
 
-# Service Provider Contracts
+# Hardware & External Services
 
-Service provider contracts connect logic blocks to external service providers — hardware abstraction layers (HAL), protocol adapters (Modbus RTU), or any custom integration. The provider runs as a separate process on the edge gateway and communicates with the Dale runtime over MQTT.
+The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O and Modbus registers to HTTP APIs. Service provider contracts connect to hardware through the runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
 
 ## Built-in I/O Interfaces
 
@@ -169,6 +169,116 @@ Modbus.WriteMultipleHoldingRegistersAsFloat(
     successCallback: () => Logger.LogInformation("Register written"),
     errorCallback: OnError,
     byteOrder: ByteOrder.MsbToLsb);
+```
+
+## Modbus TCP
+
+The `Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract like RTU). This is useful when your logic block connects directly to a Modbus TCP device over the network.
+
+```csharp
+[LogicBlockInfo("Energy Meter TCP")]
+public class EnergyMeterTcp : LogicBlockBase
+{
+    private readonly ILogicBlockModbusTcpClient _modbus;
+
+    public EnergyMeterTcp(ILogger logger, ILogicBlockModbusTcpClient modbus) : base(logger)
+    {
+        _modbus = modbus;
+    }
+
+    [ServiceProperty("IP Address")]
+    [Category(PropertyCategory.Configuration)]
+    public string IpAddress { get; set; } = "192.168.1.100";
+
+    [ServiceProperty("Power", "kW")]
+    [ServiceMeasuringPoint("Power", "kW")]
+    public double Power { get; private set; }
+
+    protected override void Ready()
+    {
+        _modbus.IpAddress = IpAddress;
+        _modbus.IsEnabled = true;
+    }
+
+    [Timer(2)]
+    public void Poll()
+    {
+        _modbus.ReadInputRegistersAsFloat(
+            unitIdentifier: 1,
+            startingAddress: 0,
+            quantity: 1,
+            successCallback: values => { Power = values[0]; },
+            errorCallback: ex => Logger.LogWarning(ex, "Modbus TCP error"));
+    }
+}
+```
+
+The TCP client provides the same typed read/write methods as `IModbusRtu` (same Modbus function codes), plus connection management:
+
+| Feature | Modbus RTU | Modbus TCP |
+|---------|-----------|-----------|
+| Transport | Serial via service provider | TCP/IP direct connection |
+| Declaration | `[ServiceProviderContract]` | Constructor injection (DI) |
+| Connection | Managed by runtime | `IpAddress`, `Port`, `ConnectionTimeout` |
+| Queue management | Actor-based | Configurable `QueueCapacity` and `QueueOverflowPolicy` |
+| Multiple connections | One per contract | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
+
+For connecting to multiple Modbus TCP devices from one logic block, inject `ILogicBlockModbusTcpClientFactory` and call `Create()` for each connection.
+
+Register the package in your `DependencyInjection` class:
+
+```csharp
+services.AddDaleModbusTcpSdk();
+```
+
+## HTTP Client
+
+The `Dale.Sdk.Http` package provides `ILogicBlockHttpClient` — a non-blocking HTTP client for calling external APIs from logic blocks. All operations use callbacks dispatched through the actor system, so the logic block thread is never blocked.
+
+```csharp
+[LogicBlockInfo("Weather Station")]
+public class WeatherStation : LogicBlockBase
+{
+    private readonly ILogicBlockHttpClient _http;
+
+    public WeatherStation(ILogger logger, ILogicBlockHttpClient http) : base(logger)
+    {
+        _http = http;
+    }
+
+    [ServiceProperty("Temperature", "°C")]
+    [ServiceMeasuringPoint("Temperature", "°C")]
+    public double Temperature { get; private set; }
+
+    [Timer(300)]
+    public void FetchWeather()
+    {
+        _http.GetJson<WeatherResponse>(
+            this,
+            "https://api.open-meteo.com/v1/forecast?latitude=47.37&longitude=8.55&current=temperature_2m",
+            response => { Temperature = response.Current.Temperature2m; },
+            ex => Logger.LogWarning(ex, "Weather API error"));
+    }
+}
+```
+
+Available methods:
+
+| Method | Description |
+|--------|-------------|
+| `GetJson<T>` | GET request, deserialize JSON response |
+| `PostJson<TReq, TRes>` | POST with JSON body, deserialize response |
+| `PostJson<TReq>` | POST with JSON body, no response body |
+| `PutJson<TReq, TRes>` | PUT with JSON body, deserialize response |
+| `PutJson<TReq>` | PUT with JSON body, no response body |
+| `DeleteJson<T>` | DELETE, deserialize response |
+| `Delete` | DELETE, no response body |
+| `SendRequest` | Raw `HttpRequestMessage` for full control |
+
+All methods accept optional `headers` and `timeout` parameters. Register the package:
+
+```csharp
+services.AddDaleHttpSdk();
 ```
 
 ## Cardinality and Sharing
