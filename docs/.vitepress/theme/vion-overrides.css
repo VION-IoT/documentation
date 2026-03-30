@@ -62,14 +62,37 @@
   --vp-c-bg-soft: var(--vion-color-carrara-900);
   --vp-c-bg-alt: var(--vion-color-carrara-800);
 
+  /* Inline code contrast fix */
+  --vp-code-bg: var(--vion-color-carrara-800);
+  --vp-c-text-code: var(--vion-color-jagged-ice-300);
+
   --vp-button-brand-bg: var(--vion-color-jagged-ice-600);
   --vp-button-brand-hover-bg: var(--vion-color-jagged-ice-500);
   --vp-button-brand-active-bg: var(--vion-color-jagged-ice-700);
 
+  /* Tip blocks */
   --vp-custom-block-tip-border: var(--vion-color-jagged-ice-800);
   --vp-custom-block-tip-text: var(--vion-color-jagged-ice-100);
   --vp-custom-block-tip-bg: var(--vion-color-jagged-ice-950);
   --vp-custom-block-tip-code-bg: var(--vion-color-jagged-ice-900);
+
+  /* Info blocks */
+  --vp-custom-block-info-border: var(--vion-color-carrara-600);
+  --vp-custom-block-info-text: var(--vion-color-carrara-200);
+  --vp-custom-block-info-bg: var(--vion-color-carrara-900);
+  --vp-custom-block-info-code-bg: var(--vion-color-carrara-800);
+
+  /* Warning blocks */
+  --vp-custom-block-warning-border: #b8860b;
+  --vp-custom-block-warning-text: #f5deb3;
+  --vp-custom-block-warning-bg: #2a2000;
+  --vp-custom-block-warning-code-bg: #332800;
+
+  /* Danger blocks */
+  --vp-custom-block-danger-border: #a33;
+  --vp-custom-block-danger-text: #fcc;
+  --vp-custom-block-danger-bg: #200;
+  --vp-custom-block-danger-code-bg: #300;
 }
 
 /* Mermaid diagram styling */
