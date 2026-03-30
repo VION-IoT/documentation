@@ -9,7 +9,7 @@ logic blocks are the core building blocks of every Dale application. Each block 
 
 ## What is a Logic Block?
 
-A logic block is an **actor** based on the [Proto.Actor](https://proto.actor/) model. This means each block is an independent unit of computation that:
+A logic block is an **actor** — an independent unit of computation that:
 
 - Has its own internal state
 - Processes messages asynchronously, one at a time
