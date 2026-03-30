@@ -43,8 +43,9 @@ VION provides a complete toolchain, not just an SDK:
 | **DevHost** | Run and debug logic blocks locally with a web UI, no hardware needed |
 | **TestKit** | Unit test logic blocks with a lightweight actor context, mocks, and assertions |
 | **Observability** | Grafana dashboards with metrics and logs from every gateway, out of the box |
+| **Utility packages** | Ready-made, non-blocking clients for HTTP, Modbus TCP, and Modbus RTU — callback-based, actor-safe, no boilerplate |
 
-The goal is that you go from idea to deployed IoT logic as fast as possible, without having to set up infrastructure.
+The goal is that you go from idea to deployed IoT logic as fast as possible, without having to set up infrastructure or write plumbing code.
 
 ## Modern .NET
 

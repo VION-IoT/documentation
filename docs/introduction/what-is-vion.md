@@ -11,35 +11,39 @@ VION is an **Edge Operations Platform** for building, deploying, and operating I
 
 ```mermaid
 flowchart LR
-    subgraph You["You Develop"]
+    subgraph You["You Develop "]
         direction TB
-        CLI["Dale CLI"]
-        Code["logic blocks<br/><small>C# / .NET</small>"]
+        CLI["Dale CLI "]
+        Code["Logic Blocks "]
         CLI --- Code
     end
 
-    subgraph Cloud["VION Cloud"]
+    subgraph Cloud["VION Cloud "]
         direction TB
-        Dash["Dashboard"]
-        API["API & Auth"]
-        Mon["Monitoring"]
+        Dash["Dashboard "]
+        API["API "]
+        Mon["Monitoring "]
         Dash --- API --- Mon
     end
 
-    subgraph Edge["Edge Gateway"]
+    subgraph Edge["Edge Gateway "]
         direction TB
-        Runtime["Dale Runtime"]
-        HW["Hardware<br/>& Sensors"]
+        Runtime["Dale Runtime "]
+        HW["Hardware "]
         Runtime --- HW
     end
 
     You -->|"publish"| Cloud
-    Cloud -->|"deploy &<br/>configure"| Edge
+    Cloud -->|"deploy"| Edge
     Edge -.->|"telemetry"| Cloud
 
-    style You fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style Cloud fill:#32656c,stroke:#2b474e,stroke-width:2px,color:#ffffff
-    style Edge fill:#f6f7f5,stroke:#5d5e4e,stroke-width:2px,color:#282921
+    classDef light fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33
+    classDef dark fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff
+    classDef muted fill:#f6f7f5,stroke:#c8c9be,stroke-width:1.5px,color:#282921
+
+    class CLI,Code light
+    class Dash,API,Mon dark
+    class Runtime,HW muted
 ```
 
 You write logic in C#. VION Cloud manages deployment and monitoring. The edge runs the logic close to the hardware.
@@ -48,20 +52,22 @@ You write logic in C#. VION Cloud manages deployment and monitoring. The edge ru
 
 ```mermaid
 flowchart LR
-    A["<b>Scaffold</b><br/>dale new"] --> B["<b>Code</b><br/>Logic blocks,<br/>properties, timers"]
-    B --> C["<b>Test</b><br/>dale test<br/><small>TestKit</small>"]
-    C --> D["<b>Debug</b><br/>dale dev<br/><small>DevHost UI</small>"]
-    D --> E["<b>Publish</b><br/>dale upload"]
-    E --> F["<b>Deploy</b><br/>Dashboard"]
+    A["Scaffold "]
+    B["Code "]
+    C["Test "]
+    D["Debug "]
+    E["Publish "]
+    F["Deploy "]
+
+    A --> B --> C --> D --> E --> F
     C -.->|"fix"| B
     D -.->|"iterate"| B
 
-    style A fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style B fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style C fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style D fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style E fill:#32656c,stroke:#2b474e,stroke-width:2px,color:#ffffff
-    style F fill:#32656c,stroke:#2b474e,stroke-width:2px,color:#ffffff
+    classDef dev fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33,rx:8
+    classDef cloud fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff,rx:8
+
+    class A,B,C,D dev
+    class E,F cloud
 ```
 
 Everything happens through the **Dale CLI** — from project creation to cloud deployment. Local testing with DevHost and TestKit means you don't need hardware to develop.
@@ -72,10 +78,10 @@ Everything happens through the **Dale CLI** — from project creation to cloud d
 flowchart TB
     subgraph EdgeBox["Edge Gateway"]
         direction LR
-        Dale["<b>Dale Runtime</b><br/>Runs logic blocks"]
-        Mesh["<b>Mesh</b><br/>Cloud sync"]
-        SP["<b>Service Providers</b><br/>Hardware drivers"]
-        Alloy["<b>Alloy</b><br/>Telemetry"]
+        SP["Service Providers "]
+        Dale["Dale Runtime "]
+        Mesh["Mesh "]
+        Alloy["Alloy "]
         SP <-->|"I/O"| Dale
         Dale <--> Mesh
         Dale --> Alloy
@@ -83,17 +89,20 @@ flowchart TB
 
     subgraph CloudBox["VION Cloud"]
         direction LR
-        CloudAPI["<b>Cloud API</b><br/>Management"]
-        Dashboard["<b>Dashboard</b><br/>UI"]
-        Grafana["<b>Grafana</b><br/>Monitoring"]
+        CloudAPI["Cloud API "]
+        Dashboard["Dashboard "]
+        Grafana["Grafana "]
         Dashboard --> CloudAPI
     end
 
     Mesh <-->|"MQTT over TLS"| CloudAPI
     Alloy -->|"OpenTelemetry"| Grafana
 
-    style EdgeBox fill:#f6f7f5,stroke:#5d5e4e,stroke-width:2px,color:#282921
-    style CloudBox fill:#32656c,stroke:#2b474e,stroke-width:2px,color:#ffffff
+    classDef edgeNode fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33,rx:8
+    classDef cloudNode fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff,rx:8
+
+    class SP,Dale,Mesh,Alloy edgeNode
+    class CloudAPI,Dashboard,Grafana cloudNode
 ```
 
 **Logic runs on the edge** — close to the hardware, with millisecond latency and offline resilience. VION Cloud handles configuration, deployment, and monitoring but is not in the critical path.
@@ -102,12 +111,12 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    Platform["<b>VION Platform</b>"]
-    Int1["<b>Integrator A</b><br/><small>Develops logic libraries</small>"]
-    Int2["<b>Integrator B</b><br/><small>Develops logic libraries</small>"]
-    T1["Tenant 1<br/><small>End user</small>"]
-    T2["Tenant 2<br/><small>End user</small>"]
-    T3["Tenant 3<br/><small>End user</small>"]
+    Platform["VION Platform "]
+    Int1["Integrator A "]
+    Int2["Integrator B "]
+    T1["Tenant 1 "]
+    T2["Tenant 2 "]
+    T3["Tenant 3 "]
 
     Platform --> Int1
     Platform --> Int2
@@ -115,12 +124,13 @@ flowchart TB
     Int1 --> T2
     Int2 --> T3
 
-    style Platform fill:#32656c,stroke:#2b474e,stroke-width:2px,color:#ffffff
-    style Int1 fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style Int2 fill:#ecfbfa,stroke:#32656c,stroke-width:2px,color:#192f33
-    style T1 fill:#f6f7f5,stroke:#5d5e4e,stroke-width:2px,color:#282921
-    style T2 fill:#f6f7f5,stroke:#5d5e4e,stroke-width:2px,color:#282921
-    style T3 fill:#f6f7f5,stroke:#5d5e4e,stroke-width:2px,color:#282921
+    classDef platform fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff,rx:8
+    classDef integrator fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33,rx:8
+    classDef tenant fill:#f6f7f5,stroke:#c8c9be,stroke-width:1.5px,color:#282921,rx:8
+
+    class Platform platform
+    class Int1,Int2 integrator
+    class T1,T2,T3 tenant
 ```
 
 VION is built for **system integrators** — companies that develop IoT solutions for their customers. Each integrator manages their own logic block libraries, tenants, and edge gateways independently. Role-based access control is enforced at every level.
