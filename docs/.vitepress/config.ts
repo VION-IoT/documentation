@@ -148,10 +148,10 @@ export default withMermaid(
     mermaid: {
       theme: 'base',
       flowchart: {
-        padding: 16,
+        padding: 20,
         nodeSpacing: 30,
         rankSpacing: 40,
-        useMaxWidth: true,
+        useMaxWidth: false,
       },
       themeVariables: {
         // Node styling
@@ -165,7 +165,6 @@ export default withMermaid(
         // Lines and arrows
         lineColor: '#5d7f85',
         // Text
-        fontFamily: 'Inter, system-ui, sans-serif',
         fontSize: '14px',
         // Subgraph
         clusterBkg: '#f6f7f5',

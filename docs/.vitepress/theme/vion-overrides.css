@@ -96,10 +96,26 @@
 
 .mermaid .cluster-label .nodeLabel {
   font-weight: 600;
+  overflow: visible !important;
+}
+
+.mermaid .cluster-label foreignObject {
+  overflow: visible !important;
+}
+
+.mermaid .cluster-label foreignObject div {
+  overflow: visible !important;
+  white-space: nowrap !important;
 }
 
 .mermaid .edgeLabel {
   font-size: 12px;
+  background: transparent !important;
+}
+
+.mermaid .edgeLabel rect {
+  fill: transparent !important;
+  stroke: none !important;
 }
 
 .dark .mermaid .cluster rect {

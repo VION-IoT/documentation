@@ -11,25 +11,25 @@ VION is an **Edge Operations Platform** for building, deploying, and operating I
 
 ```mermaid
 flowchart LR
-    subgraph You["You Develop"]
+    subgraph You["You Develop "]
         direction TB
-        CLI["Dale CLI"]
-        Code["Logic Blocks"]
+        CLI["Dale CLI "]
+        Code["Logic Blocks "]
         CLI --- Code
     end
 
-    subgraph Cloud["VION Cloud"]
+    subgraph Cloud["VION Cloud "]
         direction TB
-        Dash["Dashboard"]
-        API["API"]
-        Mon["Monitoring"]
+        Dash["Dashboard "]
+        API["API "]
+        Mon["Monitoring "]
         Dash --- API --- Mon
     end
 
-    subgraph Edge["Edge Gateway"]
+    subgraph Edge["Edge Gateway "]
         direction TB
-        Runtime["Dale Runtime"]
-        HW["Hardware"]
+        Runtime["Dale Runtime "]
+        HW["Hardware "]
         Runtime --- HW
     end
 
@@ -52,12 +52,12 @@ You write logic in C#. VION Cloud manages deployment and monitoring. The edge ru
 
 ```mermaid
 flowchart LR
-    A["Scaffold<br/>dale new"]
-    B["Code<br/>properties, timers"]
-    C["Test<br/>dale test"]
-    D["Debug<br/>dale dev"]
-    E["Publish<br/>dale upload"]
-    F["Deploy<br/>Dashboard"]
+    A["Scaffold "]
+    B["Code "]
+    C["Test "]
+    D["Debug "]
+    E["Publish "]
+    F["Deploy "]
 
     A --> B --> C --> D --> E --> F
     C -.->|"fix"| B
@@ -78,10 +78,10 @@ Everything happens through the **Dale CLI** — from project creation to cloud d
 flowchart TB
     subgraph EdgeBox["Edge Gateway"]
         direction LR
-        SP["Service Providers"]
-        Dale["Dale Runtime"]
-        Mesh["Mesh"]
-        Alloy["Alloy"]
+        SP["Service Providers "]
+        Dale["Dale Runtime "]
+        Mesh["Mesh "]
+        Alloy["Alloy "]
         SP <-->|"I/O"| Dale
         Dale <--> Mesh
         Dale --> Alloy
@@ -89,9 +89,9 @@ flowchart TB
 
     subgraph CloudBox["VION Cloud"]
         direction LR
-        CloudAPI["Cloud API"]
-        Dashboard["Dashboard"]
-        Grafana["Grafana"]
+        CloudAPI["Cloud API "]
+        Dashboard["Dashboard "]
+        Grafana["Grafana "]
         Dashboard --> CloudAPI
     end
 
@@ -111,12 +111,12 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    Platform["VION Platform"]
-    Int1["Integrator A"]
-    Int2["Integrator B"]
-    T1["Tenant 1"]
-    T2["Tenant 2"]
-    T3["Tenant 3"]
+    Platform["VION Platform "]
+    Int1["Integrator A "]
+    Int2["Integrator B "]
+    T1["Tenant 1 "]
+    T2["Tenant 2 "]
+    T3["Tenant 3 "]
 
     Platform --> Int1
     Platform --> Int2
