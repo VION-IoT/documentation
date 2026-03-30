@@ -68,6 +68,7 @@ export default withMermaid(
               { text: 'Logic Blocks', link: '/sdk/logic-blocks' },
               { text: 'Properties & Measuring Points', link: '/sdk/properties' },
               { text: 'Service Provider Contracts', link: '/sdk/services' },
+              { text: 'Service Provider Protocol', link: '/sdk/service-provider-protocol' },
               { text: 'Logic Interfaces', link: '/sdk/logic-interfaces' },
               { text: 'Persistence', link: '/sdk/persistence' },
               { text: 'Testing', link: '/sdk/testing' },
