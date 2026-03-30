@@ -48,13 +48,7 @@ Connect to the registration broker and publish a retained message:
 | Retain | yes |
 | Content-Type | `application/json` |
 
-Registration payload:
-
-```json
-{
-  "secret": "{secret}"
-}
-```
+The message has no payload — the serviceProviderId and secret are both encoded in the topic.
 
 The `serviceProviderId` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the installation.
 
@@ -62,10 +56,10 @@ The `serviceProviderId` is a human-readable identifier for this provider instanc
 
 Subscribe to both:
 
-- `serviceProvider/registration/accepted/{serviceProviderId}/{secret}`
-- `serviceProvider/registration/denied/{serviceProviderId}/{secret}`
+- `serviceProvider/registration/accepted/{secret}`
+- `serviceProvider/registration/denied/{secret}`
 
-The secret in the topic is the security mechanism. The broker must be configured to disallow wildcard subscriptions on `serviceProvider/registration/accepted/#` — this ensures that only the service provider that knows the secret can receive credentials.
+The topics contain only the secret, not the serviceProviderId — this prevents an attacker who knows the serviceProviderId from guessing the topic. The broker must be configured to disallow wildcard subscriptions on `serviceProvider/registration/accepted/#` — this ensures that only the service provider that knows the secret can receive credentials.
 
 ### Handle Acceptance
 
@@ -271,9 +265,9 @@ sequenceDiagram
     Note over SP: Generate + persist secret
     SP->>RB: Connect
     SP->>RB: Publish registration<br/>(topic includes secret)
-    SP->>RB: Subscribe to accepted/denied<br/>(topic includes secret)
+    SP->>RB: Subscribe to accepted/{secret}<br/>and denied/{secret}
     DR->>RB: Subscribe to registration/+/+
-    DR-->>RB: Publish accepted<br/>(plaintext credentials)
+    DR-->>RB: Publish accepted/{secret}<br/>(plaintext credentials)
     RB-->>SP: Receive accepted payload
     SP->>RB: Disconnect
 
