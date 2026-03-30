@@ -71,3 +71,42 @@
   --vp-custom-block-tip-bg: var(--vion-color-jagged-ice-950);
   --vp-custom-block-tip-code-bg: var(--vion-color-jagged-ice-900);
 }
+
+/* Mermaid diagram styling */
+.mermaid {
+  /* Prevent SVG clipping — mermaid calculates viewBox too tightly */
+  overflow: visible;
+}
+
+.mermaid svg {
+  overflow: visible;
+  max-width: 100%;
+}
+
+.mermaid .node rect,
+.mermaid .node polygon {
+  rx: 6;
+  ry: 6;
+}
+
+.mermaid .cluster rect {
+  rx: 10 !important;
+  ry: 10 !important;
+}
+
+.mermaid .cluster-label .nodeLabel {
+  font-weight: 600;
+}
+
+.mermaid .edgeLabel {
+  font-size: 12px;
+}
+
+.dark .mermaid .cluster rect {
+  fill: #1a2e32 !important;
+  stroke: #32656c !important;
+}
+
+.dark .mermaid .cluster-label .nodeLabel {
+  color: #a8d5d0 !important;
+}

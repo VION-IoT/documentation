@@ -145,6 +145,36 @@ export default withMermaid(
       },
     },
 
-    mermaid: {},
+    mermaid: {
+      theme: 'base',
+      flowchart: {
+        padding: 16,
+        nodeSpacing: 30,
+        rankSpacing: 40,
+        useMaxWidth: true,
+      },
+      themeVariables: {
+        // Node styling
+        primaryColor: '#ecfbfa',
+        primaryTextColor: '#192f33',
+        primaryBorderColor: '#32656c',
+        // Secondary (for contrast nodes)
+        secondaryColor: '#32656c',
+        secondaryTextColor: '#ffffff',
+        secondaryBorderColor: '#2b474e',
+        // Lines and arrows
+        lineColor: '#5d7f85',
+        // Text
+        fontFamily: 'Inter, system-ui, sans-serif',
+        fontSize: '14px',
+        // Subgraph
+        clusterBkg: '#f6f7f5',
+        clusterBorder: '#c8c9be',
+        // Notes
+        noteBkgColor: '#ecfbfa',
+        noteTextColor: '#192f33',
+        noteBorderColor: '#32656c',
+      },
+    },
   })
 )
