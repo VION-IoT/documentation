@@ -118,6 +118,10 @@
   stroke: none !important;
 }
 
+.mermaid .edgeLabel .labelBkg {
+  background: transparent !important;
+}
+
 .dark .mermaid .cluster rect {
   fill: #1a2e32 !important;
   stroke: #32656c !important;

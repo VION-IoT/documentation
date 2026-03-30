@@ -166,6 +166,8 @@ export default withMermaid(
         lineColor: '#5d7f85',
         // Text
         fontSize: '14px',
+        // Edge labels
+        edgeLabelBackground: 'transparent',
         // Subgraph
         clusterBkg: '#f6f7f5',
         clusterBorder: '#c8c9be',
