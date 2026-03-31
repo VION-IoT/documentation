@@ -95,6 +95,23 @@
   --vp-custom-block-danger-code-bg: #300;
 }
 
+/* Home hero background */
+.VPHome {
+  position: relative;
+  overflow: hidden;
+}
+
+.VPHome {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.VPHero,
+.VPFeatures {
+  position: relative;
+  z-index: 1;
+}
+
 /* Mermaid diagram styling */
 .mermaid {
   /* Prevent SVG clipping — mermaid calculates viewBox too tightly */
