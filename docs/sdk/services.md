@@ -310,10 +310,6 @@ public IAnalogInput OptionalSensor { get; set; } = null!;
 
 ## Custom Service Providers
 
-::: tip
-It is possible to build your own service providers using the Dale SDK. A service provider is a standalone process that communicates with the Dale runtime over the local MQTT broker. Dale provides the topic infrastructure for safe message exchange but makes no assumptions about the payload format — you choose whatever serialization fits your use case.
+You can build custom service providers for any hardware, bus protocol, or external system. A service provider is a standalone process that communicates with the Dale runtime over the local MQTT broker using MQTT 5.0. It can be written in any language or technology — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
 
-The [hal-sim](https://github.com/vion-iot/hal-sim) reference implementation demonstrates the full pattern — from declaring services and properties to handling state synchronization.
-
-Custom service providers are an advanced topic and will be documented separately.
-:::
+See the [Service Provider Protocol](/sdk/service-provider-protocol) for the full MQTT protocol specification covering registration, declaration, health reporting, and service-specific messaging patterns.

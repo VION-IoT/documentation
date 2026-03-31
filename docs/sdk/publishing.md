@@ -16,7 +16,7 @@ To publish a library, you need:
 - The Dale CLI installed (`dotnet tool install -g Dale.Cli`)
 
 ::: info Integrators
-Libraries belong to integrators. An integrator is an organization (e.g., your company) that develops and maintains logic block libraries for their tenants. Contact your VION platform administrator to be added to an integrator.
+Libraries belong to integrators. An integrator is an organization (e.g., your company) that develops and maintains logic block libraries for their tenants. Contact [VION support](https://vion.swiss) to be added to an integrator.
 :::
 
 ## Authentication
@@ -117,7 +117,7 @@ dale upload --release-notes "Added temperature monitoring"
 
 ## CI/CD Publishing
 
-For automated pipelines, use **client credentials** instead of interactive login. Request a client ID and secret from your VION platform administrator.
+For automated pipelines, use **client credentials** instead of interactive login. Request a client ID and secret from [VION support](https://vion.swiss).
 
 Pass credentials via `--client-id` and `--client-secret`:
 

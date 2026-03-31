@@ -9,7 +9,7 @@ This page documents known limits of the VION observability stack, including data
 
 ## Data Retention
 
-Metrics and logs are retained for a limited period. Retention is configured per environment and may vary. Contact your platform administrator for the exact retention period in your environment.
+Metrics and logs are retained for a limited period. Retention is configured per environment and may vary. Contact [VION support](https://vion.swiss) for the exact retention period in your environment.
 
 ## Ingestion Limits
 

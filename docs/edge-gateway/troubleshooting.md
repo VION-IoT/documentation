@@ -23,7 +23,7 @@ Make sure you're running a supported OS. See [Supported Devices](/edge-gateway/s
 Error: already commisioned! device id: aB3xK-Ym9pQ-Rz7wL-nhpClient
 ```
 
-The script detected an existing device identity from a previous onboarding attempt. If you need to re-provision the device, contact your VION platform administrator to reset the device registration.
+The script detected an existing device identity from a previous onboarding attempt. If you need to re-provision the device, contact [VION support](https://vion.swiss) to reset the device registration.
 
 ### Mender installation fails
 
