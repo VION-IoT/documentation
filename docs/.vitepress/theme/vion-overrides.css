@@ -106,6 +106,10 @@
   max-width: 100%;
 }
 
+.mermaid .node foreignObject {
+  overflow: visible !important;
+}
+
 .mermaid .node rect,
 .mermaid .node polygon {
   rx: 6;
