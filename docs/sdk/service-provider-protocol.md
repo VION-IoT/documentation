@@ -34,7 +34,21 @@ Registration lets the Dale runtime discover new service providers and provision 
 
 ### Generate a Secret
 
-On first startup, generate a random, non-guessable secret (for example, a UUID v4 or 32 bytes of cryptographic randomness). Persist this secret to survive restarts. The secret is used as a topic segment — it ensures that only the service provider that generated it can receive its registration response.
+On first startup, generate a random, non-guessable secret and persist it to survive restarts. The secret is used as a single MQTT topic segment — it ensures that only the service provider that generated it can receive its registration response.
+
+::: warning MQTT Topic Segment Constraints
+The secret, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier are all embedded directly in MQTT topics, so each **must be a valid single topic segment**:
+- Must **not** contain `/` (topic level separator)
+- Must **not** contain `+` or `#` (MQTT wildcard characters)
+- Must **not** contain null characters
+- Must **not** be empty
+- Should be kept under 128 characters (MQTT topics have a 65535-byte UTF-8 limit, but shorter is better for broker performance)
+- Should use only ASCII alphanumeric characters to avoid encoding issues across MQTT client implementations
+
+**Recommended secret format:** A UUID v4 without hyphens — 32 lowercase hex characters (e.g., `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`). This is what the Dale runtime uses internally.
+
+For .NET service providers, use `RegistrationSecret.Generate()` from the `Dale.ServiceProvider.Sdk` (or `Guid.NewGuid().ToString("N")`).
+:::
 
 ### Publish the Registration
 
@@ -42,24 +56,21 @@ Connect to the registration broker and publish a retained message:
 
 | Field | Value |
 |-------|-------|
-| Topic | `serviceProvider/registration/{serviceProviderId}/{secret}` |
-| Payload | JSON (see below) |
-| QoS | 1 (at least once) |
+| Topic | `system/serviceProvider/registration/request/{serviceProviderIdentifier}/{secret}` |
+| Payload | Empty — the serviceProviderIdentifier and secret are encoded in the topic |
+| QoS | 0 |
 | Retain | yes |
-| Content-Type | `application/json` |
 
-The message has no payload — the serviceProviderId and secret are both encoded in the topic.
-
-The `serviceProviderId` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the installation.
+The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier).
 
 ### Subscribe to the Response
 
 Subscribe to both:
 
-- `serviceProvider/registration/accepted/{secret}`
-- `serviceProvider/registration/denied/{secret}`
+- `system/serviceProvider/registration/accepted/{secret}`
+- `system/serviceProvider/registration/denied/{secret}`
 
-The topics contain only the secret, not the serviceProviderId — this prevents an attacker who knows the serviceProviderId from guessing the topic. The broker must be configured to disallow wildcard subscriptions on `serviceProvider/registration/accepted/#` — this ensures that only the service provider that knows the secret can receive credentials.
+The topics contain only the secret, not the serviceProviderIdentifier — this prevents an attacker who knows the serviceProviderIdentifier from guessing the topic. The broker must be configured to disallow wildcard subscriptions on `system/serviceProvider/registration/accepted/#` — this ensures that only the service provider that knows the secret can receive credentials.
 
 ### Handle Acceptance
 
@@ -101,7 +112,7 @@ Configure a Last Will Testament (LWT) so the broker publishes an offline health 
 
 | Field | Value |
 |-------|-------|
-| Will Topic | `{installationTopic}/component/health/state/{serviceProviderId}` |
+| Will Topic | `{installationTopic}/{serviceProviderIdentifier}/component/health/state` |
 | Will Payload | Health status with `connectionStatus: Offline` |
 | Will QoS | 1 |
 | Will Retain | yes |
@@ -112,9 +123,9 @@ After connecting operationally, publish a declaration describing the services an
 
 | Field | Value |
 |-------|-------|
-| Topic | `{installationTopic}/serviceProvider/declaration/{serviceProviderId}` |
+| Topic | `{installationTopic}/{serviceProviderIdentifier}/serviceProvider/declaration` |
 | Payload | JSON (see below) |
-| QoS | 1 (at least once) |
+| QoS | 0 |
 | Retain | yes |
 | Content-Type | `application/json` |
 
@@ -149,7 +160,7 @@ The Dale runtime periodically queries health status from all components.
 
 ### Respond to Health Queries
 
-Subscribe to `{installationTopic}/component/health/get`. When a message arrives, publish a health response to the `ResponseTopic` from the request, echoing the `CorrelationData`.
+Subscribe to `{installationTopic}/{serviceProviderIdentifier}/component/health/get`. When a message arrives, publish a health response to the `ResponseTopic` from the request, echoing the `CorrelationData`.
 
 ### Publish Health State
 
@@ -157,7 +168,7 @@ On connection and periodically, publish health state:
 
 | Field | Value |
 |-------|-------|
-| Topic | `{installationTopic}/component/health/state/{serviceProviderId}` |
+| Topic | `{installationTopic}/{serviceProviderIdentifier}/component/health/state` |
 | Payload | Health status (FlatBuffer `ComponentHealthStatusPayload` or equivalent) |
 | QoS | 0 |
 | Retain | yes |
@@ -182,44 +193,83 @@ Everything beyond registration, declaration, and health is defined by each servi
 All service-specific topics follow this pattern:
 
 ```
-{installationTopic}/{serviceProviderId}/{service}/{contract}/{action...}
+{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/{contract-specific-path}
 ```
 
 | Segment | Description |
 |---------|-------------|
 | `{installationTopic}` | Received during registration |
-| `{serviceProviderId}` | This provider's identifier |
+| `{serviceProviderIdentifier}` | This provider's identifier |
 | `{service}` | Service identifier from the declaration |
 | `{contract}` | Contract identifier from the declaration |
-| `{action...}` | Provider-defined, any depth (e.g., `state`, `set`, `get/response`) |
+| `{contract-specific-path}` | Must start with a unique routing segment, followed by provider-defined actions |
 
-This structure enables simple broker ACL rules — a provider can be restricted to `{installationTopic}/{its-id}/#` with a single rule. Multiple providers can coexist on the same gateway, each providing the same contract types under their own namespace.
+The first three segments after `{installationTopic}` form a **routing prefix** that identifies the provider, service, and contract. The contract-specific path must start with a **routing segment** — a fixed string unique to the contract type that the Dale runtime uses to dispatch messages to the correct handler (e.g., `hw/di` for digital inputs, `hw/modbus` for Modbus, `codesys` for a custom CODESYS handler). Everything after the routing segment is provider-defined.
 
-### Examples
+This structure enables simple broker ACL rules — a provider can be restricted to `{installationTopic}/{its-identifier}/#` with a single rule. Multiple providers can coexist on the same gateway, each providing the same contract types under their own namespace.
+
+### Built-in Contract Type Topics
+
+The built-in contract types (DigitalIo, AnalogIo, ModbusRtu) use fixed action paths that correspond to the `Topics` constants defined in the `Shared.Contracts` package:
 
 DigitalIo provider:
 
-```
-{inst}/hal-sim/di/di0/state          # DI state published by provider
-{inst}/hal-sim/do/do0/set            # DO command from Dale runtime
-{inst}/hal-sim/do/do0/state          # DO state confirmation from provider
-```
+| Topic | Direction |
+|-------|-----------|
+| `{inst}/{spId}/di/di0/hw/di/state` | Provider → Runtime (state update) |
+| `{inst}/{spId}/do/do0/hw/do/set` | Runtime → Provider (set command) |
+| `{inst}/{spId}/do/do0/hw/do/set/dale/response` | Provider → Runtime (set acknowledgement) |
+| `{inst}/{spId}/do/do0/hw/do/state` | Provider → Runtime (state confirmation) |
+
+AnalogIo provider:
+
+| Topic | Direction |
+|-------|-----------|
+| `{inst}/{spId}/ai/ai0/hw/ai/state` | Provider → Runtime (state update) |
+| `{inst}/{spId}/ao/ao0/hw/ao/set` | Runtime → Provider (set command) |
+| `{inst}/{spId}/ao/ao0/hw/ao/set/dale/response` | Provider → Runtime (set acknowledgement) |
+| `{inst}/{spId}/ao/ao0/hw/ao/state` | Provider → Runtime (state confirmation) |
 
 Modbus RTU provider:
 
+| Topic | Direction |
+|-------|-----------|
+| `{inst}/{spId}/modbus/com1/hw/modbus/get` | Runtime → Provider (read request) |
+| `{inst}/{spId}/modbus/com1/hw/modbus/get/dale/response` | Provider → Runtime (read response) |
+| `{inst}/{spId}/modbus/com1/hw/modbus/set` | Runtime → Provider (write request) |
+| `{inst}/{spId}/modbus/com1/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
+
+### Custom Contract Type Topics
+
+Custom service providers define their own action paths. The contract-specific path must start with a **routing segment** — a fixed, non-ambiguous topic part that the Dale runtime uses to dispatch messages to the correct handler actor. The runtime matches incoming topics using `topic.Contains(routingSegment)`, so the routing segment must be unique across all registered handler types.
+
+For example, the built-in types use `hw/di`, `hw/do`, `hw/ai`, `hw/ao`, and `hw/modbus` as routing segments. A custom CODESYS provider would define its own (e.g., `codesys`).
+
+::: warning Routing Segment Uniqueness
+The routing segment must not be a substring of any other registered routing segment, and vice versa. For example, a segment `hw` would conflict with the built-in `hw/di` because one contains the other. The runtime rejects handler registrations with conflicting routing segments at startup.
+:::
+
+The structure after the routing segment is entirely up to the provider. It can be as granular as individual symbol addresses or as simple as a single action keyword with everything else in the payload:
+
 ```
-{inst}/modbus-bridge/modbus/com1/get            # Read request from runtime
-{inst}/modbus-bridge/modbus/com1/get/response   # Read response from provider
-{inst}/modbus-bridge/modbus/com1/set            # Write request from runtime
-{inst}/modbus-bridge/modbus/com1/set/response   # Write response from provider
+{inst}/{serviceProviderIdentifier}/{service}/{contract}/{routing-segment}/{action...}
 ```
 
-CODESYS provider:
+CODESYS provider (example — one handler, granular topic addressing):
 
 ```
-{inst}/codesys-01/plc/temperature/state    # Variable state from PLC
-{inst}/codesys-01/plc/valve/set            # Command to PLC
-{inst}/codesys-01/plc/valve/state          # Valve state confirmation
+{inst}/codesys-01/plc/cpu1/codesys/state          # Variable state from PLC
+{inst}/codesys-01/plc/cpu1/codesys/set            # Write command to PLC
+{inst}/codesys-01/plc/cpu1/codesys/get            # Read request
+{inst}/codesys-01/plc/cpu1/codesys/get/response   # Read response
+```
+
+The Dale runtime subscribes to `{inst}/+/+/+/codesys/#` and routes all matching messages to the `CodesysHandler`. The handler then interprets the remaining topic segments and payload to determine what to do.
+
+Alternatively, a provider that prefers a flat topic structure can put addressing in the payload:
+
+```
+{inst}/codesys-01/plc/cpu1/codesys/rpc    # All requests/responses on one topic
 ```
 
 ### Interaction Patterns
@@ -246,12 +296,13 @@ The dale runtime handler for each contract type must understand the serializatio
 
 ### Reserved Topic Prefixes
 
-Service-specific topics must not use these prefixes (relative to `{installationTopic}`):
+Service-specific topics must not use these prefixes:
 
 | Prefix | Used by |
 |--------|---------|
-| `serviceProvider/` | Registration and declaration protocol |
-| `component/` | Health reporting |
+| `system/serviceProvider/` | Registration protocol |
+| `{installationTopic}/{serviceProviderIdentifier}/serviceProvider/` | Declaration |
+| `{installationTopic}/{serviceProviderIdentifier}/component/` | Health reporting |
 
 ## Lifecycle Summary
 
@@ -265,9 +316,9 @@ sequenceDiagram
     Note over SP: Generate + persist secret
     SP->>RB: Connect
     SP->>RB: Publish registration<br/>(topic includes secret)
-    SP->>RB: Subscribe to accepted/{secret}<br/>and denied/{secret}
-    DR->>RB: Subscribe to registration/+/+
-    DR-->>RB: Publish accepted/{secret}<br/>(plaintext credentials)
+    SP->>RB: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
+    DR->>RB: Subscribe to system/.../request/+/+
+    DR-->>RB: Publish system/.../accepted/{secret}<br/>(plaintext credentials)
     RB-->>SP: Receive accepted payload
     SP->>RB: Disconnect
 
