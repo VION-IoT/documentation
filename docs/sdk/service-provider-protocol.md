@@ -52,14 +52,14 @@ For .NET service providers, use `RegistrationSecret.Generate()` from the `Dale.S
 
 ### Publish the Registration
 
-Connect to the registration broker and publish a retained message:
+Connect to the registration broker and publish a message:
 
 | Field | Value |
 |-------|-------|
 | Topic | `system/serviceProvider/registration/request/{serviceProviderIdentifier}/{secret}` |
 | Payload | Empty — the serviceProviderIdentifier and secret are encoded in the topic |
 | QoS | 0 |
-| Retain | yes |
+| Retain | no |
 
 The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier).
 
@@ -70,7 +70,7 @@ Subscribe to both:
 - `system/serviceProvider/registration/accepted/{secret}`
 - `system/serviceProvider/registration/denied/{secret}`
 
-The topics contain only the secret, not the serviceProviderIdentifier — this prevents an attacker who knows the serviceProviderIdentifier from guessing the topic. The broker must be configured to disallow wildcard subscriptions on `system/serviceProvider/registration/accepted/#` — this ensures that only the service provider that knows the secret can receive credentials.
+The topics contain only the secret, not the serviceProviderIdentifier — this prevents an attacker who knows the serviceProviderIdentifier from guessing the topic. The broker must be configured to disallow wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `system/serviceProvider/registration/accepted/+` — this ensures that only the service provider that knows the secret can receive credentials.
 
 ### Handle Acceptance
 
@@ -216,28 +216,28 @@ DigitalIo provider:
 
 | Topic | Direction |
 |-------|-----------|
-| `{inst}/{spId}/di/di0/hw/di/state` | Provider → Runtime (state update) |
-| `{inst}/{spId}/do/do0/hw/do/set` | Runtime → Provider (set command) |
-| `{inst}/{spId}/do/do0/hw/do/set/dale/response` | Provider → Runtime (set acknowledgement) |
-| `{inst}/{spId}/do/do0/hw/do/state` | Provider → Runtime (state confirmation) |
+| `{installationTopic}/{serviceProviderIdentifier}/di/di0/hw/di/state` | Provider → Runtime (state update) |
+| `{installationTopic}/{serviceProviderIdentifier}/do/do0/hw/do/set` | Runtime → Provider (set command) |
+| `{installationTopic}/{serviceProviderIdentifier}/do/do0/hw/do/set/dale/response` | Provider → Runtime (set acknowledgement) |
+| `{installationTopic}/{serviceProviderIdentifier}/do/do0/hw/do/state` | Provider → Runtime (state confirmation) |
 
 AnalogIo provider:
 
 | Topic | Direction |
 |-------|-----------|
-| `{inst}/{spId}/ai/ai0/hw/ai/state` | Provider → Runtime (state update) |
-| `{inst}/{spId}/ao/ao0/hw/ao/set` | Runtime → Provider (set command) |
-| `{inst}/{spId}/ao/ao0/hw/ao/set/dale/response` | Provider → Runtime (set acknowledgement) |
-| `{inst}/{spId}/ao/ao0/hw/ao/state` | Provider → Runtime (state confirmation) |
+| `{installationTopic}/{serviceProviderIdentifier}/ai/ai0/hw/ai/state` | Provider → Runtime (state update) |
+| `{installationTopic}/{serviceProviderIdentifier}/ao/ao0/hw/ao/set` | Runtime → Provider (set command) |
+| `{installationTopic}/{serviceProviderIdentifier}/ao/ao0/hw/ao/set/dale/response` | Provider → Runtime (set acknowledgement) |
+| `{installationTopic}/{serviceProviderIdentifier}/ao/ao0/hw/ao/state` | Provider → Runtime (state confirmation) |
 
 Modbus RTU provider:
 
 | Topic | Direction |
 |-------|-----------|
-| `{inst}/{spId}/modbus/com1/hw/modbus/get` | Runtime → Provider (read request) |
-| `{inst}/{spId}/modbus/com1/hw/modbus/get/dale/response` | Provider → Runtime (read response) |
-| `{inst}/{spId}/modbus/com1/hw/modbus/set` | Runtime → Provider (write request) |
-| `{inst}/{spId}/modbus/com1/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
+| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/get` | Runtime → Provider (read request) |
+| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/get/dale/response` | Provider → Runtime (read response) |
+| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/set` | Runtime → Provider (write request) |
+| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
 
 ### Custom Contract Type Topics
 
@@ -252,24 +252,24 @@ The routing segment must not be a substring of any other registered routing segm
 The structure after the routing segment is entirely up to the provider. It can be as granular as individual symbol addresses or as simple as a single action keyword with everything else in the payload:
 
 ```
-{inst}/{serviceProviderIdentifier}/{service}/{contract}/{routing-segment}/{action...}
+{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/{routing-segment}/{action...}
 ```
 
 CODESYS provider (example — one handler, granular topic addressing):
 
 ```
-{inst}/codesys-01/plc/cpu1/codesys/state          # Variable state from PLC
-{inst}/codesys-01/plc/cpu1/codesys/set            # Write command to PLC
-{inst}/codesys-01/plc/cpu1/codesys/get            # Read request
-{inst}/codesys-01/plc/cpu1/codesys/get/response   # Read response
+{installationTopic}/codesys-01/plc/cpu1/codesys/state          # Variable state from PLC
+{installationTopic}/codesys-01/plc/cpu1/codesys/set            # Write command to PLC
+{installationTopic}/codesys-01/plc/cpu1/codesys/get            # Read request
+{installationTopic}/codesys-01/plc/cpu1/codesys/get/response   # Read response
 ```
 
-The Dale runtime subscribes to `{inst}/+/+/+/codesys/#` and routes all matching messages to the `CodesysHandler`. The handler then interprets the remaining topic segments and payload to determine what to do.
+The Dale runtime subscribes to `{installationTopic}/+/+/+/codesys/#` and routes all matching messages to the `CodesysHandler`. The handler then interprets the remaining topic segments and payload to determine what to do.
 
 Alternatively, a provider that prefers a flat topic structure can put addressing in the payload:
 
 ```
-{inst}/codesys-01/plc/cpu1/codesys/rpc    # All requests/responses on one topic
+{installationTopic}/codesys-01/plc/cpu1/codesys/rpc    # All requests/responses on one topic
 ```
 
 ### Interaction Patterns
@@ -309,27 +309,43 @@ Service-specific topics must not use these prefixes:
 ```mermaid
 sequenceDiagram
     participant SP as Service Provider
-    participant RB as Registration Broker
-    participant OB as Operational Broker
-    participant DR as Dale Runtime
+    participant B as MQTT Broker<br/>(NanoMQ)
+    participant M as Mesh
+    participant D as Dale
 
+    rect rgb(50, 101, 108, 0.1)
+    Note over SP,M: Registration Phase
     Note over SP: Generate + persist secret
-    SP->>RB: Connect
-    SP->>RB: Publish registration<br/>(topic includes secret)
-    SP->>RB: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
-    DR->>RB: Subscribe to system/.../request/+/+
-    DR-->>RB: Publish system/.../accepted/{secret}<br/>(plaintext credentials)
-    RB-->>SP: Receive accepted payload
-    SP->>RB: Disconnect
+    SP->>B: Connect
+    SP->>B: Publish registration<br/>(topic includes secret)
+    SP->>B: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
+    M->>B: Subscribe to system/.../request/+/+
+    M-->>B: Publish system/.../accepted/{secret}<br/>(plaintext credentials)
+    B-->>SP: Receive accepted payload
+    SP->>B: Disconnect
+    end
 
-    SP->>OB: Connect with credentials<br/>(+ LWT for health)
-    SP->>OB: Publish declaration
-    SP->>OB: Publish initial health state
-    SP->>OB: Subscribe to health queries
+    rect rgb(50, 101, 108, 0.1)
+    Note over SP,D: Operational Phase
+    SP->>B: Connect with credentials<br/>(+ LWT for health)
+    SP->>B: Publish declaration
+    SP->>B: Publish initial health state
+    SP->>B: Subscribe to health queries
 
-    loop Operational
-        SP->>OB: Publish state messages
-        DR->>OB: Publish commands
-        SP->>OB: Respond to health queries
+    loop Contract Messaging
+        SP->>B: Publish state messages
+        B->>D: Deliver state messages
+        D->>B: Publish commands
+        B->>SP: Deliver commands
+        SP->>B: Publish responses
+        B->>D: Deliver responses
+    end
+
+    loop Health Monitoring
+        M->>B: Publish health query
+        B->>SP: Deliver health query
+        SP->>B: Publish health response
+        B->>M: Deliver health response
+    end
     end
 ```
