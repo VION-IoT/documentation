@@ -216,28 +216,28 @@ DigitalIo provider:
 
 | Topic | Direction |
 |-------|-----------|
-| `{installationTopic}/{serviceProviderIdentifier}/di/di0/hw/di/state` | Provider → Runtime (state update) |
-| `{installationTopic}/{serviceProviderIdentifier}/do/do0/hw/do/set` | Runtime → Provider (set command) |
-| `{installationTopic}/{serviceProviderIdentifier}/do/do0/hw/do/set/dale/response` | Provider → Runtime (set acknowledgement) |
-| `{installationTopic}/{serviceProviderIdentifier}/do/do0/hw/do/state` | Provider → Runtime (state confirmation) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/di/state` | Provider → Runtime (state update) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/do/set` | Runtime → Provider (set command) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/do/set/dale/response` | Provider → Runtime (set acknowledgement) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/do/state` | Provider → Runtime (state confirmation) |
 
 AnalogIo provider:
 
 | Topic | Direction |
 |-------|-----------|
-| `{installationTopic}/{serviceProviderIdentifier}/ai/ai0/hw/ai/state` | Provider → Runtime (state update) |
-| `{installationTopic}/{serviceProviderIdentifier}/ao/ao0/hw/ao/set` | Runtime → Provider (set command) |
-| `{installationTopic}/{serviceProviderIdentifier}/ao/ao0/hw/ao/set/dale/response` | Provider → Runtime (set acknowledgement) |
-| `{installationTopic}/{serviceProviderIdentifier}/ao/ao0/hw/ao/state` | Provider → Runtime (state confirmation) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/ai/state` | Provider → Runtime (state update) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/ao/set` | Runtime → Provider (set command) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/ao/set/dale/response` | Provider → Runtime (set acknowledgement) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/ao/state` | Provider → Runtime (state confirmation) |
 
 Modbus RTU provider:
 
 | Topic | Direction |
 |-------|-----------|
-| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/get` | Runtime → Provider (read request) |
-| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/get/dale/response` | Provider → Runtime (read response) |
-| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/set` | Runtime → Provider (write request) |
-| `{installationTopic}/{serviceProviderIdentifier}/modbus/com1/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/get` | Runtime → Provider (read request) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/get/dale/response` | Provider → Runtime (read response) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/set` | Runtime → Provider (write request) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
 
 ### Custom Contract Type Topics
 
@@ -317,8 +317,8 @@ sequenceDiagram
     Note over SP,M: Registration Phase
     Note over SP: Generate + persist secret
     SP->>B: Connect
-    SP->>B: Publish registration<br/>(topic includes secret)
     SP->>B: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
+    SP->>B: Publish registration<br/>(topic includes secret)
     M->>B: Subscribe to system/.../request/+/+
     M-->>B: Publish system/.../accepted/{secret}<br/>(plaintext credentials)
     B-->>SP: Receive accepted payload
