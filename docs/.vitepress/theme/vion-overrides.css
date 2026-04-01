@@ -66,6 +66,9 @@
   --vp-code-bg: var(--vion-color-carrara-800);
   --vp-c-text-code: var(--vion-color-jagged-ice-300);
 
+  /* Tone down light/dark toggle */
+  --vp-input-switch-bg-color: var(--vion-color-carrara-600);
+
   --vp-button-brand-bg: var(--vion-color-jagged-ice-600);
   --vp-button-brand-hover-bg: var(--vion-color-jagged-ice-500);
   --vp-button-brand-active-bg: var(--vion-color-jagged-ice-700);
