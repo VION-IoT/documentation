@@ -1491,3 +1491,89 @@ Provides an abstraction for date and time operations.
   - `since`: The date and time to measure elapsed time from.
 
 ---
+
+## Dale.Sdk.Abstractions
+
+### ServiceProviderHandlerBase
+
+Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, custom). Owns the actor lifecycle (registration, contract linking) and provides helpers for common operations.
+
+> is implemented explicitly so subclasses cannot override it. Messages are routed to: — for MQTT messages from the broker — for contract messages from logic blocks Subclasses can schedule delayed callbacks using , which are dispatched transparently by the base class (same pattern as `LogicBlockBase`).
+
+**Properties:**
+
+- `ActorContext` — The current actor context. Set on each message dispatch. Available for use in callbacks.
+- `Logger` — Logger available to subclasses.
+- `ContractLogicBlockActorReferences` — The contract-to-logic-block actor mappings, set during the linking phase.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the handler.
+- `Dale#Sdk#Abstractions#IActorReceiver#HandleMessageAsync(object, IActorContext)` — *(no description)*
+- `GetMqttRegistration` — Returns the MQTT routing key and action path suffixes for this handler. The base class prepends the service provider wildcard prefix (`+/+/+`) to each action path to form the full subscription topics.
+- `HandleMqttMessage(ServiceProviderMqttMessage)` — Handles an MQTT message received from the broker. The message contains the pre-parsed `ContractId` and `CorrelationId`. Use `ActorContext` for actor communication.
+- `HandleContractMessage(IContractMessage)` — Handles a contract message from a logic block (e.g., set commands, read/write requests). Use `ActorContext` for actor communication.
+- `OnContractActorsLinked(LinkLogicBlockContractActors)` — Called after contract actor references are linked. Override to perform additional setup (e.g., building per-contract lookup dictionaries).
+- `InvokeSynchronizedAfter(Action, TimeSpan)` — Schedules an action to be invoked after a delay, dispatched through the actor's message loop. Same pattern as `LogicBlockBase.InvokeSynchronizedAfter`.
+- `Publish(string, byte[], string, string, Guid?, string, bool)` — Publishes an MQTT message with the standard protocol conventions (correlation ID, schema user property, content type). Returns the correlation ID used.
+  - `topic`: The full MQTT topic to publish to.
+  - `payload`: The serialized payload bytes.
+  - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `contentType`: The MQTT content type (e.g., `MessageMimeTypes.FlatBuffer`, `MessageMimeTypes.Json`). Defaults to `MessageMimeTypes.FlatBuffer` if not specified.
+  - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
+  - `responseTopic`: Optional response topic for request-response patterns.
+  - `retain`: Whether the message should be retained by the broker.
+- `PublishJson<T>(string, T, string, Guid?, string, bool)` — Serializes the payload as JSON and publishes it with `application/json` content type.
+- `ForwardToLogicBlocks<T>(ServiceProviderContractId, T)` — Forwards a state-changed message to all logic block actors mapped to the given service provider contract.
+- `FindMappedServiceProviderContracts(LogicBlockContractId)` — Finds all service provider contracts that a logic block contract is mapped to. Used by output handlers to reverse-lookup the target when a logic block sends a set command.
+
+**Fields/Values:**
+
+- `ServiceProviderTopicPrefix` — The wildcard prefix prepended to all subscription action paths. Matches the `{serviceProviderIdentifier}/{service}/{contract}` routing prefix in the topic structure. Centralized here to enforce the convention and enable programmatic broker ACL configuration.
+
+---
+
+## Dale.Sdk.Configuration.Contract
+
+### LogicBlockContractBase
+
+Base class for all logic block contract implementations (e.g., DigitalInput, DigitalOutput, ModbusRtu). A contract represents a binding between a logic block and a service provider endpoint. It receives state updates from the service provider handler and can send commands back to it.
+
+> Subclasses must: Set `ContractHandlerActorName` to the name of the handler actor (e.g., `nameof(DigitalInputHandler)`) Implement to dispatch incoming messages (state changes, responses) Subclasses that send commands to the handler (output contracts, request-response contracts) use to send messages to the linked handler actor.
+
+**Properties:**
+
+- `LogicBlockContractId` — The identity of this contract within its owning logic block. Set during initialization.
+- `ContractHandlerActorName` — The name of the handler actor this contract communicates with. Must match the actor name registered in the runtime (e.g., `nameof(DigitalInputHandler)`).
+- `Identifier` — The contract identifier as declared on the logic block property (e.g., `"di0"`).
+- `MetaData` — Metadata for this contract (default name, tags, cardinality, sharing). Populated from attributes during introspection.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the contract.
+  - `identifier`: The contract identifier (matches the property name on the logic block).
+  - `actorContext`: The actor context used to send messages to the handler actor.
+- `SetLogicBlockContractId(LogicBlockContractId)` — Sets the full logic block contract identity. Called by the runtime during initialization to associate this contract with its owning logic block.
+  - `logicBlockContractId`: The full contract identity including the logic block ID.
+- `SetLinkedContractHandler(IActorReference)` — Links this contract to its handler actor. Called by the runtime during initialization.
+  - `contractHandlerActorRef`: A reference to the handler actor.
+- `HandleContractMessage(IContractMessage)` — Dispatches an incoming contract message (e.g., state change, response) to the appropriate handler logic. Called by the runtime when a message from the handler actor targets this contract.
+  - `contractMessage`: The incoming contract message.
+- `SendToContractHandler<T>(T)` — Sends a message to the linked handler actor (e.g., a set command or a read request). If the contract has no mapping (no linked logic block), the message is silently dropped.
+  - `message`: The message to send.
+
+---
+
+## Dale.Sdk.Mqtt
+
+### RegistrationSecret
+
+Generates and persists registration secrets for service providers. The secret is used as an MQTT topic segment during the registration handshake.
+
+**Methods:**
+
+- `Generate` — Generates a new registration secret suitable for use as an MQTT topic segment. Returns a 32-character lowercase hex string (UUID v4 without hyphens).
+- `LoadOrCreate(string)` — Loads an existing secret from , or generates a new one and persists it. Subsequent calls with the same path return the same secret.
+  - `filePath`: The file path to read from or write to.
+
+---
