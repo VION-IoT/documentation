@@ -1510,7 +1510,7 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
 
 - *Constructor* — Initializes a new instance of the handler.
 - `Dale#Sdk#Abstractions#IActorReceiver#HandleMessageAsync(object, IActorContext)` — *(no description)*
-- `GetMqttRegistration` — Returns the MQTT routing key and action path suffixes for this handler. The base class prepends the service provider wildcard prefix (`+/+/+`) to each action path to form the full subscription topics.
+- `GetMqttRegistration` — Returns the MQTT routing key and action path suffixes for this handler. The base class prepends the service provider wildcard prefix (`/+/+/+`) to each action path to form the full subscription topics.
 - `HandleMqttMessage(ServiceProviderMqttMessage)` — Handles an MQTT message received from the broker. The message contains the pre-parsed `ContractId` and `CorrelationId`. Use `ActorContext` for actor communication.
 - `HandleContractMessage(IContractMessage)` — Handles a contract message from a logic block (e.g., set commands, read/write requests). Use `ActorContext` for actor communication.
 - `OnContractActorsLinked(LinkLogicBlockContractActors)` — Called after contract actor references are linked. Override to perform additional setup (e.g., building per-contract lookup dictionaries).
@@ -1529,7 +1529,7 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
 
 **Fields/Values:**
 
-- `ServiceProviderTopicPrefix` — The wildcard prefix prepended to all subscription action paths. Matches the `{serviceProviderIdentifier}/{service}/{contract}` routing prefix in the topic structure. Centralized here to enforce the convention and enable programmatic broker ACL configuration.
+- `ServiceProviderTopicPrefix` — The wildcard prefix prepended to all subscription action paths. Matches the `/{serviceProviderIdentifier}/{service}/{contract}` routing prefix in the topic structure. Centralized here to enforce the convention and enable programmatic broker ACL configuration.
 
 ---
 
