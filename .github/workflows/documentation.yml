@@ -70,9 +70,10 @@ jobs:
         docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
 
   deploy-test:
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, x64]
     needs: build-docker
-    environment: test    
+    environment: test
     steps:
     - name: Azure Login
       uses: azure/login@v2
