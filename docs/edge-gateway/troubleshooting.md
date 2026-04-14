@@ -38,7 +38,7 @@ If the Mender client installation fails, check:
 If the script keeps retrying certificate signing:
 
 - Verify you've entered the Device ID in the Dashboard
-- Check DNS resolution: `nslookup cloudapi.test.ecocoa.ch`
+- Check DNS resolution: `nslookup cloudapi.vion.swiss`
 - Check time synchronization: `date` (certificates require accurate system time)
 
 Run `sudo timedatectl set-ntp true` to enable NTP if the clock is off.
@@ -63,7 +63,7 @@ The Dashboard polls for deployment status every 15 seconds with a 30-minute time
 
 3. **Check connectivity** to the VION Cloud:
    ```bash
-   curl -I https://cloudapi.test.ecocoa.ch
+   curl -I https://cloudapi.vion.swiss
    ```
 
 4. If all services are running, click **Retry** in the Dashboard wizard.
@@ -81,11 +81,11 @@ The edge gateway needs outbound HTTPS access to the following services:
 
 | Service | URL Pattern | Purpose |
 |---------|-------------|---------|
-| Cloud API | `cloudapi.*.ecocoa.ch` | REST API, provisioning |
-| MQTT Broker | `mqtt.*.ecocoa.ch` | Real-time data sync |
-| Mender Server | `mender.*.ecocoa.ch` | OTA updates |
-| CA Server | `ca.*.ecocoa.ch` | Certificate management |
-| Root CA | `roots.*.ecocoa.ch` | Root certificate |
+| Cloud API | `cloudapi.vion.swiss` | REST API, provisioning |
+| MQTT Broker | `klopfer.vion.swiss` | Real-time data sync |
+| Mender Server | `mender.vion.swiss` | OTA updates |
+| CA Server | `ca.vion.swiss` | Certificate management |
+| Root CA | `roots.vion.swiss` | Root certificate |
 | Docker Hub | `docker.io` | Container images |
 
 ::: tip Firewall Configuration

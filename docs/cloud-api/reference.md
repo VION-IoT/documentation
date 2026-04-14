@@ -7,7 +7,7 @@ description: Interactive VION Cloud API reference powered by Scalar.
 
 The full VION Cloud API reference is available as an interactive Scalar document:
 
-**→ [Open API Reference (Scalar)](https://cloudapi.test.ecocoa.ch/scalar/v1)**
+**→ [Open API Reference (Scalar)](https://cloudapi.vion.swiss/scalar)**
 
 ## What You Can Do
 

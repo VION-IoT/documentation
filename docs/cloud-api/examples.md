@@ -7,12 +7,12 @@ description: Practical curl examples for common VION Cloud API operations.
 
 These examples show common API operations using `curl`. All examples assume you have an access token (see [Authentication](/cloud-api/authentication)).
 
-For the full API reference, see the [Scalar API Documentation](https://cloudapi.test.ecocoa.ch/scalar/v1).
+For the full API reference, see the [Scalar API Documentation](https://cloudapi.vion.swiss/scalar).
 
 ```bash
 # Set these for the examples below
 TOKEN="<your-access-token>"
-API="https://cloudapi.test.ecocoa.ch"
+API="https://cloudapi.vion.swiss"
 TENANT_ID="<your-tenant-id>"
 ```
 
@@ -82,7 +82,7 @@ Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js):
 ```js
 import mqtt from "mqtt";
 
-const client = mqtt.connect("wss://ws.test.ecocoa.ch:443", {
+const client = mqtt.connect("wss://ws.vion.swiss:443", {
   protocolVersion: 5,
   username: "",
   password: TOKEN, // JWT access token from authentication
@@ -90,7 +90,7 @@ const client = mqtt.connect("wss://ws.test.ecocoa.ch:443", {
 
 // Topic from the Services API response (ServiceProperty.topic)
 const topic =
-  "v1/{env}/{tenantId}/{edgeGatewayId}/cloud/sw/properties/state/{serviceProviderIdentifier}/{serviceIdentifier}";
+  "v1/{env}/{tenantId}/{edgeGatewayId}/{serviceProviderIdentifier}/{serviceIdentifier}/cloud/sw/properties/state/";
 
 client.on("connect", () => {
   client.subscribe(topic);
@@ -139,4 +139,4 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 These examples cover the most common operations. For the complete API with all endpoints, request/response schemas, and interactive testing:
 
-→ **[Scalar API Reference](https://cloudapi.test.ecocoa.ch/scalar/v1)**
+→ **[Scalar API Reference](https://cloudapi.vion.swiss/scalar)**

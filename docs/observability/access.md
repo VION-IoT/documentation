@@ -14,8 +14,7 @@ Access Grafana at:
 | Environment | URL |
 |-------------|-----|
 | Test | `https://grafana.test.ecocoa.ch` |
-| Staging | `https://grafana.staging.ecocoa.ch` |
-| Production | `https://grafana.ecocoa.ch` |
+| Production | `https://grafana.vion.swiss` |
 
 ## Authentication
 

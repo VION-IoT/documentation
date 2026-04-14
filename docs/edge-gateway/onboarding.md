@@ -5,7 +5,7 @@ description: How to provision and register a new edge gateway with the VION plat
 
 # Onboarding an Edge Gateway
 
-Onboarding connects a physical device to the VION platform. The process is guided through the [Dashboard onboarding wizard](https://vion.test.ecocoa.ch/#/onboarding) and involves running a provisioning script on the device via SSH.
+Onboarding connects a physical device to the VION platform. The process is guided through the [Dashboard onboarding wizard](https://nhpdashboardapp.test.ecocoa.ch/#/onboarding) and involves running a provisioning script on the device via SSH.
 
 ## Overview
 

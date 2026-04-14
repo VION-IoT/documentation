@@ -7,7 +7,6 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev docs",
-    "generate:api": "node scripts/generate-sdk-api-reference.cjs",
     "build": "vitepress build docs",
     "preview": "vitepress preview docs",
     "audit": "pnpm audit --audit-level moderate --prod"

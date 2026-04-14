@@ -53,9 +53,9 @@ dale config show
 ```
 
 ```
-  Environment:  test
-  Auth URL:     https://auth.test.ecocoa.ch/realms/vion
-  API URL:      https://cloudapi.test.ecocoa.ch
+  Environment:  prod
+  Auth URL:     https://auth.vion.swiss/realms/vion
+  API URL:      https://cloudapi.vion.swiss
   Integrator:   Vion Dev Team (190938ac-...)
   Logged in:    yes
 ```
@@ -109,7 +109,7 @@ dale upload --release-notes "Added temperature monitoring"
 
 ### Via Dashboard
 
-1. Navigate to **Integrator → Libraries** in the [Dashboard](https://vion.test.ecocoa.ch/)
+1. Navigate to **Integrator → Libraries** in the [Dashboard](https://nhpdashboardapp.test.ecocoa.ch/)
 2. Select your library (or create one)
 3. Click **Upload New Version**
 4. Select the `.nupkg` file

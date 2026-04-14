@@ -38,13 +38,13 @@ export default withMermaid(
             { text: 'Cloud API', link: '/cloud-api/authentication' },
             { text: 'Observability', link: '/observability/overview' },
             { text: 'AI-Assisted Development', link: '/agentic/' },
-            { text: 'Dashboard', link: 'https://vion.test.ecocoa.ch/' },
+            { text: 'Dashboard', link: 'https://nhpdashboardapp.test.ecocoa.ch/' },
           ],
         },
         {
           text: 'API Reference',
           items: [
-            { text: 'Cloud API (Scalar)', link: 'https://cloudapi.test.ecocoa.ch/scalar/v1', target: '_blank' },
+            { text: 'Cloud API (Scalar)', link: 'https://cloudapi.test.ecocoa.ch/scalar', target: '_blank' },
             { text: 'SDK API Reference', link: '/api-reference/' },
           ],
         },

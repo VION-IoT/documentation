@@ -9,7 +9,6 @@ VitePress documentation site for the VION Edge Operations Platform. Hosted on AK
 ```bash
 pnpm dev              # Dev server at localhost:5173
 pnpm build            # Production build (fails on dead links)
-pnpm generate:api     # Regenerate SDK API reference from XML docs (local only)
 ```
 
 ## Documentation Style
@@ -49,9 +48,9 @@ Key rules:
 
 These URLs point to the **test environment** and will change for production:
 
-- Dashboard: `https://vion.test.ecocoa.ch/`
-- Dashboard onboarding: `https://vion.test.ecocoa.ch/#/onboarding`
-- Cloud API Scalar: `https://cloudapi.test.ecocoa.ch/scalar/v1`
+- Dashboard: `https://nhpdashboardapp.test.ecocoa.ch/`
+- Dashboard onboarding: `https://nhpdashboardapp.test.ecocoa.ch/#/onboarding`
+- Cloud API Scalar: `https://cloudapi.test.ecocoa.ch/scalar/`
 
 When the production environment is ready, search-replace `test.ecocoa.ch` across all docs.
 

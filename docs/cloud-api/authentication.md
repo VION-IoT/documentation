@@ -18,8 +18,8 @@ For user-facing applications, use the **Authorization Code Flow with PKCE**:
 3. Exchange the authorization code for tokens
 
 ```
-Authorization URL: https://auth.<env>.ecocoa.ch/realms/vion/protocol/openid-connect/auth
-Token URL:         https://auth.<env>.ecocoa.ch/realms/vion/protocol/openid-connect/token
+Authorization URL: https://auth.vion.swiss/realms/vion/protocol/openid-connect/auth
+Token URL:         https://auth.vion.swiss/realms/vion/protocol/openid-connect/token
 ```
 
 | Parameter | Value |
@@ -30,7 +30,7 @@ Token URL:         https://auth.<env>.ecocoa.ch/realms/vion/protocol/openid-conn
 | `code_challenge_method` | `S256` (PKCE required) |
 
 ::: tip
-The easiest way to explore the API interactively is through the [Scalar API Reference](https://cloudapi.test.ecocoa.ch/scalar/v1), which has built-in OAuth authentication.
+The easiest way to explore the API interactively is through the [Scalar API Reference](https://cloudapi.vion.swiss/scalar/v1), which has built-in OAuth authentication.
 :::
 
 ### Machine-to-Machine (Client Credentials Flow)
@@ -38,7 +38,7 @@ The easiest way to explore the API interactively is through the [Scalar API Refe
 For CI/CD pipelines and service integrations, use the **Client Credentials Flow**:
 
 ```bash
-curl -X POST https://auth.<env>.ecocoa.ch/realms/vion/protocol/openid-connect/token \
+curl -X POST https://auth.vion.swiss/realms/vion/protocol/openid-connect/token \
   -d "grant_type=client_credentials" \
   -d "client_id=<your-client-id>" \
   -d "client_secret=<your-client-secret>"
@@ -58,7 +58,7 @@ Response:
 Access tokens are short-lived. Use the refresh token to get a new one without re-authenticating:
 
 ```bash
-curl -X POST https://auth.<env>.ecocoa.ch/realms/vion/protocol/openid-connect/token \
+curl -X POST https://auth.vion.swiss/realms/vion/protocol/openid-connect/token \
   -d "grant_type=refresh_token" \
   -d "client_id=<your-client-id>" \
   -d "refresh_token=<your-refresh-token>"
@@ -70,7 +70,7 @@ Include the access token in the `Authorization` header:
 
 ```bash
 curl -H "Authorization: Bearer <access-token>" \
-  https://cloudapi.<env>.ecocoa.ch/Me
+  https://cloudapi.vion.swiss/Me
 ```
 
 ## API URL Structure
@@ -89,6 +89,5 @@ Most operational endpoints (services, properties, projects) are at the **Tenant*
 
 | Environment | Auth URL | API URL |
 |-------------|----------|---------|
-| Test | `auth.test.ecocoa.ch` | `cloudapi.test.ecocoa.ch` |
-| Staging | `auth.staging.ecocoa.ch` | `cloudapi.staging.ecocoa.ch` |
-| Production | `auth.ecocoa.ch` | `cloudapi.ecocoa.ch` |
+| Test | `auth.test.vion.swiss` | `cloudapi.test.vion.swiss` |
+| Production | `auth.vion.swiss` | `cloudapi.vion.swiss` |
