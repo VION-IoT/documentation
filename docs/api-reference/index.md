@@ -3,11 +3,52 @@ title: SDK API Reference
 description: Auto-generated API reference for types marked with [PublicApi].
 ---
 
-# Vion Dale SDK API Reference
+# Dale SDK API Reference
 
 > Auto-generated from source code. Types marked with `[PublicApi]`.
 
-## Vion.Dale.Sdk.AnalogIo.Input
+## Dale.Sdk.AnalogIo.TestKit
+
+### IAnalogInputExtensions
+
+Extension methods to simulate analog input changes in tests.
+
+**Methods:**
+
+- `RaiseInputChanged(IAnalogInput, double)` — Raise the InputChanged event on an `IAnalogInput` for tests.
+  - `analogInput`: The analog input instance to raise the event on.
+  - `value`: The new analog input value.
+
+---
+
+### IAnalogOutputExtensions
+
+Extension methods to simulate analog output changes in tests.
+
+**Methods:**
+
+- `RaiseOutputChanged(IAnalogOutput, double)` — Raise the OutputChanged event on an `IAnalogOutput` for tests.
+  - `analogOutput`: The analog output instance to raise the event on.
+  - `value`: The new analog output value.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Extension methods to verify analog output messages in test contexts.
+
+**Methods:**
+
+- `VerifyAnalogOutputSet<T>(LogicBlockTestContext<T>, IAnalogOutput, double?, double, Times?)` — Assert that at the specified analog output was set with the given value.
+  - `testContext`: The test context for the logic block.
+  - `analogOutput`: The analog output to verify, or null to verify any analog output.
+  - `value`: The expected value, or null to skip value verification.
+  - `tolerance`: The tolerance for comparing the expected value.
+  - `times`: The expected number of times the output was set, or null for once.
+
+---
+
+## Dale.Sdk.AnalogIo.Input
 
 ### IAnalogInput
 
@@ -15,7 +56,7 @@ Represents an analog input that can be used to communicate with hardware.
 
 ---
 
-## Vion.Dale.Sdk.AnalogIo.Output
+## Dale.Sdk.AnalogIo.Output
 
 ### IAnalogOutput
 
@@ -28,7 +69,47 @@ Represents an analog output that can be used to communicate with hardware.
 
 ---
 
-## Vion.Dale.Sdk.DigitalIo.Input
+## Dale.Sdk.DigitalIo.TestKit
+
+### IDigitalInputExtensions
+
+Extension methods to simulate digital input changes in tests.
+
+**Methods:**
+
+- `RaiseInputChanged(IDigitalInput, bool)` — Raise the InputChanged event on an `IDigitalInput` for tests.
+  - `digitalInput`: The digital input instance to raise the event on.
+  - `value`: The new digital input value.
+
+---
+
+### IDigitalOutputExtensions
+
+Extension methods to simulate digital output changes in tests.
+
+**Methods:**
+
+- `RaiseOutputChanged(IDigitalOutput, bool)` — Raise the OutputChanged event on an `IDigitalOutput` for tests.
+  - `digitalOutput`: The digital output instance to raise the event on.
+  - `value`: The new digital output value.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Extension methods to verify digital output messages in test contexts.
+
+**Methods:**
+
+- `VerifyDigitalOutputSet<T>(LogicBlockTestContext<T>, IDigitalOutput, bool?, Times?)` — Assert that at the specified digital output was set with the given value.
+  - `testContext`: The test context for the logic block.
+  - `digitalOutput`: The digital output to verify, or null to verify any digital output.
+  - `value`: The expected value, or null to skip value verification.
+  - `times`: The expected number of times the output was set, or null for once.
+
+---
+
+## Dale.Sdk.DigitalIo.Input
 
 ### IDigitalInput
 
@@ -36,7 +117,7 @@ Represents a digital input that can be used to communicate with hardware.
 
 ---
 
-## Vion.Dale.Sdk.DigitalIo.Output
+## Dale.Sdk.DigitalIo.Output
 
 ### IDigitalOutput
 
@@ -49,7 +130,7 @@ Represents a digital output that can be used to communicate with hardware.
 
 ---
 
-## Vion.Dale.Sdk.Http
+## Dale.Sdk.Http
 
 ### ILogicBlockHttpClient
 
@@ -131,7 +212,7 @@ Extension methods for setting up logic block HTTP client services in an `IServic
 
 ---
 
-## Vion.Dale.Sdk.Modbus.Core.Conversion
+## Dale.Sdk.Modbus.Core.Conversion
 
 ### ByteOrder
 
@@ -183,7 +264,7 @@ Specifies the word order for 64-bit values composed of four 16-bit words.
 
 ---
 
-## Vion.Dale.Sdk.Modbus.Core.Exceptions
+## Dale.Sdk.Modbus.Core.Exceptions
 
 ### ModbusException
 
@@ -222,7 +303,61 @@ Specifies the Modbus exception type.
 
 ---
 
-## Vion.Dale.Sdk.Modbus.Rtu
+## Dale.Sdk.Modbus.Rtu.TestKit
+
+### IModbusRtuExtensions
+
+Extension methods on `IModbusRtu` for simulating Modbus responses in tests.
+
+**Methods:**
+
+- `SimulateReadResponse<T>(IModbusRtu, LogicBlockTestContext<T>, byte[], ushort?)` — Simulates a successful read response by invoking the pending request's callback with the given data. The data bytes are processed through the same callback chain as in production (SwapBytes, CastFromBytes, etc.).
+  - `modbusRtu`: The Modbus RTU contract instance.
+  - `testContext`: The test context containing recorded messages.
+  - `responseData`: The raw response bytes (big-endian by default, matching Modbus wire format).
+  - `startingAddress`: Optional filter to match a specific request by starting address.
+- `SimulateReadError<T>(IModbusRtu, LogicBlockTestContext<T>, Exception, ushort?)` — Simulates a read error by invoking the pending request's callback with the given exception.
+- `SimulateWriteResponse<T>(IModbusRtu, LogicBlockTestContext<T>, ushort?)` — Simulates a successful write response by invoking the pending request's callback with no error.
+- `SimulateWriteError<T>(IModbusRtu, LogicBlockTestContext<T>, Exception, ushort?)` — Simulates a write error by invoking the pending request's callback with the given exception.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Verification extension methods for asserting Modbus RTU messages in tests.
+
+**Methods:**
+
+- `VerifyModbusReadSent<T>(LogicBlockTestContext<T>, IModbusRtu, ushort?, ushort?, Times?)` — Assert that a Modbus read request was sent.
+  - `testContext`: The test context for the logic block.
+  - `modbusRtu`: The Modbus RTU contract to filter by, or null for any.
+  - `startingAddress`: The expected starting address, or null to skip verification.
+  - `quantity`: The expected register/coil quantity, or null to skip verification.
+  - `times`: The expected number of times, or null for once.
+- `VerifyModbusWriteSent<T>(LogicBlockTestContext<T>, IModbusRtu, ushort?, Times?)` — Assert that a Modbus write request was sent.
+  - `testContext`: The test context for the logic block.
+  - `modbusRtu`: The Modbus RTU contract to filter by, or null for any.
+  - `address`: The expected write address, or null to skip verification.
+  - `times`: The expected number of times, or null for once.
+
+---
+
+### ModbusResponseBuilder
+
+Helpers for constructing Modbus response byte arrays in big-endian (MSB-first) order, matching the default Modbus wire format (`ByteOrder.MsbToLsb`).
+
+**Methods:**
+
+- `FromFloats(float[])` — Converts float values to big-endian bytes (4 bytes each).
+- `FromShorts(short[])` — Converts short values to big-endian bytes (2 bytes each).
+- `FromUShorts(ushort[])` — Converts ushort values to big-endian bytes (2 bytes each).
+- `FromInts(int[])` — Converts int values to big-endian bytes (4 bytes each).
+- `FromDoubles(double[])` — Converts double values to big-endian bytes (8 bytes each).
+- `FromBools(bool[])` — Packs boolean values into bytes using Modbus coil/discrete input bit packing. Each byte holds up to 8 coils, LSB first within each byte.
+
+---
+
+## Dale.Sdk.Modbus.Rtu
 
 ### IModbusRtu
 
@@ -539,7 +674,7 @@ Provides Modbus RTU read and write operations.
 
 ---
 
-## Vion.Dale.Sdk.Modbus.Tcp
+## Dale.Sdk.Modbus.Tcp
 
 ### ServiceCollectionExtensions
 
@@ -552,7 +687,7 @@ Extension methods for setting up Modbus TCP services in an `IServiceCollection`.
 
 ---
 
-## Vion.Dale.Sdk.Modbus.Tcp.Client.LogicBlock
+## Dale.Sdk.Modbus.Tcp.Client.LogicBlock
 
 ### ILogicBlockModbusTcpClient
 
@@ -923,7 +1058,7 @@ Factory for creating instances of `ILogicBlockModbusTcpClient`.
 
 ---
 
-## Vion.Dale.Sdk.Modbus.Tcp.Client.Request
+## Dale.Sdk.Modbus.Tcp.Client.Request
 
 ### QueueOverflowPolicy
 
@@ -953,7 +1088,119 @@ Exception thrown when a request is dropped from the queue. This occurs when the 
 
 ---
 
-## Vion.Dale.Sdk.Core
+## Dale.Sdk.TestKit
+
+### Constants
+
+Provides default constant values for logic block test setup.
+
+---
+
+### ILoggerMockExtensions
+
+Extension methods to verify log output on ILogger mocks.
+
+**Methods:**
+
+- `VerifyLogContains(Mock<ILogger>, string, LogLevel, Times)` — Verifies that a log entry containing the specified string was logged at the specified log level the expected number of times.
+
+---
+
+### LogicBlockBaseExtensions
+
+Extension methods to initialize logic blocks for testing with a fluent builder API.
+
+**Methods:**
+
+- `InitializeForTest<T>(T)` — Initializes the given logic block for testing, returning a typed test context.
+- `CreateTestContext<T>(T)` — Creates a test context builder for the given logic block to allow test context customization. Call Build() at the end to get the test context.
+
+---
+
+### LogicBlockTestContext
+
+Test-friendly minimal actor context that records messages sent by the logic block. Use the provided query/assertion helpers to inspect recorded messages. testContext.VerifyServicePropertyChanged(lb => lb.Power, value => Assert.AreEqual(3.5, value));
+
+**Methods:**
+
+- `VerifySendCommand<T>(InterfaceId?, Action<T>, Times?)` — Assert that a SendCommand call was made with the given target and message. testContext.VerifySendCommand&lt;PingRequest&gt;(mappedPong, msg => Assert.AreEqual(42, msg.Value));
+- `VerifySendRequest<T>(InterfaceId?, Action<T>, Times?)` — Assert that a SendRequest call was made with the given target and message. testContext.VerifySendRequest&lt;PingRequest&gt;(mappedPong, msg => Assert.AreEqual(42, msg.Value));
+- `VerifySendStateUpdate<T>(Action<T>, Times?)` — Assert that a SendStateUpdate call was made with the given message. testContext.VerifySendStateUpdate&lt;MyState&gt;(msg => Assert.AreEqual(expected, msg.Value));
+- `VerifyServicePropertyChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service property change was recorded for the specified property. testContext.VerifyServicePropertyChanged(lb => lb.Power, value => Assert.AreEqual(3.5, value));
+- `VerifyServiceMeasuringPointChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service measuring point change was recorded for the specified property. testContext.VerifyServiceMeasuringPointChanged(lb => lb.Temperature, value => Assert.AreEqual(22.5, value));
+- `GetContractMessages<T>(string)` — Returns all recorded contract messages of the specified data type, optionally filtered by contract identifier. Useful for TestKit extensions that need to extract pending requests for response simulation.
+- `ClearRecordedMessages` — Clear recorded messages, e.g. if the test arranging phase triggers messages, that should be ignored.
+- `FlushPendingActions` — Execute all actions queued by . In the real actor system these run after a delay; in tests they are captured and executed on demand so you can feed responses between the scheduling and the execution. sut.OnTimer(); // sends requests, queues Calculate sut.HandleResponse(id, response); // feed response data testContext.FlushPendingActions(); // now Calculate() runs
+
+---
+
+### LogicBlockTestContextBuilder
+
+Fluent test builder to initialize LogicBlock instances for unit tests.
+
+**Methods:**
+
+- `WithLogicInterfaceMapping<T>(Func<T, T>, InterfaceId)` — Adds a mapping to another logic block using a specific (self or delegated) implementation of the interface.
+- `WithLogicInterfaceMapping<T>(InterfaceId)` — Adds a mapping to another logic block using the logic block's own implementation of the interface.
+- `WithPersistentValue<T>(Expression<Func<T, T>>, T)` — Registers a persistent value to be restored after initialization, simulating a restart with previously saved state. var testContext = block.CreateTestContext() .WithPersistentValue(lb => lb.MaxPower, 42.0) .WithPersistentValue(lb => lb.Mode, OperatingMode.Manual) .Build();
+- `WithServices(Action<IServiceCollection>)` — Registers additional DI services for logic block initialization. Use this to register services required by contract types (e.g. Modbus RTU).
+- `WithoutAutoStart` — Prevents the logic block from being started after initialization. By default, the builder starts the block so that service property changes produce messages. Use this when testing initialization or pre-start behavior.
+- `Build` — Initialize the logic block and apply any linked interfaces mapping. After this returns the logic block's Configure(...), Ready(), and Starting() will have been executed and the block is ready to process messages. Use to skip starting.
+- `InitializeLogicBlock` — Sends the InitializeLogicBlock message to the logic block to initialize it. Auto-discovers service identifiers from [Service] attributes so that service property and measuring point changes are routed correctly when the block is started.
+- `RegisterContractAssemblyServices(IServiceCollection)` — Auto-discovers contract properties on the logic block, finds `IConfigureServices` implementations in each contract assembly, and invokes them. Mirrors what the full Dale runtime does with shared assembly discovery.
+- `DiscoverContractIds` — Discovers contract identifiers from properties whose type has [ServiceProviderContractType]. Generates a LogicBlockContractId for each so that contracts are fully initialized in tests.
+- `DiscoverServiceIds` — Discovers service identifiers from [Service] attributes on the logic block class and its properties.
+- `RestorePersistentState` — If persistent values were registered, resolves their persistence keys and sends a RestorePersistentDataRequest.
+- `ResolvePersistenceKey(string)` — Resolves a C# property name to its persistence key by searching the service binder's bindings. Falls back to the opt-in key format (_direct.{PropertyName}) if not found as a service property.
+- `StartLogicBlock` — If auto-start was requested, sends StartLogicBlockRequest and clears the infrastructure messages produced during startup (initial state publishes, periodic save scheduling).
+- `SetLinkedInterfaces` — Sets the linked interfaces on the logic block based on the configured mappings with the help of some reflection.
+
+---
+
+### LogicBlockTestHelper
+
+Static helper methods to create logic block instances with mocked dependencies for testing.
+
+**Methods:**
+
+- `CreateLoggerMock` — Creates a mock ILogger for logic blocks.
+- `Create<T>` — Creates a logic block instance with a default logger mock. The logic block must have a constructor that accepts `ILogger`. var block = LogicBlockTestHelper.Create&lt;MyBlock&gt;();
+- `CreateWithLogger<T>` — Creates a logic block instance and returns both the instance and the logger mock, for tests that need to verify log output. var (block, loggerMock) = LogicBlockTestHelper.CreateWithLogger&lt;MyBlock&gt;();
+
+---
+
+### LogicBlockTimerExtensions
+
+Extension methods for simulating timer ticks in unit tests. Uses reflection to access the internal timer callback dictionary on `LogicBlockBase`.
+
+**Methods:**
+
+- `FireTimer(LogicBlockBase, string)` — Fires a timer callback by its identifier. The identifier is typically the method name unless overridden via `[Timer(identifier: "custom")]`.
+- `FireTimer<T>(T, Expression<Action<T>>)` — Fires a timer callback using a method selector expression for type-safety. The method must be accessible from the test. block.FireTimer((MyBlock lb) => lb.OnTimer());
+- `GetTimerInterval(LogicBlockBase, string)` — Returns the configured interval for the specified timer.
+- `GetTimerInterval<T>(T, Expression<Action<T>>)` — Returns the configured interval for the specified timer using a method selector expression. var interval = block.GetTimerInterval((MyBlock lb) => lb.OnTimer());
+
+---
+
+### TestActorReference
+
+Mock actor reference implementation for testing without a real actor system.
+
+---
+
+### TestKitVerificationException
+
+Exception thrown when a TestKit verification assertion fails.
+
+---
+
+### TimesExtensions
+
+Extension methods to validate Moq Times constraints against actual invocation counts.
+
+---
+
+## Dale.Sdk.Core
 
 ### CardinalityType
 
@@ -1225,7 +1472,7 @@ Declare a timer method that should be called at regular intervals. If the identi
 
 ---
 
-## Vion.Dale.Sdk.Utils
+## Dale.Sdk.Utils
 
 ### IDateTimeProvider
 
@@ -1245,7 +1492,7 @@ Provides an abstraction for date and time operations.
 
 ---
 
-## Vion.Dale.Sdk.Abstractions
+## Dale.Sdk.Abstractions
 
 ### ServiceProviderHandlerBase
 
@@ -1262,7 +1509,7 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
 **Methods:**
 
 - *Constructor* — Initializes a new instance of the handler.
-- `Vion#Dale#Sdk#Abstractions#IActorReceiver#HandleMessageAsync(object, IActorContext)` — *(no description)*
+- `Dale#Sdk#Abstractions#IActorReceiver#HandleMessageAsync(object, IActorContext)` — *(no description)*
 - `GetMqttRegistration` — Returns the MQTT routing key and action path suffixes for this handler. The base class prepends the service provider wildcard prefix (`/+/+/+`) to each action path to form the full subscription topics.
 - `HandleMqttMessage(ServiceProviderMqttMessage)` — Handles an MQTT message received from the broker. The message contains the pre-parsed `ContractId` and `CorrelationId`. Use `ActorContext` for actor communication.
 - `HandleContractMessage(IContractMessage)` — Handles a contract message from a logic block (e.g., set commands, read/write requests). Use `ActorContext` for actor communication.
@@ -1286,7 +1533,7 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
 
 ---
 
-## Vion.Dale.Sdk.Configuration.Contract
+## Dale.Sdk.Configuration.Contract
 
 ### LogicBlockContractBase
 
@@ -1317,7 +1564,7 @@ Base class for all logic block contract implementations (e.g., DigitalInput, Dig
 
 ---
 
-## Vion.Dale.Sdk.Mqtt
+## Dale.Sdk.Mqtt
 
 ### RegistrationSecret
 
