@@ -1,27 +1,28 @@
 ---
 title: Service Provider Protocol
-description: MQTT protocol specification for implementing custom service providers that communicate with the Dale runtime.
+description: MQTT protocol specification for implementing custom service providers that communicate with Mesh and the Dale runtime.
 ---
 
 # Service Provider Protocol
 
-A service provider is a standalone process that exposes hardware, bus protocols, or external systems to the Dale runtime over MQTT. This page defines the protocol that all service providers must implement.
+A service provider is a standalone process that exposes hardware, bus protocols, or external systems to VION over MQTT. This page defines the protocol that all service providers must implement.
 
 The protocol has two layers:
 
-1. **Mandatory protocol** — registration, declaration, and health reporting. Same for every service provider.
-2. **Service-specific messaging** — topics and payloads defined by each service provider type. The protocol makes no assumptions about their structure.
+1. **Mandatory protocol** — registration, declaration, and health reporting. Same for every service provider. Mesh orchestrates this layer.
+2. **Service-specific messaging** — topics and payloads defined by each service provider type. The Dale runtime consumes this layer to drive logic blocks. The protocol makes no assumptions about topic or payload structure.
 
 ## Architecture
 
 ```mermaid
 graph LR
   SP["Service Provider<br/>(any technology)"] <-->|MQTT| B["MQTT Broker<br/>(NanoMQ)"]
-  B <-->|MQTT| D["Dale Runtime"]
+  B <-->|registration<br/>+ health| M["Mesh"]
+  B <-->|contract messaging| D["Dale Runtime"]
   D --> LB["Logic Blocks"]
 ```
 
-The service provider and the Dale runtime never communicate directly. All messages flow through the local MQTT broker. This means service providers can be written in any language or technology that supports MQTT 5.0 — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
+The service provider never communicates with Mesh or the Dale runtime directly — all messages flow through the local MQTT broker. Mesh handles registration and periodic health checks; the Dale runtime subscribes to contract messages (state, commands, responses) and dispatches them to logic blocks. Service providers can be written in any language or technology that supports MQTT 5.0 — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
 
 ## Prerequisites
 
@@ -30,7 +31,7 @@ The service provider and the Dale runtime never communicate directly. All messag
 
 ## Registration
 
-Registration lets the Dale runtime discover new service providers and provision credentials for the operational broker.
+Registration lets Mesh discover new service providers and provision credentials for the operational broker.
 
 ### Generate a Secret
 
@@ -45,9 +46,9 @@ The secret, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier
 - Should be kept under 128 characters (MQTT topics have a 65535-byte UTF-8 limit, but shorter is better for broker performance)
 - Should use only ASCII alphanumeric characters to avoid encoding issues across MQTT client implementations
 
-**Recommended secret format:** A UUID v4 without hyphens — 32 lowercase hex characters (e.g., `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`). This is what the Dale runtime uses internally.
+**Recommended secret format:** A UUID v4 without hyphens — 32 lowercase hex characters (e.g., `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`). This is what Mesh uses internally.
 
-For .NET service providers, use `RegistrationSecret.Generate()` from the `Dale.ServiceProvider.Sdk` (or `Guid.NewGuid().ToString("N")`).
+For .NET service providers, use `RegistrationSecret.Generate()` from the `Vion.Dale.ServiceProvider.Sdk` package (or `Guid.NewGuid().ToString("N")`).
 :::
 
 ### Publish the Registration
@@ -74,7 +75,7 @@ The topics contain only the secret, not the serviceProviderIdentifier — this p
 
 ### Handle Acceptance
 
-When the Dale runtime accepts the registration, it publishes plaintext JSON to the accepted topic:
+When Mesh accepts the registration, it publishes plaintext JSON to the accepted topic:
 
 ```json
 {
@@ -156,7 +157,7 @@ The `type` field must match a `[ServiceProviderContractType]` known to the Dale 
 
 ## Health Reporting
 
-The Dale runtime periodically queries health status from all components.
+Mesh periodically queries health status from all components.
 
 ### Respond to Health Queries
 

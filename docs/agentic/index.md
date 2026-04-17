@@ -65,7 +65,7 @@ Any AI coding tool that supports agent instruction files (Claude Code, Cursor, W
 
 ## Example Projects
 
-The [Dale repository](https://github.com/vion-iot/dale) includes complete example projects you can study or use as a starting point:
+The source-available [Dale SDK repository](https://github.com/VION-IoT/dale-sdk/) includes complete example projects you can study or use as a starting point:
 
 | Example | What It Demonstrates |
 |---------|---------------------|

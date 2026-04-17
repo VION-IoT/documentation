@@ -7,7 +7,7 @@ description: Setting up an AI coding agent for Dale development.
 
 ## Prerequisites
 
-- Dale CLI installed (`dotnet tool install -g Dale.Cli`)
+- Dale CLI installed (`dotnet tool install -g Vion.Dale.Cli`)
 - An AI coding tool that can run shell commands (Claude Code, Cursor, GitHub Copilot in terminal, etc.)
 
 ## Project Setup

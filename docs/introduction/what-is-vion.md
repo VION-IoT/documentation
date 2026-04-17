@@ -7,6 +7,8 @@ description: Overview of the VION Edge Operations Platform.
 
 VION is an **Edge Operations Platform** for building, deploying, and operating IoT logic on edge gateways. It is built for system integrators who need to connect hardware, run control logic, and give their customers visibility — without building infrastructure from scratch.
 
+VION is the product as a whole. The **Dale SDK** is the part integrators build on — a .NET SDK and CLI for writing logic blocks that run on the edge. On the edge gateway, the **Dale runtime** hosts those logic blocks as plugins, and **Mesh** bridges the gateway to VION Cloud. The Dale SDK is source-available at [VION-IoT/dale-sdk](https://github.com/VION-IoT/dale-sdk/); packages are published to [nuget.org](https://www.nuget.org/) under the `Vion.*` prefix.
+
 ## The Big Picture
 
 ```mermaid

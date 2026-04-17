@@ -5,6 +5,8 @@ description: Common issues during edge gateway setup and how to resolve them.
 
 # Troubleshooting
 
+Before diving in, check the [VION status page](https://status.vion.swiss/) — a platform-wide incident can explain gateway or upload failures that otherwise look local.
+
 ## Provisioning Script Issues
 
 ### Script fails with "distribution not recognized"

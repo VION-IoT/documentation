@@ -118,7 +118,7 @@ Once the device is registered, the Dashboard triggers the initial software deplo
 
 - **Infrastructure modules** — base system configuration
 - **Infrastructure Docker** — container runtime setup
-- **Software bundle** — VION runtime components (Dale, Mesh, monitoring agents)
+- **Software bundle** — VION edge components (Dale runtime, Mesh, monitoring agents)
 
 Deployment is handled by Mender and typically takes 2–5 minutes. The Dashboard polls every 15 seconds and updates the status in real time.
 

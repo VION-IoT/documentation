@@ -5,9 +5,7 @@ description: Install the Dale CLI and use it to scaffold, build, test, and publi
 
 # Installation & CLI
 
-::: warning Early Access
-The Dale CLI is currently distributed via a private Azure Artifacts feed. It will move to [nuget.org](https://www.nuget.org/) for public availability. Contact your VION representative for access.
-:::
+The Dale CLI and SDK packages are published to [nuget.org](https://www.nuget.org/) under the `Vion.*` package prefix. The Dale SDK source is available on GitHub at [VION-IoT/dale-sdk](https://github.com/VION-IoT/dale-sdk/).
 
 ## Prerequisites
 
@@ -16,14 +14,14 @@ The Dale CLI is currently distributed via a private Azure Artifacts feed. It wil
 ## Install
 
 ```bash
-dotnet tool install -g Dale.Cli
+dotnet tool install -g Vion.Dale.Cli
 ```
 
 Verify the installation:
 
 ```bash
 dale --version
-# dale 0.1.60 - Vion IoT
+# dale 1.0.0 - Vion IoT
 ```
 
 ## Commands
@@ -95,7 +93,7 @@ dale list
 
 ```
   Project: MyDemo (v0.0.1)
-  SDK: Dale.Sdk 0.1.60
+  SDK: Vion.Dale.Sdk 1.0.0
 
 ┌ HelloWorld ─────────────────┐
 │ Properties │ Greeting       │
@@ -119,7 +117,7 @@ dale list --output json
 {
   "packageId": "MyDemo",
   "version": "0.0.1",
-  "sdkVersion": "0.1.60",
+  "sdkVersion": "1.0.0",
   "logicBlocks": [
     {
       "name": "HelloWorld",

@@ -37,4 +37,4 @@ The Dashboard shows the current status of each gateway:
 
 ## Software Updates
 
-Software updates (runtime, Mesh, monitoring agents) are managed through the platform's OTA update system powered by Mender. Updates are deployed from the platform level — no manual SSH access is required after initial onboarding.
+Software updates (Dale runtime, Mesh, monitoring agents) are managed through the platform's OTA update system powered by Mender. Updates are deployed from the platform level — no manual SSH access is required after initial onboarding.

@@ -39,6 +39,7 @@ export default withMermaid(
             { text: 'Observability', link: '/observability/overview' },
             { text: 'AI-Assisted Development', link: '/agentic/' },
             { text: 'Dashboard', link: 'https://nhpdashboardapp.test.ecocoa.ch/' },
+            { text: 'Status', link: 'https://status.vion.swiss/' },
           ],
         },
         {

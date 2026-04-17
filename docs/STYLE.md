@@ -8,13 +8,16 @@ Use these exact forms. Never substitute synonyms.
 
 | Term | Usage | Never use |
 |------|-------|-----------|
+| VION | The product as a whole: "VION is an Edge Operations Platform". Always all-caps. | Vion, vion, the platform (alone, when ambiguous) |
+| Dale SDK | The logic system integrators build on: "the Dale SDK provides..." | the SDK (without Dale, unless context is obvious), Dale (alone, for the SDK) |
+| Dale runtime | Lowercase `runtime`: "the Dale runtime loads logic block libraries as plugins". Runs on the edge gateway and executes logic blocks. | Dale (alone), the runtime (alone, when ambiguous), Dale Runtime (in prose — proper casing in diagram labels is fine) |
+| Mesh | The gateway between the edge and VION Cloud. Capitalized: "Mesh orchestrates service provider registration and bridges MQTT to the cloud". | mesh, the mesh, mesh gateway (in prose — "Mesh gateway" as a diagram label is acceptable) |
 | logic block | Lowercase in prose: "a logic block handles..." Capitalized in headings, titles, and link text: "[Logic Blocks](/sdk/logic-blocks)" | LogicBlock (only in code), block (ambiguous), component |
-| service property | "a service property is readable by the runtime" | property (alone, when ambiguous), field |
+| service property | "a service property is readable by the Dale runtime" | property (alone, when ambiguous), field |
 | measuring point | "measuring points are read-only" | metric, measurement, sensor value |
 | service provider contract | "the service provider contract binds I/O" | I/O binding (alone), hardware contract |
 | edge gateway | "deploy to the edge gateway" | device (alone), gateway (alone), node |
 | Dale CLI | Always capitalized in prose: "install the Dale CLI" | dale cli, the CLI (without Dale), the tool |
-| Dale SDK | "the Dale SDK provides..." | the SDK (without Dale, unless context is obvious) |
 | VION Cloud | Always capitalized: "upload to VION Cloud" | the cloud, vion cloud, Cloud API (that's the API) |
 | integrator | "an integrator develops libraries" | partner, developer org, company |
 | tenant | "tenants are customers of integrators" | client, end user, customer |
@@ -154,7 +157,7 @@ Never put core documentation content inside containers. If every reader needs th
 - Marketing language ("powerful", "seamless", "cutting-edge")
 - Hedging ("you might want to", "it could be useful to")
 - Informal language ("just do X", "simply", "easy")
-- Passive voice when active is clearer ("the property is set by the runtime" → "the runtime sets the property")
+- Passive voice when active is clearer ("the property is set by the Dale runtime" → "the Dale runtime sets the property")
 
 ## Page Types
 

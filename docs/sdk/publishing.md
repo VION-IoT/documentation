@@ -13,7 +13,7 @@ To publish a library, you need:
 
 - A VION Cloud account with membership in an **integrator** organization
 - A role with sufficient permissions to manage libraries
-- The Dale CLI installed (`dotnet tool install -g Dale.Cli`)
+- The Dale CLI installed (`dotnet tool install -g Vion.Dale.Cli`)
 
 ::: info Integrators
 Libraries belong to integrators. An integrator is an organization (e.g., your company) that develops and maintains logic block libraries for their tenants. Contact [VION support](https://vion.swiss) to be added to an integrator.
@@ -162,7 +162,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install Dale CLI
-        run: dotnet tool install -g Dale.Cli
+        run: dotnet tool install -g Vion.Dale.Cli
 
       - name: Upload to VION Cloud
         run: |
@@ -188,7 +188,7 @@ steps:
     inputs:
       version: '10.0.x'
 
-  - script: dotnet tool install -g Dale.Cli
+  - script: dotnet tool install -g Vion.Dale.Cli
     displayName: 'Install Dale CLI'
 
   - script: |
