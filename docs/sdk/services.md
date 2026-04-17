@@ -5,7 +5,7 @@ description: Connecting logic blocks to hardware I/O, Modbus devices, and extern
 
 # Hardware & External Services
 
-The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O and Modbus registers to HTTP APIs. Service provider contracts connect to hardware through the runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
+The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O and Modbus registers to HTTP APIs. Service provider contracts connect to hardware through the Dale runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
 
 ## Built-in I/O Interfaces
 
@@ -83,7 +83,7 @@ HeaterOutput.Set(0.75); // 75% power
 
 ## Modbus RTU Example
 
-The `Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. You declare it with `[ServiceProviderContract]`, the runtime injects an implementation, and you use it to read and write Modbus registers directly.
+The `Vion.Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. You declare it with `[ServiceProviderContract]`, the Dale runtime injects an implementation, and you use it to read and write Modbus registers directly.
 
 ```csharp
 [LogicBlockInfo("EM122 Electricity Meter", "flashlight-line")]
@@ -173,7 +173,7 @@ Modbus.WriteMultipleHoldingRegistersAsFloat(
 
 ## Modbus TCP
 
-The `Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract like RTU). This is useful when your logic block connects directly to a Modbus TCP device over the network.
+The `Vion.Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract like RTU). This is useful when your logic block connects directly to a Modbus TCP device over the network.
 
 ```csharp
 [LogicBlockInfo("Energy Meter TCP")]
@@ -233,7 +233,7 @@ services.AddDaleModbusTcpSdk();
 
 ## HTTP Client
 
-The `Dale.Sdk.Http` package provides `ILogicBlockHttpClient` — a non-blocking HTTP client for calling external APIs from logic blocks. All operations use callbacks dispatched through the actor system, so the logic block thread is never blocked.
+The `Vion.Dale.Sdk.Http` package provides `ILogicBlockHttpClient` — a non-blocking HTTP client for calling external APIs from logic blocks. All operations use callbacks dispatched through the actor system, so the logic block thread is never blocked.
 
 ```csharp
 [LogicBlockInfo("Weather Station")]
@@ -310,6 +310,6 @@ public IAnalogInput OptionalSensor { get; set; } = null!;
 
 ## Custom Service Providers
 
-You can build custom service providers for any hardware, bus protocol, or external system. A service provider is a standalone process that communicates with the Dale runtime over the local MQTT broker using MQTT 5.0. It can be written in any language or technology — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
+You can build custom service providers for any hardware, bus protocol, or external system. A service provider is a standalone process that communicates with the Dale runtime (for contract messaging) and Mesh (for registration and health) over the local MQTT broker using MQTT 5.0. It can be written in any language or technology — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
 
 See the [Service Provider Protocol](/sdk/service-provider-protocol) for the full MQTT protocol specification covering registration, declaration, health reporting, and service-specific messaging patterns.

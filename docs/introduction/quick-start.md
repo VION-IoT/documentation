@@ -15,7 +15,7 @@ This guide walks you through creating a logic block library, adding properties a
 ## Install the Dale CLI
 
 ```bash
-dotnet tool install -g Dale.Cli
+dotnet tool install -g Vion.Dale.Cli
 ```
 
 Verify the installation:
@@ -24,9 +24,7 @@ Verify the installation:
 dale --version
 ```
 
-::: info Early Access
-The Dale CLI is currently distributed via a private NuGet feed. Contact [VION](https://vion.swiss) for access. Public NuGet distribution is planned.
-:::
+The CLI and SDK packages are on [nuget.org](https://www.nuget.org/) under the `Vion.*` prefix. The Dale SDK source is available at [VION-IoT/dale-sdk](https://github.com/VION-IoT/dale-sdk/).
 
 ## Create a New Project
 
@@ -55,7 +53,7 @@ SmartThermostat/
 The scaffolded `HelloWorld.cs` shows the essential building blocks — a writable property, a read-only measuring point, and a timer:
 
 ```csharp
-using Dale.Sdk.Core;
+using Vion.Dale.Sdk.Core;
 using Microsoft.Extensions.Logging;
 
 public class HelloWorld : LogicBlockBase
@@ -75,7 +73,7 @@ public class HelloWorld : LogicBlockBase
         _logger = logger;
     }
 
-    /// <summary>Called every 5 seconds by the runtime.</summary>
+    /// <summary>Called every 5 seconds by the Dale runtime.</summary>
     [Timer(5)]
     public void Greet()
     {
@@ -118,7 +116,7 @@ dale add logicblock Thermostat
 Open `SmartThermostat/Thermostat.cs` and replace the generated code:
 
 ```csharp
-using Dale.Sdk.Core;
+using Vion.Dale.Sdk.Core;
 using Microsoft.Extensions.Logging;
 
 public class Thermostat : LogicBlockBase
