@@ -96,6 +96,9 @@ jobs:
     permissions:
       id-token: write   # required for OIDC token exchange with Azure AD
       contents: read
+    defaults:
+      run:
+        shell: bash   # self-hosted runner is Windows; force Git Bash for the shell snippets below
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -130,6 +133,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Azure Login
         uses: azure/login@v2
