@@ -96,9 +96,6 @@ jobs:
     permissions:
       id-token: write   # required for OIDC token exchange with Azure AD
       contents: read
-    defaults:
-      run:
-        shell: pwsh   # self-hosted runner is Windows; use PowerShell (bash on this host resolves to WSL)
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -113,7 +110,18 @@ jobs:
           resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
-      - name: Update deployment image
+      - name: Update deployment image (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          TAG="main-${GITHUB_SHA:0:7}"
+          kubectl set image deployment/documentation "documentation=${IMAGE}:${TAG}" -n documentation
+          kubectl rollout status deployment/documentation -n documentation --timeout=5m
+          echo "Deployed ${IMAGE}:${TAG}"
+
+      - name: Update deployment image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           $TAG = "main-$($env:GITHUB_SHA.Substring(0,7))"
           kubectl set image deployment/documentation "documentation=${env:IMAGE}:$TAG" -n documentation
@@ -130,9 +138,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    defaults:
-      run:
-        shell: pwsh
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -147,15 +152,20 @@ jobs:
           resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
-      - name: Determine version
-        id: version
+      - name: Update deployment image (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          kubectl set image deployment/documentation "documentation=${IMAGE}:${VERSION}" -n documentation
+          kubectl rollout status deployment/documentation -n documentation --timeout=5m
+          echo "Deployed ${IMAGE}:${VERSION}"
+
+      - name: Update deployment image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           $version = $env:GITHUB_REF -replace '^refs/tags/v',''
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - name: Update deployment image
-        run: |
-          $version = '${{ steps.version.outputs.version }}'
           kubectl set image deployment/documentation "documentation=${env:IMAGE}:$version" -n documentation
           kubectl rollout status deployment/documentation -n documentation --timeout=5m
           Write-Host "Deployed ${env:IMAGE}:$version"
