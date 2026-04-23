@@ -93,11 +93,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker
     environment: test
+    permissions:
+      id-token: write   # required for OIDC token exchange with Azure AD
+      contents: read
     steps:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set AKS context
         uses: azure/aks-set-context@v4
@@ -122,11 +127,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker
     environment: production
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set AKS context
         uses: azure/aks-set-context@v4
