@@ -113,11 +113,11 @@ jobs:
       - name: Update deployment image
         run: |
           TAG="main-$(echo "${GITHUB_SHA}" | cut -c1-7)"
-          kubectl set image deployment/nhp-documentation-app \
-            nhp-documentation-app="${{ env.IMAGE }}:${TAG}" \
-            -n nhp-documentation-app
-          kubectl rollout status deployment/nhp-documentation-app \
-            -n nhp-documentation-app --timeout=5m
+          kubectl set image deployment/documentation \
+            documentation="${{ env.IMAGE }}:${TAG}" \
+            -n documentation
+          kubectl rollout status deployment/documentation \
+            -n documentation --timeout=5m
           echo "Deployed ${{ env.IMAGE }}:${TAG}"
 
   deploy-prod:
@@ -150,9 +150,9 @@ jobs:
 
       - name: Update deployment image
         run: |
-          kubectl set image deployment/nhp-documentation-app \
-            nhp-documentation-app="${{ env.IMAGE }}:${{ steps.version.outputs.version }}" \
-            -n nhp-documentation-app
-          kubectl rollout status deployment/nhp-documentation-app \
-            -n nhp-documentation-app --timeout=5m
+          kubectl set image deployment/documentation \
+            documentation="${{ env.IMAGE }}:${{ steps.version.outputs.version }}" \
+            -n documentation
+          kubectl rollout status deployment/documentation \
+            -n documentation --timeout=5m
           echo "Deployed ${{ env.IMAGE }}:${{ steps.version.outputs.version }}"
