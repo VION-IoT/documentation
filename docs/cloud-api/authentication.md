@@ -89,5 +89,5 @@ Most operational endpoints (services, properties, projects) are at the **Tenant*
 
 | Environment | Auth URL | API URL |
 |-------------|----------|---------|
-| Test | `auth.test.vion.swiss` | `api.test.vion.swiss` |
 | Production | `auth.vion.swiss` | `api.vion.swiss` |
+| Test | `auth.test.vion.swiss` | `api.test.vion.swiss` |
