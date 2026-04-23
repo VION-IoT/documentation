@@ -90,7 +90,7 @@ jobs:
   deploy-test:
     # Fires on every push to main. Pre-release tags and PRs do not deploy.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, vpn]
     needs: build-docker
     environment: test
     permissions:
@@ -124,7 +124,7 @@ jobs:
     # Fires on stable semver tags only (vX.Y.Z, not vX.Y.Z-preview.N).
     # The `production` environment should require a reviewer approval.
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, vpn]
     needs: build-docker
     environment: production
     permissions:
