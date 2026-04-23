@@ -53,9 +53,9 @@ dale config show
 ```
 
 ```
-  Environment:  prod
+  Environment:  production
   Auth URL:     https://auth.vion.swiss/realms/vion
-  API URL:      https://cloudapi.vion.swiss
+  API URL:      https://api.vion.swiss
   Integrator:   Vion Dev Team (190938ac-...)
   Logged in:    yes
 ```

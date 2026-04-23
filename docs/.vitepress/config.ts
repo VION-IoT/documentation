@@ -45,7 +45,7 @@ export default withMermaid(
         {
           text: 'API Reference',
           items: [
-            { text: 'Cloud API (Scalar)', link: 'https://cloudapi.test.ecocoa.ch/scalar', target: '_blank' },
+            { text: 'Cloud API (Scalar)', link: 'https://api.vion.swiss/scalar', target: '_blank' },
             { text: 'SDK API Reference', link: '/api-reference/' },
           ],
         },

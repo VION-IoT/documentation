@@ -46,13 +46,19 @@ Key rules:
 
 ## Environment URLs
 
-These URLs point to the **test environment** and will change for production:
+Cloud API and auth have moved to `vion.swiss`:
+
+- Production Cloud API: `https://api.vion.swiss` (Scalar at `/scalar/`)
+- Test Cloud API: `https://api.test.vion.swiss`
+- Production auth (Keycloak): `https://auth.vion.swiss/realms/vion`
+- Test auth: `https://auth.test.vion.swiss/realms/vion`
+
+The dashboard still uses the test host:
 
 - Dashboard: `https://nhpdashboardapp.test.ecocoa.ch/`
 - Dashboard onboarding: `https://nhpdashboardapp.test.ecocoa.ch/#/onboarding`
-- Cloud API Scalar: `https://cloudapi.test.ecocoa.ch/scalar/`
 
-When the production environment is ready, search-replace `test.ecocoa.ch` across all docs.
+Only `test` and `production` environments exist — `staging` is no longer a named environment in the Dale CLI.
 
 ## Conventions
 

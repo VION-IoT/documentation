@@ -7,12 +7,12 @@ description: Practical curl examples for common VION Cloud API operations.
 
 These examples show common API operations using `curl`. All examples assume you have an access token (see [Authentication](/cloud-api/authentication)).
 
-For the full API reference, see the [Scalar API Documentation](https://cloudapi.vion.swiss/scalar).
+For the full API reference, see the [Scalar API Documentation](https://api.vion.swiss/scalar).
 
 ```bash
 # Set these for the examples below
 TOKEN="<your-access-token>"
-API="https://cloudapi.vion.swiss"
+API="https://api.vion.swiss"
 TENANT_ID="<your-tenant-id>"
 ```
 
@@ -139,4 +139,4 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 These examples cover the most common operations. For the complete API with all endpoints, request/response schemas, and interactive testing:
 
-→ **[Scalar API Reference](https://cloudapi.vion.swiss/scalar)**
+→ **[Scalar API Reference](https://api.vion.swiss/scalar)**

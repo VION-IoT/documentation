@@ -30,7 +30,7 @@ Token URL:         https://auth.vion.swiss/realms/vion/protocol/openid-connect/t
 | `code_challenge_method` | `S256` (PKCE required) |
 
 ::: tip
-The easiest way to explore the API interactively is through the [Scalar API Reference](https://cloudapi.vion.swiss/scalar/v1), which has built-in OAuth authentication.
+The easiest way to explore the API interactively is through the [Scalar API Reference](https://api.vion.swiss/scalar/v1), which has built-in OAuth authentication.
 :::
 
 ### Machine-to-Machine (Client Credentials Flow)
@@ -70,7 +70,7 @@ Include the access token in the `Authorization` header:
 
 ```bash
 curl -H "Authorization: Bearer <access-token>" \
-  https://cloudapi.vion.swiss/Me
+  https://api.vion.swiss/Me
 ```
 
 ## API URL Structure
@@ -89,5 +89,5 @@ Most operational endpoints (services, properties, projects) are at the **Tenant*
 
 | Environment | Auth URL | API URL |
 |-------------|----------|---------|
-| Test | `auth.test.vion.swiss` | `cloudapi.test.vion.swiss` |
-| Production | `auth.vion.swiss` | `cloudapi.vion.swiss` |
+| Test | `auth.test.vion.swiss` | `api.test.vion.swiss` |
+| Production | `auth.vion.swiss` | `api.vion.swiss` |
