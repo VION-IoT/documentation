@@ -98,7 +98,7 @@ jobs:
       contents: read
     defaults:
       run:
-        shell: bash   # self-hosted runner is Windows; force Git Bash for the shell snippets below
+        shell: pwsh   # self-hosted runner is Windows; use PowerShell (bash on this host resolves to WSL)
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -115,13 +115,10 @@ jobs:
 
       - name: Update deployment image
         run: |
-          TAG="main-$(echo "${GITHUB_SHA}" | cut -c1-7)"
-          kubectl set image deployment/documentation \
-            documentation="${{ env.IMAGE }}:${TAG}" \
-            -n documentation
-          kubectl rollout status deployment/documentation \
-            -n documentation --timeout=5m
-          echo "Deployed ${{ env.IMAGE }}:${TAG}"
+          $TAG = "main-$($env:GITHUB_SHA.Substring(0,7))"
+          kubectl set image deployment/documentation "documentation=${env:IMAGE}:$TAG" -n documentation
+          kubectl rollout status deployment/documentation -n documentation --timeout=5m
+          Write-Host "Deployed ${env:IMAGE}:$TAG"
 
   deploy-prod:
     # Fires on stable semver tags only (vX.Y.Z, not vX.Y.Z-preview.N).
@@ -135,7 +132,7 @@ jobs:
       contents: read
     defaults:
       run:
-        shell: bash
+        shell: pwsh
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -152,13 +149,13 @@ jobs:
 
       - name: Determine version
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+        run: |
+          $version = $env:GITHUB_REF -replace '^refs/tags/v',''
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Update deployment image
         run: |
-          kubectl set image deployment/documentation \
-            documentation="${{ env.IMAGE }}:${{ steps.version.outputs.version }}" \
-            -n documentation
-          kubectl rollout status deployment/documentation \
-            -n documentation --timeout=5m
-          echo "Deployed ${{ env.IMAGE }}:${{ steps.version.outputs.version }}"
+          $version = '${{ steps.version.outputs.version }}'
+          kubectl set image deployment/documentation "documentation=${env:IMAGE}:$version" -n documentation
+          kubectl rollout status deployment/documentation -n documentation --timeout=5m
+          Write-Host "Deployed ${env:IMAGE}:$version"
