@@ -53,10 +53,8 @@ Cloud API and auth have moved to `vion.swiss`:
 - Production auth (Keycloak): `https://auth.vion.swiss/realms/vion`
 - Test auth: `https://auth.test.vion.swiss/realms/vion`
 
-The dashboard still uses the test host:
-
-- Dashboard: `https://nhpdashboardapp.test.ecocoa.ch/`
-- Dashboard onboarding: `https://nhpdashboardapp.test.ecocoa.ch/#/onboarding`
+- Dashboard: `https://dashboard.vion.swiss/`
+- Dashboard onboarding: `https://dashboard.vion.swiss/#/onboarding`
 
 Only `test` and `production` environments exist — `staging` is no longer a named environment in the Dale CLI.
 
