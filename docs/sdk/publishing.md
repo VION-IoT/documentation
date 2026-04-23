@@ -109,7 +109,7 @@ dale upload --release-notes "Added temperature monitoring"
 
 ### Via Dashboard
 
-1. Navigate to **Integrator → Libraries** in the [Dashboard](https://nhpdashboardapp.test.ecocoa.ch/)
+1. Navigate to **Integrator → Libraries** in the [Dashboard](https://dashboard.vion.swiss/)
 2. Select your library (or create one)
 3. Click **Upload New Version**
 4. Select the `.nupkg` file

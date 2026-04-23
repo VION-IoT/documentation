@@ -38,4 +38,4 @@ If your target device is not listed above but meets the requirements, it will li
 
 For evaluation and development, VION offers a **simulated edge gateway** that runs entirely in VION Cloud. No physical hardware is required — the platform spins up a simulated gateway environment that behaves like a real device.
 
-Select **Simulation** during the [onboarding wizard](https://nhpdashboardapp.test.ecocoa.ch/#/onboarding) to get started without hardware.
+Select **Simulation** during the [onboarding wizard](https://dashboard.vion.swiss/#/onboarding) to get started without hardware.
