@@ -1,102 +1,148 @@
-# Build and publish nhp-documentation-app Docker image to Azure Container Registry
-# Deploy to test-k8s-cluster
+# Build and publish the VION documentation image, then deploy to AKS.
+#
+# Tag scheme (docker/metadata-action@v5 does the bookkeeping):
+#   - Push to main            -> :main + :main-{sha7}
+#   - Push tag vX.Y.Z         -> :X.Y.Z + :latest
+#   - Push tag vX.Y.Z-preview -> :X.Y.Z-preview (no :latest)
+#   - Pull request            -> build only, no push
+#   - workflow_dispatch       -> :manual-{sha7}
+#
+# Deploy routing:
+#   - Push to main (the :main-{sha7} build) -> test cluster
+#   - Stable tag vX.Y.Z (the :X.Y.Z build)  -> production cluster (reviewer-gated env)
+#   - Pre-release tags, PR builds, and workflow_dispatch do not auto-deploy.
+#
+# Cut a release the same way the dale runtime does (see dale/docs/releasing.md):
+#   gh release create v0.1.0 --target main --generate-notes \
+#     --title "v0.1.0" --notes "Short release summary."
 name: Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 env:
-  APP_NAME: nhp-documentation-app
-  REPOSITORY_NAME: nhp-documentation-app
-  CONTAINER_REGISTRY: ecocoach
+  IMAGE: vionimages.azurecr.io/documentation
 
 jobs:
   build-docker:
-    runs-on: [self-hosted, x64]
-    outputs:
-      build_number: ${{ steps.build_number.outputs.version }}
-    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
-    - name: Generate build number # format YYYYMMDD.run_number (e.g., 20251103.4)
-      id: build_number
-      run: |
-        BUILD_NUMBER=$(date +'%Y%m%d').${{ github.run_number }}
-        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
-        echo "version=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-        echo "Generated build number: $BUILD_NUMBER"
-        
-    - name: Login to ACR
-      run: |
-        echo ${{ secrets.ACR_PASSWORD }} | docker login ${{ env.CONTAINER_REGISTRY }}.azurecr.io \
-          --username ${{ secrets.ACR_USERNAME }} \
-          --password-stdin
+      - uses: actions/checkout@v4
 
-    - name: Checkout
-      uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: 'package.json'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '^10.0.0'
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: '^10.0.0'
+      - run: pnpm install --frozen-lockfile
 
-    - name: Install dependencies
-      run: pnpm install
+      - run: pnpm run audit
 
-    - name: Check vulnerabilities
-      run: pnpm run audit
+      - run: pnpm run build
 
-    - name: Build app
-      run: pnpm run build
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          # - main + main-{sha}        on main branch pushes
+          # - vX.Y.Z (stripped 'v')    on semver tag pushes
+          # - latest                   only on non-pre-release semver tags
+          # - manual-{sha}             on workflow_dispatch
+          tags: |
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+            type=raw,value=main-{{sha}},enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+            type=raw,value=manual-{{sha}},enable=${{ github.event_name == 'workflow_dispatch' }}
+          flavor: |
+            latest=false
 
-    - name: Build Docker image
-      run: |
-        docker build \
-          -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:latest \
-          -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }} \
-          .
-        
-    - name: Push Docker image to ACR
-      run: |
-        docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:latest
-        docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to ACR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: vionimages.azurecr.io
+          username: ${{ secrets.VIONIMAGES_ACR_USERNAME }}
+          password: ${{ secrets.VIONIMAGES_ACR_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy-test:
-    if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, x64]
+    # Fires on every push to main. Pre-release tags and PRs do not deploy.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
     needs: build-docker
     environment: test
     steps:
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Set AKS context
-      uses: azure/aks-set-context@v4
-      with:
-        resource-group: Test_Environment
-        cluster-name: test-k8s-cluster
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
-    - name: Get build number from previous job
-      run: |
-        echo "BUILD_NUMBER=${{ needs.build-docker.outputs.build_number }}" >> $GITHUB_ENV
-        echo "Using build number: ${{ needs.build-docker.outputs.build_number }}"
+      - name: Update deployment image
+        run: |
+          TAG="main-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          kubectl set image deployment/nhp-documentation-app \
+            nhp-documentation-app="${{ env.IMAGE }}:${TAG}" \
+            -n nhp-documentation-app
+          kubectl rollout status deployment/nhp-documentation-app \
+            -n nhp-documentation-app --timeout=5m
+          echo "Deployed ${{ env.IMAGE }}:${TAG}"
 
-    - name: Update deployment image
-      run: |
-        kubectl set image deployment/${{ env.APP_NAME }} \
-          ${{ env.APP_NAME }}=${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }} \
-          -n ${{ env.APP_NAME }}
+  deploy-prod:
+    # Fires on stable semver tags only (vX.Y.Z, not vX.Y.Z-preview.N).
+    # The `production` environment should require a reviewer approval.
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+    runs-on: ubuntu-latest
+    needs: build-docker
+    environment: production
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Display deployed image
-      run: |
-        echo "Deployed image: ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.REPOSITORY_NAME }}:${{ env.BUILD_NUMBER }}"
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+
+      - name: Determine version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/nhp-documentation-app \
+            nhp-documentation-app="${{ env.IMAGE }}:${{ steps.version.outputs.version }}" \
+            -n nhp-documentation-app
+          kubectl rollout status deployment/nhp-documentation-app \
+            -n nhp-documentation-app --timeout=5m
+          echo "Deployed ${{ env.IMAGE }}:${{ steps.version.outputs.version }}"
