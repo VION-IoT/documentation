@@ -35,7 +35,7 @@ features:
   - icon:
       src: /icons/ri-line-chart-line.svg
     title: Observability
-    details: Access device metrics and logs through Grafana, powered by Prometheus, Mimir, and Alloy.
+    details: Access device metrics and logs through Grafana, powered by Mimir and Loki.
     link: /observability/overview
   - icon:
       src: /icons/ri-magic-line.svg

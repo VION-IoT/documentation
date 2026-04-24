@@ -83,10 +83,10 @@ flowchart TB
         SP["Service Providers "]
         Dale["Dale Runtime "]
         Mesh["Mesh "]
-        Alloy["Alloy "]
+        OTel["OTel Collector "]
         SP <-->|"I/O"| Dale
         Dale <--> Mesh
-        Dale --> Alloy
+        Dale --> OTel
     end
 
     subgraph CloudBox["VION Cloud"]
@@ -98,12 +98,12 @@ flowchart TB
     end
 
     Mesh <-->|"MQTT over TLS"| CloudAPI
-    Alloy -->|"OpenTelemetry"| Grafana
+    OTel -->|"OpenTelemetry"| Grafana
 
     classDef edgeNode fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33,rx:8
     classDef cloudNode fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff,rx:8
 
-    class SP,Dale,Mesh,Alloy edgeNode
+    class SP,Dale,Mesh,OTel edgeNode
     class CloudAPI,Dashboard,Grafana cloudNode
 ```
 

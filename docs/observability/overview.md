@@ -14,7 +14,7 @@ flowchart LR
     subgraph Edge["Edge Gateway"]
         Dale["Dale Runtime"]
         Mesh["Mesh Gateway"]
-        Alloy["Alloy Agent"]
+        OTel["OTel Collector"]
     end
 
     subgraph Cloud["VION Cloud"]
@@ -23,10 +23,10 @@ flowchart LR
         Grafana["Grafana<br/>(Dashboards)"]
     end
 
-    Dale -->|"OTLP"| Alloy
-    Mesh -->|"OTLP"| Alloy
-    Alloy -->|"Metrics"| Mimir
-    Alloy -->|"Logs"| Loki
+    Dale -->|"OTLP"| OTel
+    Mesh -->|"OTLP"| OTel
+    OTel -->|"Metrics"| Mimir
+    OTel -->|"Logs"| Loki
     Mimir --> Grafana
     Loki --> Grafana
 ```
@@ -34,7 +34,7 @@ flowchart LR
 ## Data Flow
 
 1. **Edge components** (Dale runtime, Mesh gateway) emit telemetry via the OpenTelemetry Protocol (OTLP)
-2. **Alloy** (the OpenTelemetry collector running on the gateway) receives, batches, and forwards telemetry to VION Cloud
+2. **OTel Collector** running on the gateway receives, batches, and forwards telemetry to VION Cloud
 3. **Mimir** stores metrics (Prometheus-compatible) and **Loki** stores logs
 4. **Grafana** provides dashboards to query and visualize the data
 
@@ -44,7 +44,6 @@ flowchart LR
 |-----------|--------|---------|----------------|
 | **Metrics** | Gateway health, component uptime | Mimir | PromQL |
 | **Logs** | Structured logs from all edge components | Loki | LogQL |
-| **Traces** | Distributed traces across components | OpenTelemetry Collector | — |
 
 ## Tenant Isolation
 
