@@ -107,9 +107,10 @@ Open `http://localhost:5000` in your browser. The DevHost shows your logic block
 
 ## Add Your Own Logic Block
 
-The scaffolded HelloWorld shows the basics. Now create a second logic block — a simple thermostat controller:
+The scaffolded HelloWorld shows the basics. Now create a second logic block — a simple thermostat controller. `dale add` runs from inside the logic block project folder:
 
 ```bash
+cd SmartThermostat
 dale add logicblock Thermostat
 ```
 

@@ -133,7 +133,7 @@ dale list --output json
 
 ## `dale add` — Code Generation
 
-Add elements to a logic block without writing boilerplate.
+Add elements to a logic block without writing boilerplate. Run these commands from inside the logic block project folder, or pass `--project <path>` to target it explicitly — unlike `dale new`, `dale build`, and `dale test`, `dale add` cannot auto-detect the right project from the solution root when multiple csproj files exist.
 
 ### Add a Logic Block
 
