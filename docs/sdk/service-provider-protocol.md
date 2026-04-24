@@ -27,11 +27,11 @@ The service provider never communicates with Mesh or the Dale runtime directly �
 ## Prerequisites
 
 - MQTT 5.0 client library
-- Access to the registration broker (default: `nanomq:1883` on the local network)
+- Access to the local MQTT broker (default: `nanomq:1883` on the local network)
 
 ## Registration
 
-Registration lets Mesh discover new service providers and provision credentials for the operational broker.
+Registration lets Mesh discover new service providers and provision credentials on the local MQTT broker. The same broker is used for both the registration exchange (unauthenticated) and operational messaging (authenticated with the provisioned credentials). A service provider runs this flow on every connect, even when it already has credentials stored. Re-registering is cheap, and it keeps the protocol self-healing: if the broker ever loses its ACL store (for example after a reset), the next reconnect re-provisions credentials without any manual recovery.
 
 ### Generate a Secret
 
@@ -51,31 +51,40 @@ The secret, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier
 For .NET service providers, use `RegistrationSecret.Generate()` from the `Vion.Dale.ServiceProvider.Sdk` package (or `Guid.NewGuid().ToString("N")`).
 :::
 
-### Publish the Registration
-
-Connect to the registration broker and publish a message:
-
-| Field | Value |
-|-------|-------|
-| Topic | `system/serviceProvider/registration/request/{serviceProviderIdentifier}/{secret}` |
-| Payload | Empty — the serviceProviderIdentifier and secret are encoded in the topic |
-| QoS | 0 |
-| Retain | no |
-
-The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier).
-
 ### Subscribe to the Response
 
-Subscribe to both:
+Connect to the broker unauthenticated (no username or password) and subscribe to both:
 
 - `system/serviceProvider/registration/accepted/{secret}`
 - `system/serviceProvider/registration/denied/{secret}`
 
-The topics contain only the secret, not the serviceProviderIdentifier — this prevents an attacker who knows the serviceProviderIdentifier from guessing the topic. The broker must be configured to disallow wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `system/serviceProvider/registration/accepted/+` — this ensures that only the service provider that knows the secret can receive credentials.
+The broker rejects wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `.../accepted/+` so only the service provider that knows the secret can receive credentials.
+
+### Publish the Registration Request
+
+Once subscribed, publish a single registration message:
+
+| Field | Value |
+|-------|-------|
+| Topic | `system/serviceProvider/registration/request/{secret}` |
+| Payload | JSON: `{ "serviceProviderIdentifier": "hal-sim" }` |
+| QoS | 1 |
+| Retain | yes |
+| Content-Type | `application/json` |
+| User property: `Schema` | `ServiceProviderRegistrationRequestPayload` |
+
+The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier).
+
+**Publish once per connection, not repeatedly.** The retained flag keeps the request on the broker so Mesh can pick it up as soon as it subscribes — even if Mesh is offline, restarting, or not yet connected when the service provider publishes. The only time to resend the registration is when the service provider's MQTT connection drops and reconnects, at which point the full registration flow runs again.
 
 ### Handle Acceptance
 
-When Mesh accepts the registration, it publishes plaintext JSON to the accepted topic:
+A registration request is accepted in one of two ways:
+
+- **Manual accept** — a user in the cloud dashboard accepts (or denies) the pending registration.
+- **Auto-accept** — Mesh has the service provider's secret mounted alongside its own configuration (conventionally, the same `secrets.txt` file the service provider reads), and recognizes the incoming secret as a known, pre-provisioned one. When the secret matches, Mesh accepts automatically without any dashboard action. Only the VION team can set up auto-accept because it requires mounting files into the Mesh container, which customers do not have access to.
+
+On acceptance, Mesh provisions credentials in the broker's ACL store and **restarts the broker to apply them**. The restart disconnects every MQTT client, including the registering service provider. On reconnect, the service provider runs the registration flow again — this time, because the credentials already exist, Mesh responds immediately with the accepted payload:
 
 ```json
 {
@@ -88,7 +97,7 @@ When Mesh accepts the registration, it publishes plaintext JSON to the accepted 
 }
 ```
 
-Store these credentials. Disconnect from the registration broker and proceed to the operational connection.
+Store these credentials, disconnect, and reconnect with them to enter the operational phase.
 
 ### Handle Denial
 
@@ -96,7 +105,7 @@ If denied, log the reason and retry after a delay.
 
 ## Operational Connection
 
-Connect to the operational broker using the credentials from the accepted registration payload.
+Reconnect to the broker using the credentials from the accepted registration payload.
 
 | Field | Value |
 |-------|-------|
@@ -176,7 +185,7 @@ On connection and periodically, publish health state:
 
 ## MQTT Message Conventions
 
-All messages on the operational broker follow these conventions:
+All messages during the operational phase follow these conventions:
 
 | Convention | Detail |
 |------------|--------|
@@ -317,10 +326,15 @@ sequenceDiagram
     rect rgb(50, 101, 108, 0.1)
     Note over SP,M: Registration Phase
     Note over SP: Generate + persist secret
-    SP->>B: Connect
+    SP->>B: Connect (unauthenticated)
     SP->>B: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
-    SP->>B: Publish registration<br/>(topic includes secret)
-    M->>B: Subscribe to system/.../request/+/+
+    SP->>B: Publish registration (retained, QoS 1)<br/>payload: { serviceProviderIdentifier }
+    M->>B: Subscribe to system/.../request/+
+    B-->>M: Deliver retained registration
+    Note over M: Auto-accept (VION-configured)<br/>or user accepts in dashboard
+    Note over M: Provision credentials<br/>+ restart broker to apply ACL
+    B--xSP: Broker restart disconnects SP
+    SP->>B: Reconnect + republish registration
     M-->>B: Publish system/.../accepted/{secret}<br/>(plaintext credentials)
     B-->>SP: Receive accepted payload
     SP->>B: Disconnect
