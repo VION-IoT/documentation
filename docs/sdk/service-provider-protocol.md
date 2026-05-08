@@ -68,10 +68,10 @@ Once subscribed, publish a single registration message:
 |-------|-------|
 | Topic | `system/serviceProvider/registration/request/{secret}` |
 | Payload | JSON: `{ "serviceProviderIdentifier": "hal-sim" }` |
-| QoS | 1 |
+| QoS | 0 |
 | Retain | yes |
 | Content-Type | `application/json` |
-| User property: `Schema` | `ServiceProviderRegistrationRequestPayload` |
+| User property `schema` | `ServiceProviderRegistrationRequestPayload` |
 
 The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier).
 
@@ -133,7 +133,7 @@ After connecting operationally, publish a declaration describing the services an
 
 | Field | Value |
 |-------|-------|
-| Topic | `{installationTopic}/{serviceProviderIdentifier}/serviceProvider/declaration` |
+| Topic | `{installationTopic}/{serviceProviderIdentifier}/system/serviceProvider/declaration` |
 | Payload | JSON (see below) |
 | QoS | 0 |
 | Retain | yes |
@@ -190,8 +190,8 @@ All messages during the operational phase follow these conventions:
 | Convention | Detail |
 |------------|--------|
 | Protocol version | MQTT 5.0 required |
-| User property: `Schema` | Payload type name (e.g., `DiStatePayload`, `SetDoPayload`) |
-| User property: `PublishedAt` | ISO 8601 UTC timestamp |
+| User property `schema` | Payload type name (e.g., `DiStatePayload`, `SetDoPayload`) |
+| User property `published_at` | ISO 8601 UTC timestamp |
 | Content-Type | `application/x-flatbuffer`, `application/json`, or `application/octet-stream` |
 
 ## Service-Specific Messaging
@@ -328,7 +328,7 @@ sequenceDiagram
     Note over SP: Generate + persist secret
     SP->>B: Connect (unauthenticated)
     SP->>B: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
-    SP->>B: Publish registration (retained, QoS 1)<br/>payload: { serviceProviderIdentifier }
+    SP->>B: Publish registration (retained, QoS 0)<br/>payload: { serviceProviderIdentifier }
     M->>B: Subscribe to system/.../request/+
     B-->>M: Deliver retained registration
     Note over M: Auto-accept (VION-configured)<br/>or user accepts in dashboard
