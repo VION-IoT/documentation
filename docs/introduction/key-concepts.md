@@ -20,8 +20,8 @@ You don't need to think about concurrency. Write straightforward sequential code
 Dale uses C# attributes to describe what a logic block does rather than how the runtime should manage it:
 
 ```csharp
-[ServiceProperty("Temperature", "°C")]
-[ServiceMeasuringPoint("Temperature", "°C")]
+[ServiceProperty(Title = "Temperature", Unit = "°C")]
+[ServiceMeasuringPoint(Title = "Temperature", Unit = "°C")]
 [Importance(Importance.Primary)]
 public double Temperature { get; private set; }
 ```

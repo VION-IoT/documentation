@@ -152,10 +152,10 @@ dale add serviceproperty TargetTemp --type double --to TemperatureController
 Options:
 | Flag | Description |
 |------|-------------|
-| `--type` (required) | C# type (`double`, `string`, `bool`, etc.) |
+| `-t`, `--type` (required) | C# type (`double`, `string`, `bool`, etc.) |
 | `--to` | Target logic block (auto-detected if only one exists) |
 | `--setter <private\|public>` | Setter visibility (default: `private`) |
-| `--default-name` | Display name for the property |
+| `--default-name` | Display name for the property (emitted as `[ServiceProperty(Title = "…")]`) |
 | `--persistent` | Add `[Persistent]` attribute |
 
 ### Add a Measuring Point
@@ -168,12 +168,28 @@ dale add measuringpoint TotalEnergy --type double --to TemperatureController --p
 # ✔ Added [ServiceMeasuringPoint][Persistent] double TotalEnergy to TemperatureController
 ```
 
+Options:
+| Flag | Description |
+|------|-------------|
+| `-t`, `--type` (required) | C# type (`double`, `string`, `bool`, etc.) |
+| `--to` | Target logic block (auto-detected if only one exists) |
+| `--default-name` | Display name for the measuring point (emitted as `[ServiceMeasuringPoint(Title = "…")]`) |
+| `--persistent` | Add `[Persistent]` attribute (measuring points are not persistent by default) |
+
+Measuring points are always generated with `private set;` — there is no `--setter` flag.
+
 ### Add a Timer
 
 ```bash
 dale add timer CheckInterval --interval 5 --to TemperatureController
 # ✔ Added [Timer(5)] CheckInterval to TemperatureController
 ```
+
+Options:
+| Flag | Description |
+|------|-------------|
+| `-i`, `--interval` (required) | Timer interval in seconds (must be > 0) |
+| `--to` | Target logic block (auto-detected if only one exists) |
 
 ### `dale pack` — Package
 
@@ -221,14 +237,25 @@ dale logout                         # Clear stored credentials
 ```bash
 dale config show                            # Show current config
 dale config set-environment production      # Switch environment
-dale config set-integrator                  # Select active integrator
+dale config set-integrator                  # Select active integrator (interactive)
 ```
+
+`set-integrator` fetches the current user's integrator memberships from the cloud and prompts to pick one. There are no flags — run `dale login` first.
+
+`set-environment` accepts the following options:
+
+| Flag | Description |
+|------|-------------|
+| `<name>` (argument) | Environment name. `production` and `test` are built in. Anything else is treated as a custom environment. |
+| `--auth-url` | Custom auth base URL (required for custom environments). |
+| `--api-url` | Custom API base URL (required for custom environments). |
+| `-f`, `--force` | Skip the confirmation prompt that warns when switching environments clears the active integrator. |
 
 Custom environments:
 
 ```bash
 dale config set-environment custom \
-  --auth-url https://auth.example.com \
+  --auth-url https://auth.example.com/realms/vion \
   --api-url https://api.example.com
 ```
 

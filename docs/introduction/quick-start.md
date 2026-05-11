@@ -124,14 +124,14 @@ public class Thermostat : LogicBlockBase
 {
     private readonly ILogger _logger;
 
-    [ServiceProperty("Target Temperature", "°C")]
+    [ServiceProperty(Title = "Target Temperature", Unit = "°C")]
     public double TargetTemperature { get; set; } = 21.0;
 
-    [ServiceProperty("Heating Active")]
-    [ServiceMeasuringPoint("Heating Active")]
+    [ServiceProperty(Title = "Heating Active")]
+    [ServiceMeasuringPoint(Title = "Heating Active")]
     public bool HeatingActive { get; private set; }
 
-    [ServiceMeasuringPoint("Current Temperature", "°C")]
+    [ServiceMeasuringPoint(Title = "Current Temperature", Unit = "°C")]
     public double CurrentTemperature { get; private set; }
 
     public Thermostat(ILogger logger) : base(logger)

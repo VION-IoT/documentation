@@ -21,7 +21,7 @@ This means that by the time your `Ready()` method executes, any previously saved
 All writable `[ServiceProperty]` values are persisted by default. You do not need any extra annotation:
 
 ```csharp
-[ServiceProperty("Mode")]
+[ServiceProperty(Title = "Mode")]
 public OperatingMode Mode { get; set; } = OperatingMode.Auto;
 // ^^^ Automatically persisted because it has a public setter
 ```
@@ -33,7 +33,7 @@ If the property has a public or protected setter, Dale treats it as writable and
 If a writable property should **not** be saved across restarts, exclude it explicitly:
 
 ```csharp
-[ServiceProperty("Temporary Setting")]
+[ServiceProperty(Title = "Temporary Setting")]
 [Persistent(Exclude = true)]
 public string TempValue { get; set; } = "";
 // ^^^ NOT persisted -- resets to "" on every restart
@@ -47,29 +47,35 @@ Properties with a `private set` are **not** persisted by default because they ar
 
 ```csharp
 [Persistent]
-[ServiceProperty("Total Energy", "kWh")]
+[ServiceProperty(Title = "Total Energy", Unit = "kWh")]
 public double TotalEnergy { get; private set; }
 // ^^^ Explicitly persisted even though the setter is private
 ```
 
 ## What Gets Persisted
 
-The following types are supported by the persistence system:
+The persistence system stores values as JSON (camelCase, string-named enums) and restores them by coercing the stored payload back to the declared property type. Any service-property value type is persistable:
 
 | Type | Storage format |
 |---|---|
 | `bool` | Boolean |
-| `int`, `long` | Integer |
+| `byte`, `short`, `ushort`, `int`, `uint`, `long` | Integer |
 | `float`, `double` | Floating point |
 | `string` | String |
-| Enums | Stored as their underlying integer value |
+| `DateTime`, `TimeSpan` | ISO 8601 string |
+| Enums | String (enum member name) |
+| `T?` (nullable) | Same as `T`, or `null` |
+| `ImmutableArray<T>` | JSON array |
+| `readonly record struct` | JSON object keyed by field name |
 | Nested properties marked with `[Persistent]` | Recursive |
+
+The container shapes (`Nullable<T>`, `ImmutableArray<T>`, `readonly record struct`) compose with one another, matching the rules described in [Properties & Measuring Points -- Complex Value Types](/sdk/properties#complex-value-types).
 
 ## Limitations
 
 There are a few constraints to keep in mind:
 
-- **Complex objects** such as `List<T>`, `Dictionary<TKey, TValue>`, and custom classes are **not supported**. Only the primitive types and enums listed above can be persisted.
+- **Mutable collection types** such as `List<T>`, `Dictionary<TKey, TValue>`, and arbitrary custom classes are **not supported**. Use `ImmutableArray<T>` for sequences and `readonly record struct` for composite values.
 - **Persistence is per-node**. Saved state lives on the local node and is not synced to VION Cloud or across nodes.
 - **60-second save interval**. Because values are saved periodically, up to 60 seconds of recent changes may be lost if the node crashes (as opposed to shutting down gracefully).
 - **Graceful shutdown** writes all pending state immediately, so no data is lost during planned restarts.

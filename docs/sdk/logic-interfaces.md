@@ -218,7 +218,7 @@ public class ToggleSwitch : LogicBlockBase, IToggler
 {
     public ToggleSwitch(ILogger logger) : base(logger) { }
 
-    [ServiceProperty("Pressed")]
+    [ServiceProperty(Title = "Pressed")]
     public bool Pressed { get; private set; }
 
     protected override void Ready()
@@ -248,7 +248,7 @@ public class ToggleLight : LogicBlockBase, IToggleable
 {
     public ToggleLight(ILogger logger) : base(logger) { }
 
-    [ServiceProperty("Light On")]
+    [ServiceProperty(Title = "Light On")]
     public bool IsOn { get; private set; }
 
     protected override void Ready() { }

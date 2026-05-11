@@ -34,7 +34,7 @@ public class ToggleLightBlock : LogicBlockBase
     [ServiceProviderContract(defaultName: "LED")]
     public IDigitalOutput Led { get; set; } = null!;
 
-    [ServiceProperty("LED Enabled")]
+    [ServiceProperty(Title = "LED Enabled")]
     [Importance(Importance.Primary)]
     public bool LedEnabled { get; private set; }
 
@@ -94,26 +94,26 @@ public class Em122ElectricityMeter : LogicBlockBase
     [ServiceProviderContract("Modbus", "EM122 Modbus RTU")]
     public IModbusRtu Modbus { get; set; } = null!;
 
-    [ServiceProperty("Unit ID")]
+    [ServiceProperty(Title = "Unit ID")]
     [Category(PropertyCategory.Configuration)]
     public int UnitId { get; set; } = 1;
 
-    [ServiceProperty("Voltage L1", "V")]
-    [ServiceMeasuringPoint("Voltage L1", "V")]
+    [ServiceProperty(Title = "Voltage L1", Unit = "V")]
+    [ServiceMeasuringPoint(Title = "Voltage L1", Unit = "V")]
     public double VoltageL1 { get; private set; }
 
-    [ServiceProperty("Voltage L2", "V")]
-    [ServiceMeasuringPoint("Voltage L2", "V")]
+    [ServiceProperty(Title = "Voltage L2", Unit = "V")]
+    [ServiceMeasuringPoint(Title = "Voltage L2", Unit = "V")]
     public double VoltageL2 { get; private set; }
 
-    [ServiceProperty("Voltage L3", "V")]
-    [ServiceMeasuringPoint("Voltage L3", "V")]
+    [ServiceProperty(Title = "Voltage L3", Unit = "V")]
+    [ServiceMeasuringPoint(Title = "Voltage L3", Unit = "V")]
     public double VoltageL3 { get; private set; }
 
-    [ServiceProperty("Read Count")]
+    [ServiceProperty(Title = "Read Count")]
     public int ReadCount { get; private set; }
 
-    [ServiceProperty("Error Count")]
+    [ServiceProperty(Title = "Error Count")]
     public int ErrorCount { get; private set; }
 
     protected override void Ready()
@@ -186,12 +186,12 @@ public class EnergyMeterTcp : LogicBlockBase
         _modbus = modbus;
     }
 
-    [ServiceProperty("IP Address")]
+    [ServiceProperty(Title = "IP Address")]
     [Category(PropertyCategory.Configuration)]
     public string IpAddress { get; set; } = "192.168.1.100";
 
-    [ServiceProperty("Power", "kW")]
-    [ServiceMeasuringPoint("Power", "kW")]
+    [ServiceProperty(Title = "Power", Unit = "kW")]
+    [ServiceMeasuringPoint(Title = "Power", Unit = "kW")]
     public double Power { get; private set; }
 
     protected override void Ready()
@@ -246,8 +246,8 @@ public class WeatherStation : LogicBlockBase
         _http = http;
     }
 
-    [ServiceProperty("Temperature", "°C")]
-    [ServiceMeasuringPoint("Temperature", "°C")]
+    [ServiceProperty(Title = "Temperature", Unit = "°C")]
+    [ServiceMeasuringPoint(Title = "Temperature", Unit = "°C")]
     public double Temperature { get; private set; }
 
     [Timer(300)]
