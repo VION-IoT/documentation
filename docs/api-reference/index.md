@@ -1139,13 +1139,13 @@ Declare a service interface as a C# interface. Use the ServiceProperty and Servi
 
 ### ServiceMeasuringPointAttribute
 
-Define a measuring point on a Service interface or logic block property. The optional parameters are used as annotations in service description
+Define a measuring point on a service interface or logic block property. The optional properties become annotations in the introspection schema document.
 
 ---
 
 ### ServicePropertyAttribute
 
-Describe a service property on a service interface or logic block property The optional parameters are used as annotations in service description
+Describe a service property on a service interface or logic block property. The optional properties become annotations in the introspection schema document.
 
 ---
 
@@ -1218,6 +1218,12 @@ Severity level for status indicator enum values.
 ### StatusSeverityAttribute
 
 Declares the UI severity for an enum value used with `StatusIndicatorAttribute`. Use `EnumValueInfoAttribute` to provide a display name.
+
+---
+
+### StructFieldAttribute
+
+Per-field annotations for fields of a flat struct used as a service-element value. Applies to positional record-struct constructor parameters (preferred) or properties.
 
 ---
 
