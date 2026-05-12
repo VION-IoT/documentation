@@ -62,15 +62,7 @@ jobs:
           images: ${{ env.IMAGE }}
 
       - id: deploy-ref
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* && ! "$GITHUB_REF" == *-* ]]; then
-            echo "tag=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
-          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
-            echo "tag=main-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=" >> "$GITHUB_OUTPUT"
-          fi
+        uses: VION-IoT/shared-workflows/actions/compute-deploy-tag@v1
 
       - uses: docker/setup-buildx-action@v3
 
