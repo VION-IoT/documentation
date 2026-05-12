@@ -98,15 +98,10 @@ jobs:
       contents: read
     uses: VION-IoT/shared-workflows/.github/workflows/deploy-aks.yml@v1
     with:
-      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
-      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
-      cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+      environment: test
       deployment: documentation
       container: documentation
       image: vionimages.azurecr.io/documentation:${{ needs.build-docker.outputs.deploy-tag }}
-      environment: test
 
   deploy-prod:
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
@@ -116,12 +111,7 @@ jobs:
       contents: read
     uses: VION-IoT/shared-workflows/.github/workflows/deploy-aks.yml@v1
     with:
-      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
-      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
-      cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+      environment: production
       deployment: documentation
       container: documentation
       image: vionimages.azurecr.io/documentation:${{ needs.build-docker.outputs.deploy-tag }}
-      environment: production
