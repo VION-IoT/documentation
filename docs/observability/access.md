@@ -13,7 +13,7 @@ Access Grafana at:
 
 | Environment | URL |
 |-------------|-----|
-| Test | `https://grafana.test.ecocoa.ch` |
+| Test | `https://grafana.test.vion.swiss` |
 | Production | `https://grafana.vion.swiss` |
 
 ## Authentication
