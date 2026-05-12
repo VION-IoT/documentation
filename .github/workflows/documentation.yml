@@ -32,9 +32,14 @@ jobs:
     permissions:
       contents: read
     outputs:
-      # Full image reference (registry/repo:tag) the deploys should ship.
-      # Empty for non-deploying events (PRs, workflow_dispatch, pre-release tags).
-      deploy-image: ${{ steps.deploy-ref.outputs.image }}
+      # Tag-only output (e.g. "main-abc1234" or "1.2.3"). Empty for
+      # non-deploying events. Tag-only on purpose: passing the full
+      # image ref vionimages.azurecr.io/documentation:<tag> as an output
+      # collides with GitHub's "skip output containing secret" mechanism
+      # because VIONIMAGES_ACR_USERNAME is "vionimages" — the registry's
+      # short name appears in the URL. Caller assembles the full ref
+      # inline in its `with:` block.
+      deploy-tag: ${{ steps.deploy-ref.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -60,12 +65,11 @@ jobs:
         shell: bash
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* && ! "$GITHUB_REF" == *-* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            echo "image=${IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
           elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
-            echo "image=${IMAGE}:main-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+            echo "tag=main-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
           else
-            echo "image=" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: docker/setup-buildx-action@v3
@@ -101,7 +105,7 @@ jobs:
       cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
       deployment: documentation
       container: documentation
-      image: ${{ needs.build-docker.outputs.deploy-image }}
+      image: vionimages.azurecr.io/documentation:${{ needs.build-docker.outputs.deploy-tag }}
       environment: test
 
   deploy-prod:
@@ -119,5 +123,5 @@ jobs:
       cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
       deployment: documentation
       container: documentation
-      image: ${{ needs.build-docker.outputs.deploy-image }}
+      image: vionimages.azurecr.io/documentation:${{ needs.build-docker.outputs.deploy-tag }}
       environment: production
