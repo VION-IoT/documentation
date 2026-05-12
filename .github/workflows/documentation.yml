@@ -1,20 +1,18 @@
 # Build and publish the VION documentation image, then deploy to AKS.
 #
-# Tag scheme (docker/metadata-action@v5 does the bookkeeping):
-#   - Push to main            -> :main + :main-{sha7}
-#   - Push tag vX.Y.Z         -> :X.Y.Z + :latest
-#   - Push tag vX.Y.Z-preview -> :X.Y.Z-preview (no :latest)
-#   - Pull request            -> build only, no push
+# Tag scheme (computed by VION-IoT/shared-workflows/actions/docker-tags@v1):
+#   - push to main            -> :main + :main-{sha7}
+#   - push tag vX.Y.Z         -> :X.Y.Z (+ :latest on stable)
+#   - push tag vX.Y.Z-preview -> :X.Y.Z-preview (no :latest)
 #   - workflow_dispatch       -> :manual-{sha7}
+#   - pull_request            -> build only, no push
 #
 # Deploy routing:
-#   - Push to main (the :main-{sha7} build) -> test cluster
-#   - Stable tag vX.Y.Z (the :X.Y.Z build)  -> production cluster (reviewer-gated env)
-#   - Pre-release tags, PR builds, and workflow_dispatch do not auto-deploy.
+#   - push to main            -> test cluster (deploys :main-{sha7})
+#   - stable tag vX.Y.Z       -> production cluster (deploys :X.Y.Z)
+#   - everything else         -> no auto-deploy
 #
-# Cut a release the same way the dale runtime does (see dale/docs/releasing.md):
-#   gh release create v0.1.0 --target main --generate-notes \
-#     --title "v0.1.0" --notes "Short release summary."
+# Cut a release: gh release create vX.Y.Z --target main --generate-notes
 name: Documentation
 
 on:
@@ -33,6 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      # Full image reference (registry/repo:tag) the deploys should ship.
+      # Empty for non-deploying events (PRs, workflow_dispatch, pre-release tags).
+      deploy-image: ${{ steps.deploy-ref.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,28 +48,25 @@ jobs:
           version: '^10.0.0'
 
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm run audit
-
       - run: pnpm run build
 
-      - name: Compute image tags
+      - uses: VION-IoT/shared-workflows/actions/docker-tags@v1
         id: meta
-        uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE }}
-          # - main + main-{sha}        on main branch pushes
-          # - vX.Y.Z (stripped 'v')    on semver tag pushes
-          # - latest                   only on non-pre-release semver tags
-          # - manual-{sha}             on workflow_dispatch
-          tags: |
-            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-            type=raw,value=main-{{sha}},enable=${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-            type=semver,pattern={{version}}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
-            type=raw,value=manual-{{sha}},enable=${{ github.event_name == 'workflow_dispatch' }}
-          flavor: |
-            latest=false
+
+      - id: deploy-ref
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* && ! "$GITHUB_REF" == *-* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "image=${IMAGE}:${VERSION}" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]]; then
+            echo "image=${IMAGE}:main-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: docker/setup-buildx-action@v3
 
@@ -88,84 +87,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   deploy-test:
-    # Fires on every push to main. Pre-release tags and PRs do not deploy.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, vpn]
     needs: build-docker
-    environment: test
-    permissions:
-      id-token: write   # required for OIDC token exchange with Azure AD
-      contents: read
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Set AKS context
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
-          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
-
-      - name: Update deployment image (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          TAG="main-${GITHUB_SHA:0:7}"
-          kubectl set image deployment/documentation "documentation=${IMAGE}:${TAG}" -n documentation
-          kubectl rollout status deployment/documentation -n documentation --timeout=5m
-          echo "Deployed ${IMAGE}:${TAG}"
-
-      - name: Update deployment image (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $TAG = "main-$($env:GITHUB_SHA.Substring(0,7))"
-          kubectl set image deployment/documentation "documentation=${env:IMAGE}:$TAG" -n documentation
-          kubectl rollout status deployment/documentation -n documentation --timeout=5m
-          Write-Host "Deployed ${env:IMAGE}:$TAG"
+    uses: VION-IoT/shared-workflows/.github/workflows/deploy-aks.yml@v1
+    with:
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+      cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+      deployment: documentation
+      container: documentation
+      image: ${{ needs.build-docker.outputs.deploy-image }}
+      environment: test
 
   deploy-prod:
-    # Fires on stable semver tags only (vX.Y.Z, not vX.Y.Z-preview.N).
-    # The `production` environment should require a reviewer approval.
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
-    runs-on: [self-hosted, vpn]
     needs: build-docker
-    environment: production
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Set AKS context
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
-          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
-
-      - name: Update deployment image (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          kubectl set image deployment/documentation "documentation=${IMAGE}:${VERSION}" -n documentation
-          kubectl rollout status deployment/documentation -n documentation --timeout=5m
-          echo "Deployed ${IMAGE}:${VERSION}"
-
-      - name: Update deployment image (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $version = $env:GITHUB_REF -replace '^refs/tags/v',''
-          kubectl set image deployment/documentation "documentation=${env:IMAGE}:$version" -n documentation
-          kubectl rollout status deployment/documentation -n documentation --timeout=5m
-          Write-Host "Deployed ${env:IMAGE}:$version"
+    uses: VION-IoT/shared-workflows/.github/workflows/deploy-aks.yml@v1
+    with:
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+      cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+      deployment: documentation
+      container: documentation
+      image: ${{ needs.build-docker.outputs.deploy-image }}
+      environment: production
