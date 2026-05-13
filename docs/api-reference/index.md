@@ -969,21 +969,9 @@ Specifies the cardinality of a dependency or contract binding.
 
 ---
 
-### CategoryAttribute
-
-Classifies a service property or measuring point into a semantic category.
-
----
-
 ### CommandAttribute
 
 Marks a message as a command. The message is sent to a specific linked interface instance. The receiving side will not get the identifier of the sender.
-
----
-
-### ContractAttribute
-
-Marks a class as a contract container grouping related messages and interfaces.
 
 ---
 
@@ -1011,15 +999,29 @@ Specifies whether a dependency must already exist or can be created on demand.
 
 ---
 
-### DisplayAttribute
+### EnumLabelAttribute
 
-Provides display metadata for a service property or measuring point. DisplayName takes precedence over DefaultName from ServicePropertyAttribute.
+Display label for an enum member. Surfaces in the dashboard via `presentation.enumLabels`.
 
 ---
 
-### EnumValueInfoAttribute
+### Formats
 
-Provides display metadata for an individual enum value. Can be extended with additional properties as needed (e.g. descriptions, tags).
+Well-known values for `Format`. Two reserved sentinels (`Relative`, `Humanize`) plus shortcuts for the common moment.js / day.js format tokens. Open set — the renderer accepts any moment-compatible token string directly. These constants exist for discoverability and IntelliSense, not as a closed vocabulary.
+
+**Fields/Values:**
+
+- `Relative` — Auto-updating relative date display. The renderer calls `moment(value).fromNow()` and refreshes on a timer. Locale-aware: "3 Minuten" in German, "il y a 3 minutes" in French.
+- `Humanize` — Humanized duration display. The renderer calls `moment.duration(value).humanize()` to produce rough natural-language output like "a few seconds" / "3 hours" / "2 days". Locale-aware.
+- `LocaleFull` — Locale-aware full date + time with weekday, e.g. "Monday, September 4, 1986 8:30 PM".
+- `LocaleLong` — Locale-aware date + time, e.g. "September 4, 1986 8:30 PM".
+- `LocaleShort` — Locale-aware short date + time, e.g. "Sep 4, 1986 8:30 PM".
+- `LocaleDate` — Locale-aware date only, e.g. "09/04/1986".
+- `LocaleTime` — Locale-aware time only with seconds, e.g. "8:30:25 PM".
+- `Iso` — "2026-05-13 14:32:05" — explicit ISO-ish date-time without millis.
+- `IsoMillis` — "2026-05-13 14:32:05.123" — explicit ISO-ish with millisecond precision.
+- `Clock` — "01:23:45" — clock-style duration without millis.
+- `ClockMillis` — "01:23:45.123" — clock-style duration with millisecond precision.
 
 ---
 
@@ -1046,29 +1048,15 @@ Declares the UI importance level of a service property or measuring point.
 
 ---
 
-### ImportanceAttribute
+### LogicBlockAttribute
 
-Declares the UI importance of a service property or measuring point. Primary/Secondary values are shown on dashboard tiles.
+Block-level display metadata for a LogicBlock class.
 
----
+**Properties:**
 
-### InterfaceAttribute
-
-Declare interface configuration when implementing a function interface. Allows to set some annotations with the optional parameters.
-
-**Methods:**
-
-- *Constructor* — Constructor for class-level usage with specific interface targeting.
-
----
-
-### InterfaceDependencyAttribute
-
-Declare a dependency on an interface, meaning that the logic block requires an implementation of the specified interface. Can be applied to properties (legacy) or classes (new approach).
-
-**Methods:**
-
-- *Constructor* — Constructor for class-level usage with specific interface targeting.
+- `Name` — Human-readable name. Falls back to the C# class name.
+- `Icon` — Icon identifier. Use Remixicon names without the "ri-" prefix (e.g. "charging-pile-line", "battery-2-line"). See https://remixicon.com. Dashboard renders a default fallback icon for unknown / missing values.
+- `Groups` — Order in which the dashboard renders group sections in the full block view. Values are the same string keys as `Group` — well-known constants from `PropertyGroup` and/or integrator-supplied custom keys. Groups not listed appear last in the platform default order. When unset, defaults to [Alarm, Status, Metric, Configuration, Diagnostics, Identity, None].
 
 ---
 
@@ -1086,13 +1074,9 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 
 ---
 
-### LogicBlockInfoAttribute
+### LogicBlockContractAttribute
 
-Provides block-level display metadata for a logic block class.
-
-**Properties:**
-
-- `Icon` — Icon identifier used by the frontend to render a block icon. Use Remixicon names without the "ri-" prefix (e.g. "charging-pile-line", "battery-2-line"). See https://remixicon.com for available icons. The frontend will render a default fallback icon for unknown or missing values.
+Marks a class as a contract container grouping messages (`CommandAttribute`, `StateUpdateAttribute`, `RequestResponseAttribute`) exchanged between two LogicBlock interfaces.
 
 ---
 
@@ -1106,16 +1090,19 @@ Controls persistence behavior for properties. - On writable service properties: 
 
 ---
 
-### PropertyCategory
+### PropertyGroup
 
-Semantic category for a service property or measuring point.
+Well-known property-group keys for `Group`. The platform ships these; integrators may define their own constants in their own static classes (e.g. `Acme.Vion.Conventions.PropertyGroup.Powertrain = "acme.powertrain"`) and the dashboard renders unknown keys as a generic section with the raw key as the header.
 
 **Fields/Values:**
 
-- `Status` — Reflects current operational state.
-- `Configuration` — A user-configurable setting.
-- `Action` — A triggerable action.
-- `Metric` — A measured or calculated value.
+- `None` — Ungrouped — renders without a section header (fallback bucket).
+- `Identity` — Static identification information — manufacturer, model number, serial number, firmware version. Typically rendered in a header / about area.
+- `Status` — Current live operational state — read-only values that reflect what the system is doing right now.
+- `Configuration` — Anything the operator can write — long-term settings, runtime controls, action triggers (`UiHint = UiHints.Trigger`). Render type within the section is driven by `UiHint`, not by group.
+- `Metric` — Counters, totals, accumulated values. Often rendered prominently for energy / billing-style data.
+- `Diagnostics` — Troubleshooting and health information — last error, response time, connectivity. Usually a collapsed / secondary section.
+- `Alarm` — Active alarm state, fault codes. Rendered with elevated visual treatment (banner / alert list) when active.
 
 ---
 
@@ -1125,9 +1112,9 @@ Marks a message as a request message. The message is sent to a specific linked i
 
 ---
 
-### ServiceAttribute
+### RequiresLogicBlockInterfaceAttribute
 
-Declare a service on a logic block or on a property of a logic block. On a logic block, the Service attribute can be omitted (then class name + all implemented service interfaces are used) On a property the service attribute can be omitted if the property type implements service interfaces. Identifier can be empty (then class or property name is used)
+Declares that the LogicBlock requires an implementation of the specified interface to be linked at runtime. The LB doesn't implement the interface itself; instead, an instance must be wired in for the LB to function.
 
 ---
 
@@ -1141,17 +1128,27 @@ Declare a service interface as a C# interface. Use the ServiceProperty and Servi
 
 Define a measuring point on a service interface or logic block property. The optional properties become annotations in the introspection schema document.
 
+**Properties:**
+
+- `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.annotations.description`. Independent of `Title`.
+- `Kind` — Semantic classification of the measuring point's time-series shape — drives default chart rendering, aggregation, and storage strategy. Routes into `schema.annotations.x-kind`. Defaults to `Measurement` (instantaneous samples).
+
 ---
 
 ### ServicePropertyAttribute
 
 Describe a service property on a service interface or logic block property. The optional properties become annotations in the introspection schema document.
 
+**Properties:**
+
+- `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.annotations.description`. Independent of `Title`.
+- `WriteOnly` — Marks a writable property as a secret — clients see a redaction sentinel (`"***"`) on the publish-state channel instead of the actual value. Restricted to `string` / `string?` properties in v1. Routes into `schema.annotations.writeOnly`.
+
 ---
 
-### ServiceProviderContractAttribute
+### ServiceProviderContractBindingAttribute
 
-Declares a service provider contract on a logic block property with optional metadata. If no identifier is provided, the property name will be used. The contract type is automatically determined from the property type.
+Binds a LogicBlock property to a hardware service-provider function (HAL: IAnalogOutput, IDigitalOutput, IModbusClient, …). The property type is the hardware contract; the attribute carries the identity / sharing / cardinality metadata for the binding.
 
 ---
 
@@ -1178,6 +1175,12 @@ Specifies the direction of a service relation (inwards or outwards).
 
 ---
 
+### SeverityAttribute
+
+Per-enum-member severity used with `[Presentation(StatusIndicator = true)]`. The dashboard reads severity for each enum member to color the status pill. Companion to `EnumLabelAttribute` which supplies the display label.
+
+---
+
 ### SharingType
 
 Specifies whether a dependency or contract binding is shared or exclusive.
@@ -1195,12 +1198,6 @@ Marks a message as a state update. The message is sent to all linked interfaces.
 
 ---
 
-### StatusIndicatorAttribute
-
-Marks a property as an operational status indicator. The property should be an enum type where each value has a `StatusSeverityAttribute`.
-
----
-
 ### StatusSeverity
 
 Severity level for status indicator enum values.
@@ -1215,12 +1212,6 @@ Severity level for status indicator enum values.
 
 ---
 
-### StatusSeverityAttribute
-
-Declares the UI severity for an enum value used with `StatusIndicatorAttribute`. Use `EnumValueInfoAttribute` to provide a display name.
-
----
-
 ### StructFieldAttribute
 
 Per-field annotations for fields of a flat struct used as a service-element value. Applies to positional record-struct constructor parameters (preferred) or properties.
@@ -1230,6 +1221,21 @@ Per-field annotations for fields of a flat struct used as a service-element valu
 ### TimerAttribute
 
 Declare a timer method that should be called at regular intervals. If the identifier is not set, the method name is used.
+
+---
+
+### UiHints
+
+Well-known UiHint values for `UiHint`. Open set — the dashboard ignores unknown values and falls back to the default renderer for the property's schema kind.
+
+**Fields/Values:**
+
+- `StatusIndicator` — Auto-emitted when `StatusIndicator` is true. Do not set directly; use the boolean field. Tile renders as a status pill / badge.
+- `Trigger` — Renders a writable bool property as a button instead of a toggle. Click commits `true`; the property's getter should always return `false`. Bridge for operator-triggered actions until a first-class action primitive ships. Forbidden with `[Persistent]`.
+- `Sparkline` — Inline sparkline rendering for numeric arrays or numeric measuring points.
+- `Multiline` — Renders a writable string property as a multi-line textarea.
+- `Json` — Renders a writable string property as a code editor with JSON syntax highlighting. Implies multi-line.
+- `Slider` — Renders a writable numeric property with bounded Minimum AND Maximum as a slider control.
 
 ---
 
