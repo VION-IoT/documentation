@@ -1056,7 +1056,7 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 
 **Methods:**
 
-- `Configure(ILogicBlockConfigurationBuilder)` — Can be overridden to provide custom configurationBuilder logic, e.g. creating interfaces, contracts, services and timers programmatically with full control
+- `Configure(ILogicBlockConfigurationBuilder)` — Binds this logic block's interfaces, contracts, services and timers from their declarative attributes. Internal infrastructure invoked by the runtime; not an extension point.
 - `Ready` — Called when the logic block has been configured and is ready to run. this is the place to attach event handlers to contract or interface elements
 - `Starting` — Called when the logic block is started (after it has been initialized/ready)
 - `Stopping` — Called when the logic block is stopped (before it gets removed)
