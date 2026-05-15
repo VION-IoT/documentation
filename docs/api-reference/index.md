@@ -1080,6 +1080,16 @@ Marks a class as a contract container grouping messages (`CommandAttribute`, `St
 
 ---
 
+### LogicBlockInterfaceBindingAttribute
+
+Metadata for an implementation of a logic-block interface. Applies to a class (when the LB implements the interface directly) OR a property (when the property's value implements the interface, e.g. an inner ChargingPoint instance). Both cases are "metadata for an existing interface relationship". AllowMultiple = true to handle properties whose type implements multiple interfaces (each `LogicBlockInterfaceBindingAttribute` targets one interface via `ForInterface`).
+
+**Properties:**
+
+- `ForInterface` — The interface this binding metadata applies to.
+
+---
+
 ### PersistentAttribute
 
 Controls persistence behavior for properties. - On writable service properties: Use [Persistent(Exclude = true)] to opt-out - On other properties: Use [Persistent] to opt-in
@@ -1087,6 +1097,23 @@ Controls persistence behavior for properties. - On writable service properties: 
 **Properties:**
 
 - `Exclude` — Set to true to exclude a writable service property from persistence
+
+---
+
+### PresentationAttribute
+
+UI-side presentation hints for a service property, measuring point, or method. Routes into the per-property `presentation` sibling document. Open for preset inheritance — integrators subclass to ship their own domain vocabulary.
+
+**Properties:**
+
+- `DisplayName` — Override the displayed label. Falls back to schema.title (primitives) or the C# property name. For enum-/struct-typed properties (where schema.title is identity-bearing), this is the only way to set a UI label distinct from the CLR type name.
+- `Group` — Group key. The dashboard renders all properties with the same Group key in one section. Well-known keys are constants in `PropertyGroup`; integrators may supply their own string keys (e.g. "acme.powertrain") which the dashboard renders as a generic section with the raw key as the header. Section order is set by [LogicBlock(Groups = ...)]; default order is the platform-defined order. Within-group order is by `Order`.
+- `Order` — Sort hint within a group. Ascending; properties without an explicit value sort between explicit values, stable-by-default (base-class first, declaration order within each class). Used for finer ordering than the group level. `MinValue` means "unset" (attribute parameter types can't be nullable; `PropertyMetadataBuilder` converts the sentinel to null in the codec-side `Presentation.Order`).
+- `Importance` — Tile composition rank. Primary/Secondary surface on the auto-generated LogicBlock tile; Normal renders in detail views only; Hidden suppresses the property entirely.
+- `StatusIndicator` — Marks this property as an operational status indicator for the LogicBlock. A block can carry multiple — distinct status dimensions (e.g. operating mode + connection state + activity status). Must be enum-typed (or nullable enum). Per-member severity comes from [Severity]; per-member display labels from [EnumLabel].
+- `Decimals` — Display precision for numeric values. `MinValue` (default) means "unset" and uses sensible per-type defaults (attribute parameter types can't be nullable; `PropertyMetadataBuilder` converts the sentinel to null in the codec-side `Presentation.Decimals`). Ignored for non-numeric schemas (analyzer warning DALE021).
+- `UiHint` — Routing key for the dashboard's generic renderer and for custom widget templates. Open string; unrecognized values are silently ignored. Well-known platform values are constants in `UiHints`. The "statusIndicator" value is auto-emitted from `StatusIndicator` — don't set directly.
+- `Format` — Format-token string for date / duration / numeric renderers. Type-orthogonal — a separate concern from `UiHint` (which selects the widget) and `Decimals` (which controls numeric precision). The renderer (dashboard / DevHost) consumes the value as a moment.js / day.js compatible format-token string when the property's CLR type is `DateTime` or `TimeSpan`. Two reserved sentinel values short-circuit the token interpreter: `"relative"` → auto-updating "3 minutes ago"-style date display `"humanize"` → humanized duration like "3 hours" Common tokens (see `Formats` for shortcuts): `"LLLL"` → "Wednesday, May 13, 2026 2:32 PM" (locale full + weekday) `"LLL"` → "May 13, 2026 2:32 PM" (locale long) `"YYYY-MM-DD HH:mm:ss"` → "2026-05-13 14:32:05" `"YYYY-MM-DD HH:mm:ss.SSS"` → with millisecond precision `"HH:mm:ss"` → "01:23:45" (typical for durations) Token reference: .
 
 ---
 
