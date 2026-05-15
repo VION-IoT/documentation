@@ -957,18 +957,6 @@ Exception thrown when a request is dropped from the queue. This occurs when the 
 
 ## Vion.Dale.Sdk.Core
 
-### CardinalityType
-
-Specifies the cardinality of a dependency or contract binding.
-
-**Fields/Values:**
-
-- `Mandatory` — The binding is required and must be fulfilled.
-- `Optional` — The binding is optional and may be left unbound.
-- `Multiple` — Multiple bindings are allowed.
-
----
-
 ### CommandAttribute
 
 Marks a message as a command. The message is sent to a specific linked interface instance. The receiving side will not get the identifier of the sender.
@@ -985,17 +973,6 @@ Defines the directional relationship between the two sides of a contract.
 - `Bidirectional` — Bidirectional arrows between "Between" and "And". No specific parent-child relationship.
 - `BetweenToAnd` — Arrow from "Between" to "And". In a tree, "Between" would be the parent and "And" the child.
 - `AndToBetween` — Arrow from "And" to "Between". In a tree, "And" would be the parent and "Between" the child.
-
----
-
-### DependencyCreationType
-
-Specifies whether a dependency must already exist or can be created on demand.
-
-**Fields/Values:**
-
-- `MustExist` — The dependency must already exist.
-- `AllowCreateNew` — The dependency is created on demand if it does not exist.
 
 ---
 
@@ -1048,6 +1025,19 @@ Declares the UI importance level of a service property or measuring point.
 
 ---
 
+### LinkMultiplicity
+
+Multiplicity of a contract link. Consumer-side on a binding (`LogicBlockInterfaceBindingAttribute` / `ServiceProviderContractBindingAttribute`) and provider-side on `[ServiceProviderContractType]`. Declared by the SDK only; the SDK neither validates nor enforces it — enforcement is downstream (cloud-api at logic-configuration save/activate).
+
+**Fields/Values:**
+
+- `ExactlyOne` — Required and single: exactly one counterpart must be linked (1..1).
+- `ZeroOrOne` — Optional and single: at most one counterpart may be linked (0..1). Provider-side, this expresses single-consumer exclusivity (e.g. a digital output that accepts at most one writer).
+- `OneOrMore` — Required and many: at least one counterpart must be linked (1..n).
+- `ZeroOrMore` — Optional and many: any number of counterparts may be linked (0..n). The unconstrained default — preserves the pre-multiplicity no-enforcement behaviour, so it is omitted from the introspection annotations rather than emitted.
+
+---
+
 ### LogicBlockAttribute
 
 Block-level display metadata for a LogicBlock class.
@@ -1087,6 +1077,7 @@ Metadata for an implementation of a logic-block interface. Applies to a class (w
 **Properties:**
 
 - `ForInterface` — The interface this binding metadata applies to.
+- `Multiplicity` — Consumer-side link multiplicity for this interface binding. Default `ZeroOrMore` (unconstrained — preserves the pre-multiplicity behaviour). Declared only; enforced downstream.
 
 ---
 
@@ -1151,12 +1142,6 @@ Marks a message as a request message. The message is sent to a specific linked i
 
 ---
 
-### RequiresLogicBlockInterfaceAttribute
-
-Declares that the LogicBlock requires an implementation of the specified interface to be linked at runtime. The LB doesn't implement the interface itself; instead, an instance must be wired in for the LB to function.
-
----
-
 ### ServiceInterfaceAttribute
 
 Declare a service interface as a C# interface. Use the ServiceProperty and ServiceMeasuringPoint attributes on properties.
@@ -1187,7 +1172,11 @@ Describe a service property on a service interface or logic block property. The 
 
 ### ServiceProviderContractBindingAttribute
 
-Binds a LogicBlock property to a hardware service-provider function (HAL: IAnalogOutput, IDigitalOutput, IModbusClient, …). The property type is the hardware contract; the attribute carries the identity / sharing / cardinality metadata for the binding.
+Binds a LogicBlock property to a hardware service-provider function (HAL: IAnalogOutput, IDigitalOutput, IModbusClient, …). The property type is the hardware contract; the attribute carries the identity / link-multiplicity metadata for the binding. Structurally the matched twin of `LogicBlockInterfaceBindingAttribute` — distinct only because the two are consumed by different binders (in-process actor link vs MQTT service-provider adapter).
+
+**Properties:**
+
+- `Multiplicity` — Consumer-side link multiplicity for this contract binding. Default `ZeroOrMore` (unconstrained — preserves the pre-multiplicity behaviour). Declared only; enforced downstream.
 
 ---
 
@@ -1217,17 +1206,6 @@ Specifies the direction of a service relation (inwards or outwards).
 ### SeverityAttribute
 
 Per-enum-member severity used with `[Presentation(StatusIndicator = true)]`. The dashboard reads severity for each enum member to color the status pill. Companion to `EnumLabelAttribute` which supplies the display label.
-
----
-
-### SharingType
-
-Specifies whether a dependency or contract binding is shared or exclusive.
-
-**Fields/Values:**
-
-- `Shared` — The binding can be shared with other consumers.
-- `Exclusive` — The binding is exclusive to a single consumer.
 
 ---
 
