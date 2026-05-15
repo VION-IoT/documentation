@@ -211,9 +211,9 @@ public class MyBlock : LogicBlockBase
 The fastest way to create a new logic block is with the `dale` CLI:
 
 ```bash
-dale add logicblock MyBlock
+dale add logicblock MyBlock --name "My Block" --icon dashboard-line
 ```
 
-This scaffolds a new logic block class with the correct base class, attribute, and lifecycle methods already in place.
+This scaffolds a new logic block class with the correct base class, lifecycle methods, and a `[LogicBlock]` attribute already in place. `--name` and `--icon` are optional — they populate `[LogicBlock(Name = "…", Icon = "…")]` (the icon is a Remixicon name without the `ri-` prefix); omit them and the class name is used.
 
 For CLI installation and full command reference, see [Installation](/sdk/installation).

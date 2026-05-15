@@ -138,9 +138,15 @@ Add elements to a logic block without writing boilerplate. Run these commands fr
 ### Add a Logic Block
 
 ```bash
-dale add logicblock TemperatureController
+dale add logicblock TemperatureController --name "Temperature Controller" --icon temp-cold-line
 # ✔ Added logicblock TemperatureController to MyLibrary
 ```
+
+Options:
+| Flag | Description |
+|------|-------------|
+| `--name` | Human-readable name, emitted as `[LogicBlock(Name = "…")]` (defaults to the class name) |
+| `--icon` | Icon identifier, emitted as `[LogicBlock(Icon = "…")]` (a Remixicon name without the `ri-` prefix) |
 
 ### Add a Property
 
@@ -157,6 +163,12 @@ Options:
 | `--setter <private\|public>` | Setter visibility (default: `private`) |
 | `--default-name` | Display name for the property (emitted as `[ServiceProperty(Title = "…")]`) |
 | `--persistent` | Add `[Persistent]` attribute |
+| `--group` | `[Presentation]` group — a `PropertyGroup` name or raw key |
+| `--importance` | `[Presentation]` importance — `Primary`, `Secondary`, `Normal`, or `Hidden` |
+| `--decimals` | `[Presentation]` numeric display precision |
+| `--format` | `[Presentation]` date/duration/numeric format token |
+
+Supplying any of `--group`, `--importance`, `--decimals`, or `--format` emits a `[Presentation(...)]` attribute alongside `[ServiceProperty]`.
 
 ### Add a Measuring Point
 
@@ -175,8 +187,13 @@ Options:
 | `--to` | Target logic block (auto-detected if only one exists) |
 | `--default-name` | Display name for the measuring point (emitted as `[ServiceMeasuringPoint(Title = "…")]`) |
 | `--persistent` | Add `[Persistent]` attribute (measuring points are not persistent by default) |
+| `--kind` | Time-series shape — `Measurement`, `Total`, or `TotalIncreasing`, emitted as `[ServiceMeasuringPoint(Kind = MeasuringPointKind.…)]` |
+| `--group` | `[Presentation]` group — a `PropertyGroup` name or raw key |
+| `--importance` | `[Presentation]` importance — `Primary`, `Secondary`, `Normal`, or `Hidden` |
+| `--decimals` | `[Presentation]` numeric display precision |
+| `--format` | `[Presentation]` date/duration/numeric format token |
 
-Measuring points are always generated with `private set;` — there is no `--setter` flag.
+Measuring points are always generated with `private set;` — there is no `--setter` flag. `--kind` adds a `using Vion.Dale.Sdk.Core;` for `MeasuringPointKind` automatically.
 
 ### Add a Timer
 
