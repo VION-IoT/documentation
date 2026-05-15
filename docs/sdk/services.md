@@ -288,32 +288,43 @@ All methods accept optional `headers` and `timeout` parameters. Register the pac
 services.AddDaleHttpSdk();
 ```
 
-## Cardinality and Sharing
+## Link Multiplicity
 
-`[ServiceProviderContractBinding]` supports cardinality and sharing options to control how many providers can be connected and whether they can be shared across blocks.
+A service provider contract link has two multiplicity sides: how many providers a consuming block expects, and how many consumers a provided contract role accepts. Both use the same `LinkMultiplicity` vocabulary:
 
-### Cardinality
+| Value | Meaning |
+|-------|---------|
+| `ExactlyOne` | Required and single (1..1). |
+| `ZeroOrOne` | Optional and single (0..1). |
+| `OneOrMore` | Required and many (1..n). |
+| `ZeroOrMore` | Optional and many, including none (0..n). The default. |
 
-| Value | Description |
-|-------|-------------|
-| `CardinalityType.Mandatory` | Exactly one provider must be connected (default). |
-| `CardinalityType.Optional` | Zero or one provider may be connected. |
-| `CardinalityType.Multiple` | Multiple providers can be connected. |
+### Consumer Side
 
-### Sharing
-
-| Value | Description |
-|-------|-------------|
-| `SharingType.Shared` | Provider can be used by multiple blocks (default). |
-| `SharingType.Exclusive` | Provider is reserved for this block only. |
+Set `Multiplicity` on `[ServiceProviderContractBinding]` to declare how many providers the block expects wired to that property. The default is `ZeroOrMore` (unconstrained); set a stricter value only where the logic depends on it:
 
 ```csharp
 [ServiceProviderContractBinding(
     DefaultName = "Sensor",
-    Cardinality = CardinalityType.Optional,
-    Sharing = SharingType.Exclusive)]
+    Multiplicity = LinkMultiplicity.ZeroOrOne)]
 public IAnalogInput OptionalSensor { get; set; } = null!;
 ```
+
+### Provider Side
+
+A contract role can also cap how many consumers it accepts. `[ServiceProviderContractType]` carries a `Consumers` property (same `LinkMultiplicity`, default `ZeroOrMore`). This is where single-writer exclusivity lives: the built-in `IDigitalOutput` and `IAnalogOutput` declare `Consumers = LinkMultiplicity.ZeroOrOne`, so at most one block can drive a given output, while inputs stay `ZeroOrMore`. You only set this when authoring your own service provider contract type:
+
+```csharp
+[ServiceProviderContractType("DimmableLight", Consumers = LinkMultiplicity.ZeroOrOne)]
+public interface IDimmableLight
+{
+    void SetBrightness(double level);
+}
+```
+
+### Declared, Not Enforced
+
+Both sides are declarative metadata — a forward contract for the platform. The Dale SDK and runtime do **not** validate or enforce multiplicity. VION Cloud validates it when a logic configuration is saved or activated (for example, rejecting two blocks wired to a single-writer output), and the dashboard logic editor uses it to guide wiring. See [Link Multiplicity](/sdk/logic-interfaces#declared-not-enforced) for the full model shared with logic-block interfaces.
 
 ## Custom Service Providers
 

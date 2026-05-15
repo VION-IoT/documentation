@@ -33,17 +33,16 @@ graph LR
     end
 ```
 
-## Three Concepts, One Family
+## Two Concepts, One Family
 
-The interface family separates three distinct concerns:
+The interface family separates two distinct concerns:
 
 | Attribute | Applies To | Purpose |
 |-----------|------------|---------|
 | `[LogicBlockContract]` | A static class | Defines the message catalog that flows between two interfaces. |
-| `[LogicBlockInterfaceBinding]` | A class or property | Metadata for an implementation — identifier, display name, tags. |
-| `[RequiresLogicBlockInterface]` | A class | Declares that the block needs another block's implementation linked at runtime. |
+| `[LogicBlockInterfaceBinding]` | A class or property | Metadata for an implementation — identifier, display name, tags, and link multiplicity. |
 
-The first defines the message vocabulary. The second annotates an existing implementation. The third declares a runtime dependency that must be wired in.
+The first defines the message vocabulary. The second annotates an existing implementation and declares how many counterparts that role expects to be wired to.
 
 ## Contracts
 
@@ -250,47 +249,43 @@ public class ChargingStation : LogicBlockBase
 | `Identifier` | Stable identifier used by the dashboard to match wiring across upgrades. |
 | `DefaultName` | Display name in the dashboard. Defaults to the C# member name. |
 | `Tags` | Optional string tags for grouping or filtering. |
+| `Multiplicity` | A `LinkMultiplicity` value — how many counterparts this role expects to be wired to. Defaults to `ZeroOrMore`. See [Link Multiplicity](#link-multiplicity). |
 
 `AllowMultiple = true` — a class or property type that implements several interfaces gets one `[LogicBlockInterfaceBinding]` per interface.
 
-## Interface Dependencies
+## Link Multiplicity
 
-`[RequiresLogicBlockInterface]` declares that a block requires an implementation of an interface to be linked at runtime. The block does not implement the interface itself; instead, the dashboard prompts the operator to wire a peer block's implementation in.
+A logic block expresses a relationship by implementing the C# interface for a role and the contract that targets it — there is no separate "dependency" attribute. `[LogicBlockInterfaceBinding]` then optionally annotates that role with how many counterparts it expects to be wired to: its **link multiplicity**.
+
+Set `Multiplicity` to a `LinkMultiplicity` value on the binding. Multiplicity is per-implementer — the same contract role can be optional on one block and required on another:
 
 ```csharp
-[LogicBlock(Name = "Telemetry Recorder")]
-[RequiresLogicBlockInterface(typeof(IProducer),
-                             DefaultName = "Source",
-                             Cardinality = CardinalityType.Optional,
-                             Sharing = SharingType.Exclusive,
-                             CreationType = DependencyCreationType.AllowCreateNew,
-                             Tags = new[] { "telemetry" })]
-public class TelemetryRecorder : LogicBlockBase
+[LogicBlock(Name = "Toggle Light", Icon = "lightbulb-line")]
+[LogicBlockInterfaceBinding(typeof(IToggleable),
+                            DefaultName = "Switch Input",
+                            Multiplicity = LinkMultiplicity.ExactlyOne)]
+public class ToggleLight : LogicBlockBase, IToggleable
 {
-    // The runtime resolves linked peers from the wiring; access them via the framework's
-    // GetLinked*() extension methods generated for the contracts that target IProducer.
+    // Implements the IToggleable role and expects exactly one IToggler wired to it.
 }
 ```
 
-| Field | Description |
-|-------|-------------|
-| `ForInterface` (constructor) | The interface the block requires. Required, passed via `typeof(IFoo)`. |
-| `DefaultName` | Display name in the dashboard's wiring UI. |
-| `Cardinality` | `Mandatory`, `Optional`, or `Multiple`. |
-| `Sharing` | `Shared` (default — peers may serve other blocks) or `Exclusive`. |
-| `CreationType` | `MustExist` (default — peer must be wired before this block starts) or `AllowCreateNew` (the dashboard may scaffold a peer). |
-| `Tags` | Optional string tags. |
+`LinkMultiplicity` has four values:
 
-`AllowMultiple = true` — declare one `[RequiresLogicBlockInterface]` per dependency.
+| Value | Meaning |
+|-------|---------|
+| `ExactlyOne` | Required and single — exactly one counterpart must be wired (1..1). |
+| `ZeroOrOne` | Optional and single — at most one counterpart (0..1). |
+| `OneOrMore` | Required and many — at least one counterpart (1..n). |
+| `ZeroOrMore` | Optional and many — any number, including none (0..n). The default. |
 
-## Binding vs Dependency
+`ZeroOrMore` is the default, so a binding without an explicit `Multiplicity` places no constraint — the same behaviour as before multiplicity existed. Set a stricter value only where the logic genuinely depends on it; a forgotten annotation never wedges a configuration.
 
-The split between binding and dependency mirrors "I implement this" versus "I need someone to implement this for me":
+The same `LinkMultiplicity` vocabulary applies to hardware and external-service bindings — see [Hardware & External Services](/sdk/services#link-multiplicity).
 
-- **`[LogicBlockInterfaceBinding]`** annotates an implementation — the binding describes "I am this".
-- **`[RequiresLogicBlockInterface]`** declares a dependency — "I need to talk to a peer that is this".
+### Declared, Not Enforced
 
-A block can carry several of each. An energy manager that observes batteries and supplies grid balance commands would declare two `[RequiresLogicBlockInterface]` entries (for the buffer interface and the supplier interface) and one `[LogicBlockInterfaceBinding]` (for the manager interface it itself exposes).
+Multiplicity is declarative metadata. The Dale SDK and runtime do **not** validate or enforce it — a logic block always receives whatever wiring it is given, and the runtime resolves linked peers exactly as before. The constraint is a forward contract for the rest of the platform: VION Cloud validates it when a logic configuration is saved or activated, and the dashboard logic editor uses it to guide wiring (required-slot prompts, single- versus multi-select). Declaring `ExactlyOne` documents intent and lets the platform catch a missing or ambiguous link before deployment; it does not cause the SDK to throw at runtime.
 
 ## Complete Example
 

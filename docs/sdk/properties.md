@@ -122,6 +122,8 @@ public double StoredEnergy { get; private set; }
 public double EnergyImported { get; private set; }
 ```
 
+`MeasuringPointKind` lives in `Vion.Dale.Sdk.Core`, the same namespace as `[ServiceMeasuringPoint]` and the other authoring attributes — a single `using Vion.Dale.Sdk.Core;` covers it, with no separate wire- or schema-namespace import.
+
 ## Combining Service Properties and Measuring Points
 
 A property can be both. This is common for live values shown on a dashboard tile **and** recorded over time.
@@ -561,14 +563,32 @@ dale add serviceproperty TargetTemp --type double --to ThermostatBlock
 | `--setter` | `public` or `private` (default: `private`) |
 | `--default-name` | Sets the `Title` field on the emitted attribute |
 | `--persistent` | Adds `[Persistent]` |
+| `--group` | `[Presentation]` group — a `PropertyGroup` name (`Status`, `Configuration`, `Metric`, `Diagnostics`, `Identity`, `Alarm`) or an arbitrary raw key |
+| `--importance` | `[Presentation]` importance — `Primary`, `Secondary`, `Normal`, or `Hidden` |
+| `--decimals` | `[Presentation]` numeric display precision |
+| `--format` | `[Presentation]` date/duration/numeric format token |
+
+The four presentation flags emit a `[Presentation(...)]` attribute alongside `[ServiceProperty]`; supplying none omits the attribute entirely. A known `--group` name renders as the `PropertyGroup` constant, any other value as a raw string key:
+
+```bash
+dale add serviceproperty TargetTemp --type double --to ThermostatBlock --group Configuration --importance Secondary --decimals 1
+```
+
+This generates:
+
+```csharp
+[ServiceProperty(Title = "TargetTemp")]
+[Presentation(Group = PropertyGroup.Configuration, Importance = Importance.Secondary, Decimals = 1)]
+public double TargetTemp { get; private set; }
+```
 
 Add a measuring point:
 
 ```bash
-dale add measuringpoint CurrentTemp --type double --to ThermostatBlock
+dale add measuringpoint CurrentTemp --type double --to ThermostatBlock --kind Total
 ```
 
-Same flags except `--setter` (measuring points are always private set).
+Measuring points take the same flags except `--setter` (always `private set`), plus `--kind` (`Measurement`, `Total`, or `TotalIncreasing`), emitted inside the attribute as `[ServiceMeasuringPoint(Kind = MeasuringPointKind.…)]`. The command adds the `using Vion.Dale.Sdk.Core;` for `MeasuringPointKind` automatically.
 
 For a value that is both a property and a measuring point, run the CLI for one and add the other attribute by hand — the CLI refuses to add to an existing property.
 
