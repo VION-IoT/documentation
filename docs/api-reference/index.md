@@ -1090,6 +1090,18 @@ Metadata for an implementation of a logic-block interface. Applies to a class (w
 
 ---
 
+### MeasuringPointKind
+
+Time-series shape of a measuring point. Mirrors the wire enum in Vion.Contracts.TypeRef; mapped at the introspection boundary so integrators only reference Vion.Dale.Sdk.Core.
+
+**Fields/Values:**
+
+- `Measurement` — Instantaneous value at a moment in time. Each sample is independent of previous samples — reflects current state, not running aggregate. Examples: active power (kW), voltage, temperature, state of charge (%). Chart default: line. Aggregation: avg per bucket.
+- `Total` — Cumulative running aggregate that can both increase and decrease (without a hardware reset). Each sample is the absolute cumulative value at that moment. Examples: battery stored energy (kWh, absolute), water tank volume, daily energy import (resets at midnight). Chart default: cumulative line. Aggregation: last per bucket.
+- `TotalIncreasing` — Monotonically-increasing counter. Only goes up; a drop is anomalous (overflow or hardware/firmware reset) and the platform applies correction (clamp to zero). Examples: lifetime energy meter, odometer, total operating hours, cycle count. Chart default: derivative (rate per bucket). Aggregation: last - first.
+
+---
+
 ### PersistentAttribute
 
 Controls persistence behavior for properties. - On writable service properties: Use [Persistent(Exclude = true)] to opt-out - On other properties: Use [Persistent] to opt-in
