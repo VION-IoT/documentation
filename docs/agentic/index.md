@@ -12,7 +12,8 @@ The Dale SDK is built with patterns that make it an excellent fit for AI-assiste
 Most IoT development involves boilerplate: declaring properties, wiring events, setting up timers, handling state. Dale's **attribute-based design** turns these into declarative patterns that AI agents can generate reliably.
 
 A logic block is essentially a class with:
-- Attributes that describe its structure (`[ServiceProperty]`, `[Timer]`, `[ServiceProviderContract]`)
+- Schema-side attributes that describe each value (`[ServiceProperty]`, `[ServiceMeasuringPoint]`, `[Timer]`, `[ServiceProviderContractBinding]`)
+- Presentation hints separated into a sibling attribute (`[Presentation]`) — group, importance, format, custom widgets
 - A single entry point (`Ready()`) for event wiring
 - Strongly-typed interfaces for inter-block communication
 

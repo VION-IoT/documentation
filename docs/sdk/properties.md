@@ -1,164 +1,181 @@
 ---
 title: Properties & Measuring Points
-description: Defining observable state and telemetry on logic blocks using service properties and measuring points, including categories, display hints, status indicators, and persistence behavior.
+description: Define observable state, telemetry, and presentation hints on logic blocks using service properties, measuring points, and the [Presentation] attribute.
 ---
 
 # Properties & Measuring Points
 
-Properties and measuring points are how a logic block exposes its state to the outside world. **Properties** represent observable and optionally configurable values. **Measuring points** represent read-only telemetry data that is recorded over time. A single value can be both.
+Properties and measuring points are how a logic block exposes its state. **Service properties** represent observable and optionally configurable values. **Measuring points** represent telemetry recorded over time. A single value can be both. A separate `[Presentation]` attribute controls how the value is grouped and rendered on the dashboard.
+
+::: info
+logic blocks do **not** read each other's service properties directly. Inter-block communication is done exclusively through [logic interfaces](/sdk/logic-interfaces) (commands, request/response, state updates).
+:::
 
 ## The `[ServiceProperty]` Attribute
 
-The `[ServiceProperty]` attribute makes a C# property visible to the VION platform. It appears on dashboards and can be read and written (if writable) by the runtime — meaning through the API and the Dashboard UI.
-
-::: info
-Logic blocks do **not** read each other's service properties directly. Inter-block communication is done exclusively through [logic interfaces](/sdk/logic-interfaces) (commands, request/response, state updates).
-:::
-
-### Annotation Parameters
-
-The attribute exposes four optional init-only properties. Set them with named-argument syntax:
+`[ServiceProperty]` makes a C# property visible to the VION platform. It defines the schema-side facts about the value — its display name, unit, allowed range, and whether it is a secret.
 
 ```csharp
-[ServiceProperty(Title = "...", Unit = "...", Minimum = ..., Maximum = ...)]
+[ServiceProperty(Title = "...", Description = "...", Unit = "...",
+                 Minimum = ..., Maximum = ..., WriteOnly = ...)]
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `Title` | Display name shown in the Dashboard. Defaults to the C# property name. |
-| `Unit` | Unit of measurement (e.g., `"°C"`, `"%"`, `"kWh"`, `"lux"`). |
-| `Minimum` | Minimum allowed value. The Dashboard enforces this in input controls. Defaults to `double.NegativeInfinity`. |
-| `Maximum` | Maximum allowed value. The Dashboard enforces this in input controls. Defaults to `double.PositiveInfinity`. |
-
-::: info
-The legacy names `DefaultName`, `MinValue`, and `MaxValue` are marked `[Obsolete]` and will be removed in the next major version. Migrate existing logic blocks to `Title`, `Minimum`, and `Maximum`.
-:::
+| `Title` | Display name. Defaults to the C# property name. |
+| `Description` | Long-form text for tooltips, search, and accessibility. |
+| `Unit` | Unit of measurement (e.g., `"°C"`, `"%"`, `"kWh"`). |
+| `Minimum` | Minimum allowed value. Defaults to `double.NegativeInfinity`. |
+| `Maximum` | Maximum allowed value. Defaults to `double.PositiveInfinity`. |
+| `WriteOnly` | Marks a `string` / `string?` property as a secret. See [Secrets](#secrets). |
 
 ### Basic Example
 
+A user-configurable setpoint:
+
 ```csharp
 [ServiceProperty(Title = "Target Temperature", Unit = "°C", Minimum = 10, Maximum = 35)]
-[Category(PropertyCategory.Configuration)]
+[Presentation(Group = PropertyGroup.Configuration)]
 public double TargetTemp { get; set; } = 21.0;
 ```
 
-This creates a property named "Target Temperature" that users can adjust between 10 and 35 degrees. Because the setter is public, the Dashboard renders an input control. The default value is 21.0.
-
 ### Read-Only Properties
 
-Use a `private set` to make a property read-only from the Dashboard. The logic block can still update the value internally.
+Use `private set` to make a property read-only from the dashboard. The logic block can still update the value internally.
 
 ```csharp
 [ServiceProperty(Title = "Power Consumption", Unit = "W")]
+[Presentation(Group = PropertyGroup.Status)]
 public double PowerConsumption { get; private set; }
 ```
 
 ### Computed Properties
 
-Properties with only a getter (no setter at all) work as well. These are useful for values derived from other state:
+Properties with only a getter work as well. The value is evaluated each time the runtime reads it.
 
 ```csharp
 [ServiceProperty(Title = "Total Power", Unit = "W")]
+[Presentation(Group = PropertyGroup.Status)]
 public double TotalPower => HeaterPower + FanPower;
-
-[ServiceProperty(Title = "Is Running")]
-public bool IsRunning => Status == DeviceStatus.Online;
 ```
-
-Computed properties are always read-only. Their value is evaluated whenever the runtime reads the property, so they automatically reflect the current state.
 
 ### Supported Types
 
-Service properties support the following C# types:
+| Type | Notes |
+|------|-------|
+| `bool` | |
+| `byte`, `short`, `ushort`, `int`, `uint`, `long` | |
+| `float`, `double` | |
+| `string` | |
+| `DateTime`, `TimeSpan` | Formatting via `Presentation.Format`. |
+| `enum` | See [Enum Properties](#enum-properties). |
+| `T?` (nullable) | |
+| `ImmutableArray<T>` | See [Complex Value Types](#complex-value-types). |
+| `readonly record struct` | See [Complex Value Types](#complex-value-types). |
 
-| Type | Dashboard Control |
-|------|------------------|
-| `bool` | Toggle switch |
-| `byte`, `short`, `ushort`, `int`, `uint`, `long` | Integer input |
-| `float`, `double` | Number input (with decimal) |
-| `string` | Text input |
-| `DateTime`, `TimeSpan` | Date/time picker |
-| `enum` | Dropdown (see [Enum Properties](#enum-properties)) |
-| `T?` (nullable) | Same control as `T`, with an explicit empty state |
-| `ImmutableArray<T>` | List rendering (see [Complex Value Types](#complex-value-types)) |
-| `readonly record struct` | Composite editor with one control per field |
-
-Container types (`Nullable<T>`, `ImmutableArray<T>`, and `readonly record struct`) compose with one another — for example, `ImmutableArray<Coordinates?>` is a valid shape. See [Complex Value Types](#complex-value-types) for the full matrix and constraints.
+Container types compose — `ImmutableArray<Coordinates?>` is a valid shape.
 
 ## The `[ServiceMeasuringPoint]` Attribute
 
-The `[ServiceMeasuringPoint]` attribute marks a property as a telemetry value. Measuring points are recorded in the time-series database and can be visualized as charts, exported, and used in analytics.
-
-### Annotation Parameters
-
-`[ServiceMeasuringPoint]` exposes the same init-only properties as `[ServiceProperty]`:
+`[ServiceMeasuringPoint]` marks a property as telemetry. Measuring points are recorded in the time-series database for charts, exports, and analytics.
 
 ```csharp
-[ServiceMeasuringPoint(Title = "...", Unit = "...", Minimum = ..., Maximum = ...)]
+[ServiceMeasuringPoint(Title = "...", Description = "...", Unit = "...",
+                       Minimum = ..., Maximum = ..., Kind = ...)]
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `Title` | Display name shown in charts and exports. Defaults to the C# property name. |
-| `Unit` | Unit of measurement for axis labels and tooltips. |
-| `Minimum` | Lower bound used by charting and anomaly detection. Defaults to `double.NegativeInfinity`. |
-| `Maximum` | Upper bound used by charting and anomaly detection. Defaults to `double.PositiveInfinity`. |
+| `Title` | Display name. Defaults to the C# property name. |
+| `Description` | Long-form text for tooltips and metadata. |
+| `Unit` | Unit of measurement. |
+| `Minimum` | Lower bound. Defaults to `double.NegativeInfinity`. |
+| `Maximum` | Upper bound. Defaults to `double.PositiveInfinity`. |
+| `Kind` | Time-series shape: `Measurement` (default), `Total`, or `TotalIncreasing`. See [Measuring Point Kinds](#measuring-point-kinds). |
 
-The legacy `DefaultName` property is `[Obsolete]` — use `Title` in new code.
-
-### Example
+### Basic Example
 
 ```csharp
 [ServiceMeasuringPoint(Title = "Room Humidity", Unit = "%", Minimum = 0, Maximum = 100)]
 public double Humidity { get; private set; }
 ```
 
-### Property and Measuring Point Combined
+### Measuring Point Kinds
 
-A property can be **both** a `[ServiceProperty]` and a `[ServiceMeasuringPoint]`. This is common for values that you want to display on the dashboard **and** record over time.
+The `Kind` field tells the chart engine what shape the time-series has. Picking the wrong one shows misleading averages or counter resets as drops.
+
+| Kind | Use For |
+|------|---------|
+| `Measurement` (default) | Instantaneous samples — temperature, voltage, RPM, state-of-charge percent. Can rise or fall freely. |
+| `Total` | Cumulative values that can both increase and decrease — stored energy, tank level, buffer fill. |
+| `TotalIncreasing` | Monotonically increasing counters with possible resets — imported energy, total runtime, packet count. |
+
+```csharp
+[ServiceMeasuringPoint(Title = "Power", Unit = "kW", Kind = MeasuringPointKind.Measurement)]
+public double Power { get; private set; }
+
+[ServiceMeasuringPoint(Title = "Stored Energy", Unit = "kWh", Kind = MeasuringPointKind.Total)]
+public double StoredEnergy { get; private set; }
+
+[Persistent]
+[ServiceMeasuringPoint(Title = "Energy Imported", Unit = "kWh", Kind = MeasuringPointKind.TotalIncreasing)]
+public double EnergyImported { get; private set; }
+```
+
+## Combining Service Properties and Measuring Points
+
+A property can be both. This is common for live values shown on a dashboard tile **and** recorded over time.
 
 ```csharp
 [ServiceProperty(Title = "Current Temperature", Unit = "°C")]
-[ServiceMeasuringPoint(Title = "Current Temperature", Unit = "°C")]
-[Importance(Importance.Primary)]
+[ServiceMeasuringPoint]
+[Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
 public double CurrentTemp { get; private set; }
 ```
 
-This value appears on the dashboard tile (because of `Importance.Primary`), and its history is recorded in the time-series database for charting.
+### Cross-Fill
+
+When both attributes are present, the runtime cross-fills any shared field set on only one side. `Title`, `Description`, `Unit`, `Minimum`, and `Maximum` all cross-fill, so declare them once.
+
+```csharp
+[ServiceProperty(Title = "Power", Unit = "kW")]
+[ServiceMeasuringPoint]
+public double Power { get; private set; }
+
+[ServiceProperty(Title = "Charge", Unit = "%")]
+[ServiceMeasuringPoint(Kind = MeasuringPointKind.Total)]
+public double StateOfCharge { get; private set; }
+```
+
+`WriteOnly` is property-only. `Kind` is measuring-point-only.
 
 ### When to Use Which
 
 | Scenario | Use |
 |----------|-----|
-| User-configurable setting (e.g., target temperature) | `[ServiceProperty]` with public setter |
-| Read-only runtime state shown on dashboard (e.g., connection status) | `[ServiceProperty]` with private setter |
-| Telemetry recorded over time (e.g., sensor reading) | `[ServiceMeasuringPoint]` |
-| Dashboard value **and** time-series recording | Both attributes on the same property |
+| User-configurable setting | `[ServiceProperty]` with public setter |
+| Read-only runtime state | `[ServiceProperty]` with private setter |
+| Telemetry recorded over time | `[ServiceMeasuringPoint]` |
+| Dashboard value **and** time-series recording | Both attributes |
+| Cumulative counter charted as a delta | `[ServiceMeasuringPoint(Kind = MeasuringPointKind.TotalIncreasing)]` |
+| Secret string the operator sets but never reads back | `[ServiceProperty(WriteOnly = true)]` |
 
 ## Complex Value Types
 
-Beyond scalar primitives, the Dale SDK supports three composable container shapes for `[ServiceProperty]` and `[ServiceMeasuringPoint]` values: nullables, immutable arrays, and `readonly record struct`. These can be combined — for example, `ImmutableArray<Coordinates?>` is a valid measuring-point type — and they participate in the same Dashboard, persistence, and time-series pipeline as scalars.
+The Dale SDK supports three composable container shapes: nullables, immutable arrays, and `readonly record struct`. These can be combined — `ImmutableArray<Coordinates?>` is a valid measuring-point type.
 
 ### Nullable Values
 
-Append `?` to any supported primitive, enum, or struct type to mark the value as optional. A `null` value means "unknown" or "not set" and is distinct from a zero or default value.
+Append `?` to any supported primitive, enum, or struct type. `null` means "unknown" and is distinct from a zero or default value.
 
 ```csharp
 [ServiceProperty(Title = "Optional Setpoint", Unit = "kW")]
 public double? OptionalTarget { get; set; }
-
-[ServiceProperty(Title = "Sample Count")]
-public int? OptionalCount { get; set; }
-
-[ServiceMeasuringPoint(Title = "Last Error")]
-public string? LastError { get; private set; }
 ```
-
-Nullable measuring points are useful when a sensor occasionally fails to produce a reading — the gap is recorded as `null` instead of being interpolated.
 
 ### Arrays (`ImmutableArray<T>`)
 
-Use `ImmutableArray<T>` to expose a sequence of values. Immutability is required so that snapshots can be safely shared across the runtime boundary without copying or locking.
+Use `ImmutableArray<T>` to expose a sequence of values. Immutability is required so snapshots can be safely shared across the runtime boundary.
 
 ```csharp
 using System.Collections.Immutable;
@@ -166,21 +183,9 @@ using System.Collections.Immutable;
 [ServiceMeasuringPoint(Title = "Histogram Buckets", Unit = "A")]
 public ImmutableArray<double> HistogramBuckets { get; private set; }
     = ImmutableArray<double>.Empty;
-
-[ServiceProperty(Title = "Schedule Hours")]
-public ImmutableArray<int> ScheduleHours { get; set; }
-    = ImmutableArray<int>.Empty;
 ```
 
-The element type `T` may itself be a nullable primitive, an enum, a string, or a `readonly record struct`. Initialize the property with `ImmutableArray<T>.Empty` to avoid the default `default(ImmutableArray<T>)` which is not iterable.
-
-```csharp
-[ServiceProperty(Title = "Samples With Gaps", Unit = "kW")]
-public ImmutableArray<double?> SamplesWithGaps { get; set; }
-    = ImmutableArray<double?>.Empty;
-```
-
-To replace the contents, assign a new immutable array — never mutate the existing one:
+Initialize the property with `ImmutableArray<T>.Empty` — the default `default(ImmutableArray<T>)` is not iterable. Assign a new array to replace contents:
 
 ```csharp
 ScheduleHours = ImmutableArray.Create(6, 12, 18);
@@ -188,7 +193,7 @@ ScheduleHours = ImmutableArray.Create(6, 12, 18);
 
 ### Custom Structs
 
-Bundle related scalars into a `readonly record struct`. Each field can carry its own unit and range via the `[StructField]` attribute, which the Dashboard uses to render a composite editor or detail view.
+Bundle related scalars into a `readonly record struct`. Each field can carry its own unit and range via `[StructField]`.
 
 ```csharp
 public readonly record struct Coordinates(
@@ -196,346 +201,337 @@ public readonly record struct Coordinates(
     double Lat,
     [StructField(Unit = "deg", Minimum = -180, Maximum = 180)]
     double Lon);
-
-public readonly record struct ScheduledSetpoint(
-    DateTime At,
-    [StructField(Unit = "kW")] double PowerSetpoint,
-    [StructField(Unit = "V")] double VoltageSetpoint);
 ```
 
-Use the struct as a property type directly, as a nullable, or as the element type of an array:
+`[StructField]` accepts `Title`, `Description`, `Unit`, `Minimum`, and `Maximum`.
+
+Structs used as service-element values must be **flat**:
+
+- Declare as `readonly record struct`. Mutable or non-record structs are rejected.
+- Fields must be primitives, enums, `string`, `DateTime`, `TimeSpan`, or nullable of those.
+- No nested structs and no arrays inside a struct. Use `ImmutableArray<MyStruct>` at the property level.
+
+## The `[Presentation]` Attribute
+
+`[Presentation]` carries the UI-side hints that the schema-side attributes do not. `[ServiceProperty]` says what the value **is**; `[Presentation]` says how it is **shown**.
 
 ```csharp
-[ServiceMeasuringPoint(Title = "Position")]
-public Coordinates CurrentLocation { get; private set; }
-
-[ServiceProperty(Title = "Preferred Location")]
-public Coordinates? PreferredLocation { get; set; }
-
-[ServiceProperty(Title = "Setpoint Plan")]
-public ImmutableArray<ScheduledSetpoint> Schedule { get; set; }
-    = ImmutableArray<ScheduledSetpoint>.Empty;
+[Presentation(DisplayName = "...", Group = ..., Order = ..., Importance = ...,
+              StatusIndicator = ..., Decimals = ..., UiHint = ..., Format = ...)]
 ```
 
-`[StructField]` accepts the same metadata as `[ServiceProperty]` plus an optional `Description`:
+| Field | Type | Purpose |
+|-------|------|---------|
+| `DisplayName` | `string?` | Override the label. Falls back to `Title` or the C# property name. Useful for enum-/struct-typed properties where the schema title names the type itself. |
+| `Group` | `string?` | Section the property is rendered in. Use a `PropertyGroup` constant or your own. See [Groups](#groups). |
+| `Order` | `int` | Sort hint within a group. Lower values render first; negatives are allowed. Unset falls back to base-to-derived hierarchy order. |
+| `Importance` | `Importance` | Tile-vs-detail visibility: `Primary`, `Secondary`, `Normal` (default), `Hidden`. |
+| `StatusIndicator` | `bool` | Marks an enum-typed property as an operational status. |
+| `Decimals` | `int` | Display precision for numeric values. Unset uses sensible per-type defaults. |
+| `UiHint` | `string?` | Routing key for non-default renderers. Use a `UiHints` constant or your own. |
+| `Format` | `string?` | Format-token string for date/duration rendering. Use a `Formats` constant or a moment.js / day.js token. |
 
-| Parameter | Description |
-|-----------|-------------|
-| `Title` | Field display name. Defaults to the parameter or property name. |
-| `Description` | Longer help text shown in detail views. |
-| `Unit` | Unit of measurement for this field. |
-| `Minimum`, `Maximum` | Field-level bounds. |
+The attribute is **not sealed** — see [Preset Attributes](#preset-attributes).
 
-### Struct Constraints
+### Groups
 
-To keep the introspection schema serializable, structs used as service-element values must be **flat**:
+The dashboard renders all properties with the same `Group` key in one section. The platform ships well-known constants in `PropertyGroup`; integrators may use their own string keys.
 
-- Declare the type as `readonly record struct`. Mutable or non-record structs are rejected.
-- Fields must be primitives (including `byte`, `ushort`, `uint`), enums, `string`, `DateTime`, `TimeSpan`, or nullable of those.
-- No nested structs and no arrays inside a struct. Use `ImmutableArray<MyStruct>` at the property level instead of `MyStruct` containing an array.
-- Prefer positional record-struct parameters — they are the canonical place to apply `[StructField]` annotations.
-
-The Dale analyzer surfaces violations as `DALE016` at build time.
-
-## Categories
-
-The `[Category]` attribute organizes properties by their purpose. The Dashboard uses this to group and render properties appropriately.
+| Constant | Use For |
+|----------|---------|
+| `PropertyGroup.Identity` | Manufacturer, model, serial number, firmware version. |
+| `PropertyGroup.Status` | Live read-only operational state. |
+| `PropertyGroup.Configuration` | Anything the operator can write — settings, runtime controls, triggers. |
+| `PropertyGroup.Metric` | Counters, totals, accumulated values. |
+| `PropertyGroup.Diagnostics` | Troubleshooting and health — last error, response time, connectivity. |
+| `PropertyGroup.Alarm` | Active alarm state, fault codes. |
+| `PropertyGroup.None` | Ungrouped (fallback bucket). |
 
 ```csharp
-[Category(PropertyCategory.Configuration)]
+[ServiceProperty(Title = "Target Temperature", Unit = "°C")]
+[Presentation(Group = PropertyGroup.Configuration)]
+public double TargetTemp { get; set; } = 21.0;
 ```
 
-### PropertyCategory Enum
+Use one of the `PropertyGroup` constants. Custom string keys are accepted, but unknown keys carry no UI guarantees — they're rendered verbatim today, and that may change. Block-level section ordering is set on `[LogicBlock(Groups = [...])]` — see [Section Ordering](/sdk/logic-blocks#section-ordering).
 
-| Value | Description | Dashboard Behavior |
-|-------|-------------|--------------------|
-| `Status` | Read-only runtime value (default) | Displayed as a label |
-| `Configuration` | User-editable parameter | Displayed with an input control |
-| `Action` | Trigger or command | Displayed as a button |
-| `Metric` | Measurement or KPI | Displayed with emphasis |
+### UI Hints
 
-### Example
+`UiHint` routes a property to a non-default renderer. The platform ships well-known constants in `UiHints`; integrators may supply their own keys.
+
+| Constant | Purpose |
+|----------|---------|
+| `UiHints.StatusIndicator` | Auto-emitted when `StatusIndicator = true`. Do not set directly. |
+| `UiHints.Trigger` | Writable `bool` rendered as a button. See [Action Triggers](#action-triggers). |
+| `UiHints.Sparkline` | Inline sparkline for numeric arrays. |
+| `UiHints.Multiline` | Writable `string` as a multi-line textarea. |
+| `UiHints.Json` | Writable `string` as a JSON code editor. |
+| `UiHints.Slider` | Bounded numeric as a slider control. Requires both `Minimum` and `Maximum`. |
 
 ```csharp
-[LogicBlock("Thermostat")]
-public class ThermostatBlock : LogicBlockBase
+[ServiceProperty(Title = "Operator Notes")]
+[Presentation(UiHint = UiHints.Multiline)]
+public string Notes { get; set; } = "";
+```
+
+Unrecognized hints fall back to the default renderer.
+
+### Format
+
+`Format` controls how date and duration values are rendered. The dashboard interprets the value as a moment.js / day.js compatible format token. Two reserved sentinels short-circuit the token interpreter:
+
+| Constant | Token | Renders As |
+|----------|-------|------------|
+| `Formats.Relative` | `"relative"` | Auto-updating "3 minutes ago" (locale-aware). Requires `DateTime`. |
+| `Formats.Humanize` | `"humanize"` | Humanized duration: "3 hours". Requires `TimeSpan`. |
+| `Formats.LocaleFull` | `"LLLL"` | "Wednesday, May 13, 2026 2:32 PM". |
+| `Formats.LocaleLong` | `"LLL"` | "May 13, 2026 2:32 PM". |
+| `Formats.Iso` | `"YYYY-MM-DD HH:mm:ss"` | Explicit ISO-ish date-time. |
+| `Formats.IsoMillis` | `"YYYY-MM-DD HH:mm:ss.SSS"` | With millisecond precision. |
+| `Formats.Clock` | `"HH:mm:ss"` | Clock-style duration. |
+| `Formats.ClockMillis` | `"HH:mm:ss.SSS"` | Clock-style duration with milliseconds. |
+
+`Formats` carries additional locale-aware shortcuts (`LocaleShort`, `LocaleDate`, `LocaleTime`). Any moment-compatible token string works directly.
+
+```csharp
+[ServiceMeasuringPoint(Title = "Last Sample")]
+[Presentation(Group = PropertyGroup.Diagnostics, Format = Formats.Relative)]
+public DateTime LastSampleAt { get; private set; } = DateTime.UtcNow;
+
+[ServiceMeasuringPoint(Title = "Uptime")]
+[Presentation(Group = PropertyGroup.Diagnostics, Format = Formats.Humanize)]
+public TimeSpan Uptime { get; private set; }
+```
+
+`Format` is orthogonal to `UiHint` and `Decimals` — the three control different aspects of rendering.
+
+## Property Ordering
+
+Within a group, properties render in this order:
+
+1. Properties with an explicit `[Presentation(Order = N)]` value sort ascending. Negative values are allowed.
+2. Properties without an explicit `Order` follow **base-to-derived hierarchy order**: interface defaults first, base classes next, the most-derived class last. Within each level, source declaration order is preserved.
+
+```csharp
+public interface IMeter
 {
-    [ServiceProperty(Title = "Target Temperature", Unit = "°C", Minimum = 10, Maximum = 35)]
-    [Category(PropertyCategory.Configuration)]
-    public double TargetTemp { get; set; } = 21.0;
+    // Renders first (inherited, no Order).
+    [ServiceProperty(Title = "Manufacturer")]
+    [Presentation(Group = PropertyGroup.Identity)]
+    string Manufacturer { get; }
+}
 
-    [ServiceProperty(Title = "Current Temperature", Unit = "°C")]
-    [ServiceMeasuringPoint(Title = "Current Temperature", Unit = "°C")]
-    [Category(PropertyCategory.Status)]
-    public double CurrentTemp { get; private set; }
+public class ElectricityMeter : LogicBlockBase, IMeter
+{
+    public string Manufacturer { get; private set; } = "ACME";
 
-    [ServiceProperty(Title = "Energy Today", Unit = "kWh")]
-    [Category(PropertyCategory.Metric)]
-    public double EnergyToday { get; private set; }
+    // Renders BEFORE Manufacturer — explicit negative Order wins.
+    [ServiceProperty(Title = "Model")]
+    [Presentation(Group = PropertyGroup.Identity, Order = -10)]
+    public string Model { get; private set; } = "EM-100";
 
-    [ServiceProperty(Title = "Reset Statistics")]
-    [Category(PropertyCategory.Action)]
-    public bool ResetStats { get; set; }
+    // Renders AFTER Manufacturer — no Order, derived in source order.
+    [ServiceProperty(Title = "Firmware Version")]
+    [Presentation(Group = PropertyGroup.Identity)]
+    public string FirmwareVersion { get; private set; } = "1.2.0";
 }
 ```
 
-## Display Attributes
-
-### `[Display]` -- UI Grouping and Ordering
-
-The `[Display]` attribute controls how properties are grouped and ordered in the Dashboard detail view.
-
-```csharp
-[Display(name: "Target Temperature", group: "Climate", order: 1)]
-[ServiceProperty(Title = "Target Temperature", Unit = "°C", Minimum = 10, Maximum = 35)]
-[Category(PropertyCategory.Configuration)]
-public double TargetTemp { get; set; } = 21.0;
-
-[Display(name: "Fan Speed", group: "Climate", order: 2)]
-[ServiceProperty(Title = "Fan Speed", Unit = "%", Minimum = 0, Maximum = 100)]
-[Category(PropertyCategory.Configuration)]
-public double FanSpeed { get; set; } = 50.0;
-
-[Display(name: "Firmware Version", group: "Device Info", order: 1)]
-[ServiceProperty(Title = "Firmware Version")]
-public string FirmwareVersion { get; private set; } = "1.2.0";
-```
-
-Properties in the same `group` are rendered together under a shared heading. The `order` determines the sort order within a group.
-
-### `[Importance]` -- Dashboard Tile Visibility
-
-The `[Importance]` attribute controls whether a property appears on the compact dashboard tile or only in the detail view.
-
-```csharp
-[Importance(Importance.Primary)]
-```
-
-| Value | Behavior |
-|-------|----------|
-| `Primary` | Shown prominently on the dashboard tile (large) |
-| `Secondary` | Shown on the dashboard tile (smaller) |
-| `Normal` | Shown only in the detail view (default) |
-| `Hidden` | Excluded from the UI entirely |
-
-### Example
-
-```csharp
-[ServiceProperty(Title = "Current Temperature", Unit = "°C")]
-[ServiceMeasuringPoint(Title = "Current Temperature", Unit = "°C")]
-[Importance(Importance.Primary)]
-public double CurrentTemp { get; private set; }
-
-[ServiceProperty(Title = "Humidity", Unit = "%")]
-[ServiceMeasuringPoint(Title = "Humidity", Unit = "%")]
-[Importance(Importance.Secondary)]
-public double Humidity { get; private set; }
-
-[ServiceProperty(Title = "Sensor Firmware")]
-[Importance(Importance.Normal)]
-public string SensorFirmware { get; private set; } = "2.1.0";
-
-[ServiceProperty(Title = "Internal Calibration Offset")]
-[Importance(Importance.Hidden)]
-public double CalibrationOffset { get; private set; }
-```
-
-In this example, the dashboard tile shows the current temperature prominently and humidity in a smaller display. The sensor firmware is visible only when the user opens the detail view. The calibration offset is hidden from the UI entirely.
-
 ## Status Indicators
 
-Use `[StatusIndicator]` together with `[StatusSeverity]` on enum values to display a colored status badge on the dashboard tile.
-
-### Defining a Status Enum
+A status indicator is an enum-typed property that drives a status badge on the dashboard tile. Set `StatusIndicator = true` on `[Presentation]` and decorate the enum members with `[EnumLabel]` (display label) and `[Severity]` (severity level).
 
 ```csharp
 public enum DeviceStatus
 {
-    [EnumValueInfo("Connected")]
-    [StatusSeverity(StatusSeverity.Success)]
+    [EnumLabel("Connected")]
+    [Severity(StatusSeverity.Success)]
     Connected,
 
-    [EnumValueInfo("Connecting")]
-    [StatusSeverity(StatusSeverity.Warning)]
+    [EnumLabel("Connecting")]
+    [Severity(StatusSeverity.Warning)]
     Connecting,
 
-    [EnumValueInfo("Disconnected")]
-    [StatusSeverity(StatusSeverity.Error)]
+    [EnumLabel("Disconnected")]
+    [Severity(StatusSeverity.Error)]
     Disconnected,
-
-    [EnumValueInfo("Standby")]
-    [StatusSeverity(StatusSeverity.Info)]
-    Standby,
 }
-```
 
-### StatusSeverity Values
-
-| Severity | Dashboard Color |
-|----------|----------------|
-| `Success` | Green |
-| `Info` | Blue |
-| `Warning` | Yellow / Orange |
-| `Error` | Red |
-| `Neutral` | Gray (no specific severity) |
-
-### Using the Status Indicator
-
-```csharp
-[ServiceProperty(Title = "Status")]
-[StatusIndicator]
-[Importance(Importance.Primary)]
+[ServiceProperty(Title = "Connection Status")]
+[Presentation(Group = PropertyGroup.Alarm, StatusIndicator = true, Importance = Importance.Primary)]
 public DeviceStatus Status { get; private set; } = DeviceStatus.Disconnected;
 ```
 
-The Dashboard renders this as a colored badge directly on the tile. Combined with `Importance.Primary`, the status is always visible at a glance.
+`StatusSeverity` values: `Success`, `Info`, `Warning`, `Error`, `Neutral`.
 
-### Full Example
+A block may declare more than one status indicator — distinct status dimensions like operating mode, connection state, and activity status all surface on the tile.
+
+## Action Triggers
+
+A writable `bool` with `UiHint = UiHints.Trigger` renders as a button. Click commits `true`; the property's getter must always return `false` so the button visually returns to its resting state.
 
 ```csharp
-[LogicBlock("Energy Monitor")]
-public class EnergyMonitorBlock : LogicBlockBase
+[ServiceProperty(Title = "Reset Statistics")]
+[Presentation(Group = PropertyGroup.Configuration, UiHint = UiHints.Trigger)]
+[Persistent(Exclude = true)]
+public bool ResetStats
 {
-    public enum MonitorStatus
+    get => false;
+    set
     {
-        [EnumValueInfo("Online")]
-        [StatusSeverity(StatusSeverity.Success)]
-        Online,
-
-        [EnumValueInfo("Degraded")]
-        [StatusSeverity(StatusSeverity.Warning)]
-        Degraded,
-
-        [EnumValueInfo("Offline")]
-        [StatusSeverity(StatusSeverity.Error)]
-        Offline,
+        if (value)
+        {
+            TimesGreeted = 0;
+        }
     }
-
-    [ServiceProperty(Title = "Status")]
-    [StatusIndicator]
-    [Importance(Importance.Primary)]
-    public MonitorStatus Status { get; private set; } = MonitorStatus.Offline;
-
-    [ServiceProperty(Title = "Power", Unit = "W")]
-    [ServiceMeasuringPoint(Title = "Power", Unit = "W")]
-    [Importance(Importance.Primary)]
-    public double Power { get; private set; }
-
-    [ServiceProperty(Title = "Energy Today", Unit = "kWh")]
-    [ServiceMeasuringPoint(Title = "Energy Today", Unit = "kWh")]
-    [Importance(Importance.Secondary)]
-    public double EnergyToday { get; private set; }
 }
 ```
 
+The getter-always-false pattern is a transitional bridge until a first-class `[ServiceAction]` primitive ships. Combine with `[Persistent(Exclude = true)]` so the trigger does not re-fire on every restart.
+
+## Secrets
+
+A `string` or `string?` property with `WriteOnly = true` is a secret. The Dale runtime strips the actual value at the publish boundary and replaces it with a redaction sentinel before anything leaves the gateway. Operators can set, clear, and overwrite the value — but they cannot read it back.
+
+```csharp
+[ServiceProperty(Title = "API Key", WriteOnly = true)]
+[Presentation(Group = PropertyGroup.Configuration)]
+public string? ApiKey { get; set; }
+```
+
+The setter inside the logic block receives the real value — cache it, hand it to your client library, or persist it normally. Three states are distinguishable through the dashboard: never set, cleared, and set-and-hidden.
+
+`WriteOnly` is restricted to `string` / `string?` in v1 — the redaction sentinel is itself a string literal. Persistence works as usual; opt out with `[Persistent(Exclude = true)]` if a secret should be re-entered on every restart.
+
+::: warning
+At-rest encryption is out of scope. The gateway's persistence store keeps the real value on disk. `WriteOnly` protects the wire path, not the local disk.
+:::
+
 ## Enum Properties
 
-Enums are a natural fit for properties with a fixed set of values. The Dashboard automatically renders enum properties as dropdowns.
-
-### Defining an Enum with Display Names
-
-Use `[EnumValueInfo]` to provide a human-readable display name for each enum value.
+Enums are a natural fit for properties with a fixed set of values. The dashboard renders them as dropdowns by default, or as status badges when marked as indicators.
 
 ```csharp
 public enum OperatingMode
 {
-    [EnumValueInfo("Automatic")]
+    [EnumLabel("Automatic")]
     Auto,
 
-    [EnumValueInfo("Manual Override")]
+    [EnumLabel("Manual Override")]
     Manual,
 
-    [EnumValueInfo("Energy Saving")]
+    [EnumLabel("Energy Saving")]
     Eco,
 
-    [EnumValueInfo("Off")]
+    [EnumLabel("Off")]
     Off,
 }
-```
 
-### Using the Enum Property
-
-```csharp
 [ServiceProperty(Title = "Operating Mode")]
-[Category(PropertyCategory.Configuration)]
-[Importance(Importance.Secondary)]
+[Presentation(Group = PropertyGroup.Configuration, Importance = Importance.Secondary)]
 public OperatingMode Mode { get; set; } = OperatingMode.Auto;
 ```
 
-The Dashboard renders this as a dropdown with the display names "Automatic", "Manual Override", "Energy Saving", and "Off". Users select a value, and the logic block receives the corresponding enum member.
+`[EnumLabel]` provides a human-readable display name for each member. Without it, the C# identifier is used.
+
+## Preset Attributes
+
+`[Presentation]`, `[ServiceProperty]`, and `[ServiceMeasuringPoint]` are all un-sealed. Subclass any of them to pre-fill the constructor and stay DRY across a logic block library:
+
+```csharp
+public class Kilowatts : ServicePropertyAttribute
+{
+    public Kilowatts() { Unit = "kW"; Minimum = 0; }
+}
+
+public class StateMetric : PresentationAttribute
+{
+    public StateMetric()
+    {
+        Group = PropertyGroup.Status;
+        Importance = Importance.Primary;
+        Decimals = 1;
+    }
+}
+```
+
+Apply them like the platform attributes; per-property arguments override preset defaults:
+
+```csharp
+[Kilowatts]
+[StateMetric]
+public double ActivePower { get; private set; }
+
+[Kilowatts(Minimum = -50)] // Allow negative — battery discharging.
+public double NetPower { get; private set; }
+```
+
+See [Declarative Presentation](/sdk/declarative-presentation) for the cascade rules and the cross-cutting model.
 
 ## Persistence
 
-Writable service properties (those with a public setter) are **automatically persisted** across restarts. When the gateway reboots, the last-known value is restored before the logic block enters the `Ready` state.
+Writable service properties (public setter) are **automatically persisted** across restarts. The gateway restores the last-known value before the logic block enters the `Ready` state.
 
-### Opting Out of Automatic Persistence
-
-If a writable property should **not** be persisted (e.g., a transient action trigger), use the `[Persistent]` attribute with `Exclude = true`:
+Opt a writable property out of persistence with `[Persistent(Exclude = true)]`:
 
 ```csharp
 [ServiceProperty(Title = "Reset Statistics")]
-[Category(PropertyCategory.Action)]
+[Presentation(Group = PropertyGroup.Configuration, UiHint = UiHints.Trigger)]
 [Persistent(Exclude = true)]
-public bool ResetStats { get; set; }
+public bool ResetStats { get => false; set { if (value) DoReset(); } }
 ```
 
-### Opting In for Read-Only Properties
-
-Read-only properties (private setter) are **not** persisted by default. To persist them, add the `[Persistent]` attribute explicitly:
+Read-only properties (private setter) are **not** persisted by default. Add `[Persistent]` to keep cumulative counters across restarts:
 
 ```csharp
-[ServiceProperty(Title = "Total Energy", Unit = "kWh")]
-[ServiceMeasuringPoint(Title = "Total Energy", Unit = "kWh")]
 [Persistent]
+[ServiceProperty(Title = "Total Energy", Unit = "kWh")]
+[ServiceMeasuringPoint(Kind = MeasuringPointKind.TotalIncreasing)]
+[Presentation(Group = PropertyGroup.Metric)]
 public double TotalEnergy { get; private set; }
 ```
 
-This is useful for cumulative counters and totals that should survive restarts.
-
-::: tip
-For a deeper look at how the persistence system works, including serialization behavior and limitations, see [Persistence](/sdk/persistence).
-:::
+For more detail, see [Persistence](/sdk/persistence).
 
 ## Service Interfaces
 
-Service interfaces allow you to standardize the data surface of your logic blocks. By defining a C# interface decorated with `[ServiceInterface]`, you ensure consistent property names, types, units, and annotations across blocks that implement the same interface.
+Service interfaces standardize the data surface of your logic blocks. Define a C# interface decorated with `[ServiceInterface]` and apply the attributes to its members. Logic blocks that implement the interface inherit the metadata.
 
 ```csharp
 [ServiceInterface]
 public interface IClimateService
 {
     [ServiceProperty(Title = "Temperature", Unit = "°C")]
-    [ServiceMeasuringPoint(Title = "Temperature", Unit = "°C")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     double Temperature { get; }
 
-    [ServiceProperty(Title = "Humidity", Unit = "%")]
-    [ServiceMeasuringPoint(Title = "Humidity", Unit = "%")]
-    double Humidity { get; }
-
     [ServiceProperty(Title = "Target Temperature", Unit = "°C", Minimum = 10, Maximum = 35)]
+    [Presentation(Group = PropertyGroup.Configuration)]
     double TargetTemperature { get; set; }
 }
 ```
 
-A logic block implements the interface directly — all the attribute metadata (names, units, min/max) is inherited:
+A logic block implements the interface directly:
 
 ```csharp
-[LogicBlockInfo("Room Climate Controller")]
+[LogicBlock(Name = "Room Climate Controller")]
 public class RoomClimateBlock : LogicBlockBase, IClimateService
 {
     public RoomClimateBlock(ILogger logger) : base(logger) { }
 
     public double Temperature { get; private set; }
-    public double Humidity { get; private set; }
     public double TargetTemperature { get; set; } = 21.0;
 
     protected override void Ready() { }
 }
 ```
 
+`[Presentation]` cascades per-field — the interface declares defaults; the class can override any single field without re-declaring the rest. Schema attributes cascade as a whole — overriding `[ServiceProperty]` on the class replaces the interface's declaration entirely. See [Declarative Presentation](/sdk/declarative-presentation#cascade-rules).
+
 ### Service Relations
 
-Use `[ServiceRelation]` to declare directional relationships between service interfaces. This tells the platform how blocks connect to each other.
+Use `[ServiceRelation]` to declare directional relationships between service interfaces.
 
 ```csharp
 [ServiceInterface]
@@ -548,129 +544,108 @@ public interface IPingService
 }
 ```
 
-- `ServiceRelationDirection.Outwards` — this block provides the relation
-- `ServiceRelationDirection.Inwards` — this block consumes the relation
-- The matching interface must declare the same `relationType` with the opposite direction
+The matching interface must declare the same `relationType` with the opposite direction (`Inwards`).
 
 ## Using the Dale CLI
 
-The Dale CLI can generate property and measuring point boilerplate for you.
-
-### Add a Service Property
+Add a service property:
 
 ```bash
 dale add serviceproperty TargetTemp --type double --to ThermostatBlock
-# ✔ Added [ServiceProperty] double TargetTemp (private set) to ThermostatBlock
 ```
 
-Use `--setter public` to make it writable from the Dashboard:
+| Flag | Description |
+|------|-------------|
+| `--type` / `-t` (required) | C# type (`double`, `string`, `bool`, etc.) |
+| `--to` | Target logic block class (auto-detected if only one exists) |
+| `--setter` | `public` or `private` (default: `private`) |
+| `--default-name` | Sets the `Title` field on the emitted attribute |
+| `--persistent` | Adds `[Persistent]` |
 
-```bash
-dale add serviceproperty TargetTemp --type double --setter public --to ThermostatBlock
-# ✔ Added [ServiceProperty] double TargetTemp (public set) to ThermostatBlock
-```
-
-### Add a Measuring Point
+Add a measuring point:
 
 ```bash
 dale add measuringpoint CurrentTemp --type double --to ThermostatBlock
-# ✔ Added [ServiceMeasuringPoint] double CurrentTemp to ThermostatBlock
 ```
 
-### Add Both at Once
+Same flags except `--setter` (measuring points are always private set).
 
-For a value that needs to be both a property and a measuring point, run both commands. The Dale CLI detects the existing property and adds the second attribute:
-
-```bash
-dale add serviceproperty CurrentTemp --type double --to ThermostatBlock
-dale add measuringpoint CurrentTemp --type double --to ThermostatBlock
-```
+For a value that is both a property and a measuring point, run the CLI for one and add the other attribute by hand — the CLI refuses to add to an existing property.
 
 ## Complete Example
 
-Putting it all together, here is a logic block that demonstrates properties, measuring points, categories, display attributes, status indicators, and persistence.
+A thermostat block exercising properties, measuring points, presentation, status indicators, and persistence:
 
 ```csharp
-[LogicBlock("Smart Thermostat")]
+[LogicBlock(Name = "Smart Thermostat", Icon = "temp-cold-line",
+            Groups = new[]
+                     {
+                         PropertyGroup.Alarm,
+                         PropertyGroup.Status,
+                         PropertyGroup.Metric,
+                         PropertyGroup.Configuration,
+                         PropertyGroup.Identity,
+                     })]
 public class SmartThermostatBlock : LogicBlockBase
 {
-    // --- Status enum with severity badges ---
     public enum ThermostatStatus
     {
-        [EnumValueInfo("Heating")]
-        [StatusSeverity(StatusSeverity.Warning)]
+        [EnumLabel("Heating")]
+        [Severity(StatusSeverity.Warning)]
         Heating,
 
-        [EnumValueInfo("Cooling")]
-        [StatusSeverity(StatusSeverity.Info)]
+        [EnumLabel("Cooling")]
+        [Severity(StatusSeverity.Info)]
         Cooling,
 
-        [EnumValueInfo("Idle")]
-        [StatusSeverity(StatusSeverity.Success)]
+        [EnumLabel("Idle")]
+        [Severity(StatusSeverity.Success)]
         Idle,
 
-        [EnumValueInfo("Error")]
-        [StatusSeverity(StatusSeverity.Error)]
-        Error,
+        [EnumLabel("Fault")]
+        [Severity(StatusSeverity.Error)]
+        Fault,
     }
 
-    public enum HvacMode
-    {
-        [EnumValueInfo("Automatic")]
-        Auto,
+    [ServiceProperty(Title = "State")]
+    [Presentation(Group = PropertyGroup.Alarm, StatusIndicator = true,
+                  Importance = Importance.Primary)]
+    public ThermostatStatus State { get; private set; } = ThermostatStatus.Idle;
 
-        [EnumValueInfo("Heat Only")]
-        Heat,
-
-        [EnumValueInfo("Cool Only")]
-        Cool,
-
-        [EnumValueInfo("Off")]
-        Off,
-    }
-
-    // --- Status indicator on the dashboard tile ---
-    [ServiceProperty(Title = "Status")]
-    [StatusIndicator]
-    [Importance(Importance.Primary)]
-    public ThermostatStatus Status { get; private set; } = ThermostatStatus.Idle;
-
-    // --- Primary telemetry: visible on the tile and recorded ---
     [ServiceProperty(Title = "Current Temperature", Unit = "°C")]
-    [ServiceMeasuringPoint(Title = "Current Temperature", Unit = "°C")]
-    [Importance(Importance.Primary)]
-    [Display(name: "Current Temperature", group: "Climate", order: 1)]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public double CurrentTemp { get; private set; }
 
-    // --- Secondary telemetry ---
-    [ServiceProperty(Title = "Humidity", Unit = "%")]
-    [ServiceMeasuringPoint(Title = "Humidity", Unit = "%")]
-    [Importance(Importance.Secondary)]
-    [Display(name: "Humidity", group: "Climate", order: 2)]
-    public double Humidity { get; private set; }
-
-    // --- User-configurable settings ---
     [ServiceProperty(Title = "Target Temperature", Unit = "°C", Minimum = 10, Maximum = 35)]
-    [Category(PropertyCategory.Configuration)]
-    [Display(name: "Target Temperature", group: "Settings", order: 1)]
+    [Presentation(Group = PropertyGroup.Configuration, UiHint = UiHints.Slider)]
     public double TargetTemp { get; set; } = 21.0;
 
-    [ServiceProperty(Title = "HVAC Mode")]
-    [Category(PropertyCategory.Configuration)]
-    [Display(name: "HVAC Mode", group: "Settings", order: 2)]
-    public HvacMode Mode { get; set; } = HvacMode.Auto;
-
-    // --- Persistent cumulative counter ---
-    [ServiceProperty(Title = "Total Runtime", Unit = "h")]
-    [ServiceMeasuringPoint(Title = "Total Runtime", Unit = "h")]
     [Persistent]
-    [Category(PropertyCategory.Metric)]
+    [ServiceProperty(Title = "Total Runtime", Unit = "h")]
+    [ServiceMeasuringPoint(Kind = MeasuringPointKind.TotalIncreasing)]
+    [Presentation(Group = PropertyGroup.Metric)]
     public double TotalRuntime { get; private set; }
 
-    // --- Non-persistent action trigger ---
+    [ServiceMeasuringPoint(Title = "Last Service")]
+    [Presentation(Group = PropertyGroup.Diagnostics, Format = Formats.Relative)]
+    public DateTime LastServiceAt { get; private set; } = DateTime.UtcNow.AddDays(-7);
+
     [ServiceProperty(Title = "Reset Statistics")]
-    [Category(PropertyCategory.Action)]
+    [Presentation(Group = PropertyGroup.Configuration, UiHint = UiHints.Trigger)]
     [Persistent(Exclude = true)]
-    public bool ResetStats { get; set; }
+    public bool ResetStats
+    {
+        get => false;
+        set
+        {
+            if (value)
+            {
+                TotalRuntime = 0;
+            }
+        }
+    }
 }
 ```
+
+Run `dale dev` to preview the block in the local DevHost — it renders presentations the same way the production dashboard does, giving fast feedback during authoring.

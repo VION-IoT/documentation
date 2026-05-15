@@ -1,11 +1,11 @@
 ---
-title: "logic blocks"
-description: "logic blocks are the fundamental building unit of the Dale SDK. Each block is an independent actor that manages its own state and processes messages asynchronously."
+title: Logic Blocks
+description: logic blocks are the fundamental building unit of the Dale SDK. Each block is an independent actor that manages its own state and processes messages asynchronously.
 ---
 
 # Logic Blocks
 
-logic blocks are the core building blocks of every Dale application. Each block represents a self-contained unit of logic that can receive inputs, maintain state, and produce outputs.
+logic blocks are the core building units of every Dale application. Each block represents a self-contained unit of logic that can receive inputs, maintain state, and produce outputs.
 
 ## What is a Logic Block?
 
@@ -23,34 +23,34 @@ In C#, a logic block is defined as a class that extends `LogicBlockBase`.
 A minimal logic block looks like this:
 
 ```csharp
-[LogicBlockInfo("My Block", "settings-line")]
+[LogicBlock(Name = "My Block", Icon = "settings-line")]
 public class MyBlock : LogicBlockBase
 {
     public MyBlock(ILogger logger) : base(logger) { }
 
     protected override void Ready()
     {
-        // Called when the block is configured and ready to run
+        // Called when the block is configured and ready to run.
     }
 }
 ```
 
-The `LogicBlockInfo` attribute provides metadata used by the Dashboard, and the `Ready()` method is where you set up your block's runtime behavior.
+The `[LogicBlock]` attribute provides display metadata for the dashboard. `Ready()` is where the block's runtime behavior is set up.
 
 ## Lifecycle
 
-logic blocks follow a well-defined lifecycle with three key methods you can override:
+logic blocks follow a well-defined lifecycle with three key methods:
 
 | Method | When it runs | Typical use |
-|---|---|---|
+|--------|--------------|-------------|
 | `Starting()` | After the block is initialized | One-time setup, opening connections |
 | `Ready()` | After configuration is applied and the block is ready to run | Attach event handlers, start processing |
 | `Stopping()` | Before the block is removed | Clean up resources, close connections |
 
-`Ready()` is abstract and must be overridden in every logic block. `Starting()` and `Stopping()` are virtual and can be overridden when needed.
+`Ready()` is abstract and must be overridden in every logic block. `Starting()` and `Stopping()` are virtual.
 
 ```csharp
-[LogicBlockInfo("Sensor Reader", "sensor-line")]
+[LogicBlock(Name = "Sensor Reader", Icon = "sensor-line")]
 public class SensorReader : LogicBlockBase
 {
     public SensorReader(ILogger logger) : base(logger) { }
@@ -62,7 +62,7 @@ public class SensorReader : LogicBlockBase
 
     protected override void Ready()
     {
-        // Set up event handlers and begin processing
+        // Set up event handlers and begin processing.
     }
 
     protected override void Stopping()
@@ -72,37 +72,95 @@ public class SensorReader : LogicBlockBase
 }
 ```
 
-## LogicBlockInfo Attribute
+## The `[LogicBlock]` Attribute
 
-The `[LogicBlockInfo]` attribute provides display metadata for the Dashboard. It is **optional** — if omitted, the class name is used as the display name and a generic icon is shown.
+`[LogicBlock]` carries block-level display metadata for the dashboard. It is **optional** — if omitted, the C# class name is used as the display name and a generic icon is shown.
 
 ```csharp
-[LogicBlockInfo("My Block", "settings-line")]
+[LogicBlock(Name = "...", Icon = "...", Groups = new[] { ... })]
 ```
 
 | Parameter | Description |
-|---|---|
-| `defaultName` | The display name shown in the Dashboard. Defaults to the class name if omitted. |
-| `icon` | A [Remixicon](https://remixicon.com/) name without the `ri-` prefix (e.g., `"battery-2-line"`, `"charging-pile-line"`). A generic icon is used if omitted. |
+|-----------|-------------|
+| `Name` | Human-readable display name shown in the dashboard. Defaults to the class name. |
+| `Icon` | A [Remixicon](https://remixicon.com/) name without the `ri-` prefix (e.g., `"battery-2-line"`, `"charging-pile-line"`). A generic icon is used if omitted. |
+| `Groups` | Optional ordered list of `PropertyGroup` keys controlling dashboard section order for this block. See [Section Ordering](#section-ordering). |
+
+## Section Ordering
+
+A block's dashboard view is divided into sections, one per `PropertyGroup` value used by its properties. The `Groups` field on `[LogicBlock]` controls the order of those sections.
+
+```csharp
+[LogicBlock(Name = "Power Plant",
+            Icon = "flashlight-line",
+            Groups = new[]
+                     {
+                         PropertyGroup.Alarm,
+                         PropertyGroup.Status,
+                         PropertyGroup.Metric,
+                         PropertyGroup.Configuration,
+                         PropertyGroup.Diagnostics,
+                         PropertyGroup.Identity,
+                     })]
+public class PowerPlantBlock : LogicBlockBase { /* ... */ }
+```
+
+When `Groups` is omitted, the platform default order applies:
+
+```
+[Alarm, Status, Metric, Configuration, Diagnostics, Identity, None]
+```
+
+Groups used by the block's properties but not listed in `Groups` render after the listed ones, in the platform default order. The `None` group (`PropertyGroup.None`, the empty-string key) is always rendered last.
+
+For per-property grouping and ordering within a section, see [Properties & Measuring Points](/sdk/properties#property-ordering).
+
+## Block Summary Composition
+
+A logic block does not declare its summary as a single attribute. Instead, the auto-generated tile composes a summary from the block's properties marked with `[Presentation(Importance = Importance.Primary)]` and `Importance.Secondary`. Status indicators (`StatusIndicator = true`) render as badges or pills on the tile.
+
+```csharp
+[LogicBlock(Name = "Battery", Icon = "battery-2-charge-line")]
+public class BatteryBlock : LogicBlockBase
+{
+    // Primary — large on the tile.
+    [ServiceProperty(Title = "State of Charge", Unit = "%")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
+    public double StateOfCharge { get; private set; }
+
+    // Secondary — smaller on the tile.
+    [ServiceProperty(Title = "Power", Unit = "kW")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Secondary)]
+    public double Power { get; private set; }
+
+    // Status indicator — badge on the tile.
+    [ServiceProperty(Title = "Mode")]
+    [Presentation(Group = PropertyGroup.Alarm, StatusIndicator = true,
+                  Importance = Importance.Primary)]
+    public BatteryMode Mode { get; private set; }
+}
+```
+
+See [Properties & Measuring Points](/sdk/properties) for the full `[Presentation]` surface. A block may declare more than one status indicator — distinct status dimensions all surface on the tile.
 
 ## Thread Safety
 
-Because logic blocks are actors, message processing is inherently single-threaded within each block. All property changes and message handling happen inside the actor context automatically.
+Because logic blocks are actors, message processing is single-threaded within each block. Property changes and message handling happen inside the actor context automatically.
 
-However, if you need to execute code from an external callback or event (such as an OS event or a timer) back into the actor context, use the synchronization helpers:
+If code from an external callback (such as an OS event or timer) needs to mutate state, use the synchronization helpers:
 
 ```csharp
-// Execute an action inside the actor context
+// Execute an action inside the actor context.
 InvokeSynchronized(() =>
 {
-    // Safe to modify state here
     MyOutput.Value = newValue;
 });
 
-// Execute an action inside the actor context after a delay
+// Execute an action inside the actor context after a delay.
 InvokeSynchronizedAfter(() =>
 {
-    // This runs on the actor thread after the specified delay
     MyOutput.Value = delayedValue;
 }, TimeSpan.FromSeconds(5));
 ```
@@ -114,7 +172,7 @@ These methods ensure that state mutations are always safe, even when triggered b
 
 ## Dependency Injection
 
-logic blocks are resolved through dependency injection. You register them in a class that implements `IConfigureServices`:
+logic blocks are resolved through dependency injection. Register them in a class that implements `IConfigureServices`:
 
 ```csharp
 public class DependencyInjection : IConfigureServices
@@ -143,7 +201,7 @@ public class MyBlock : LogicBlockBase
 
     protected override void Ready()
     {
-        // Use _myService here
+        // Use _myService here.
     }
 }
 ```
@@ -158,4 +216,4 @@ dale add logicblock MyBlock
 
 This scaffolds a new logic block class with the correct base class, attribute, and lifecycle methods already in place.
 
-For CLI installation and full command reference, see the [Installation](/sdk/installation) page.
+For CLI installation and full command reference, see [Installation](/sdk/installation).

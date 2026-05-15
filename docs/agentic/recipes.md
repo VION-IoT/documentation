@@ -26,7 +26,7 @@ These recipes show example prompts and the expected agent workflow. They work wi
 > Add a logic block that reads 3 voltage registers (float, starting at address 0) and 1 power register (float, at address 52) from a Modbus RTU device every 2 seconds. Expose voltage L1/L2/L3 and total power as service properties with units.
 
 **Expected agent workflow:**
-1. Create the logic block with `[ServiceProviderContract]` for `IModbusRtu`
+1. Create the logic block with `[ServiceProviderContractBinding]` for `IModbusRtu`
 2. Add service properties with `[ServiceMeasuringPoint]` and unit annotations
 3. Implement `[Timer(2)]` method with batch read for voltages and individual read for power
 4. Add error handling with error count property
@@ -58,12 +58,12 @@ These recipes show example prompts and the expected agent workflow. They work wi
 ## Refactor Properties for Dashboard Display
 
 **Prompt:**
-> Update the BatterySimulation logic block: mark StateOfCharge as Primary importance, add a "Power" display group for charging and discharging properties, and add a status indicator enum for battery state (Charging, Discharging, Idle, Fault).
+> Update the BatterySimulation logic block: mark StateOfCharge as primary on the dashboard tile, group the charging and discharging properties under Status, and add a status indicator enum for battery state (Charging, Discharging, Idle, Fault).
 
 **Expected agent workflow:**
 1. `dale list --output json` to see current structure
-2. Add `[Importance(Importance.Primary)]` to StateOfCharge
-3. Add `[Display(group: "Power")]` to power properties
-4. Create a `BatteryState` enum with `[StatusSeverity]` on each value
-5. Add a `[StatusIndicator]` property using the enum
-6. `dale build` to verify
+2. Add `[Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]` to `StateOfCharge`
+3. Add `[Presentation(Group = PropertyGroup.Status, Importance = Importance.Secondary)]` to the charging / discharging power properties
+4. Create a `BatteryState` enum with `[EnumLabel("...")]` and `[Severity(StatusSeverity.X)]` on each member
+5. Add a status enum property with `[Presentation(Group = PropertyGroup.Alarm, StatusIndicator = true)]`
+6. `dale build` to verify (the Dale analyzers catch most authoring mistakes)

@@ -120,18 +120,22 @@ Open `SmartThermostat/Thermostat.cs` and replace the generated code:
 using Vion.Dale.Sdk.Core;
 using Microsoft.Extensions.Logging;
 
+[LogicBlock(Name = "Thermostat", Icon = "temp-cold-line")]
 public class Thermostat : LogicBlockBase
 {
     private readonly ILogger _logger;
 
     [ServiceProperty(Title = "Target Temperature", Unit = "°C")]
+    [Presentation(Group = PropertyGroup.Configuration)]
     public double TargetTemperature { get; set; } = 21.0;
 
     [ServiceProperty(Title = "Heating Active")]
-    [ServiceMeasuringPoint(Title = "Heating Active")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public bool HeatingActive { get; private set; }
 
     [ServiceMeasuringPoint(Title = "Current Temperature", Unit = "°C")]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Secondary)]
     public double CurrentTemperature { get; private set; }
 
     public Thermostat(ILogger logger) : base(logger)
@@ -160,10 +164,11 @@ public class Thermostat : LogicBlockBase
 ```
 
 This logic block has:
-- **`TargetTemperature`** — a writable property that operators can adjust from the Dashboard
-- **`CurrentTemperature`** — a measuring point (in production, read from a sensor via a [service provider contract](/sdk/services))
-- **`HeatingActive`** — both a property and a measuring point, computed from the other two
+- **`TargetTemperature`** — a writable property that operators can adjust from the dashboard, rendered in the **Configuration** section
+- **`CurrentTemperature`** — a measuring point (in production, read from a sensor via a [service provider contract binding](/sdk/services)), rendered prominently in the **Status** section
+- **`HeatingActive`** — both a property and a measuring point, surfaced as the primary tile value
 - **`[Timer(2)]`** — polls every 2 seconds
+- **`[Presentation(Group = ..., Importance = ...)]`** — separates UI hints from the schema, so `[ServiceProperty]` stays focused on the value itself (see [Declarative Presentation](/sdk/declarative-presentation))
 
 Run `dale dev` and open the DevHost. You can change `TargetTemperature` and `CurrentTemperature` through the UI and watch `HeatingActive` respond in real-time.
 

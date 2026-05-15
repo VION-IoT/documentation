@@ -5,9 +5,9 @@ description: Overview of the VION Edge Operations Platform.
 
 # What is VION?
 
-VION is an **Edge Operations Platform** for building, deploying, and operating IoT logic on edge gateways. It is built for system integrators who need to connect hardware, run control logic, and give their customers visibility — without building infrastructure from scratch.
+VION is an **Edge Operations Platform** for building, deploying, and operating IoT logic on edge gateways. It is built for system integrators who connect hardware, run control logic, and give their customers visibility — without building infrastructure from scratch.
 
-VION is the product as a whole. The **Dale SDK** is the part integrators build on — a .NET SDK and CLI for writing logic blocks that run on the edge. On the edge gateway, the **Dale runtime** hosts those logic blocks as plugins, and **Mesh** bridges the gateway to VION Cloud. The Dale SDK is source-available at [VION-IoT/dale-sdk](https://github.com/VION-IoT/dale-sdk/); packages are published to [nuget.org](https://www.nuget.org/) under the `Vion.*` prefix.
+VION is the product as a whole. The **Dale SDK** is the part integrators build on — a .NET SDK and CLI for writing logic blocks that run on the edge. On the edge gateway, the **Dale runtime** hosts those logic blocks as plugins, and **Mesh** bridges the gateway to **VION Cloud**. The Dale SDK is source-available at [VION-IoT/dale-sdk](https://github.com/VION-IoT/dale-sdk/); packages are published to [nuget.org](https://www.nuget.org/) under the `Vion.*` prefix.
 
 ## The Big Picture
 
@@ -50,6 +50,43 @@ flowchart LR
 
 You write logic in C#. VION Cloud manages deployment and monitoring. The edge runs the logic close to the hardware.
 
+## What Runs Where
+
+```mermaid
+flowchart TB
+    subgraph EdgeBox["Edge Gateway"]
+        direction LR
+        SP["Service Providers "]
+        Dale["Dale Runtime "]
+        Broker["Local MQTT Broker "]
+        Mesh["Mesh "]
+        SP <--> Broker
+        Dale <--> Broker
+        Mesh <--> Broker
+    end
+
+    subgraph CloudBox["VION Cloud"]
+        direction LR
+        Dashboard["Dashboard "]
+        CloudAPI["Cloud API "]
+        Grafana["Grafana "]
+        Dashboard <--> CloudAPI
+    end
+
+    Mesh <-->|"MQTT over TLS"| CloudAPI
+    EdgeBox -.->|"observability"| Grafana
+
+    classDef edgeNode fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33,rx:8
+    classDef cloudNode fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff,rx:8
+
+    class SP,Dale,Broker,Mesh edgeNode
+    class CloudAPI,Dashboard,Grafana cloudNode
+```
+
+The **Dale runtime** hosts logic-block plugins. **Service Providers** drive the physical I/O — digital, analog, Modbus, and custom protocols. They communicate through a local MQTT broker on the gateway. **Mesh** is the only component on the trust boundary; the Dale runtime and the service providers never speak to the cloud directly.
+
+Logic runs on the edge — close to the hardware, with millisecond latency and offline resilience. VION Cloud handles configuration, deployment, and monitoring but is not in the critical path.
+
 ## Development Workflow
 
 ```mermaid
@@ -72,44 +109,9 @@ flowchart LR
     class E,F cloud
 ```
 
-Everything happens through the **Dale CLI** — from project creation to cloud deployment. Local testing with DevHost and TestKit means you don't need hardware to develop.
+Everything happens through the **Dale CLI** — from project creation to cloud deployment. Local testing with **DevHost** and **TestKit** means you don't need hardware to develop.
 
-## What Runs Where
-
-```mermaid
-flowchart TB
-    subgraph EdgeBox["Edge Gateway"]
-        direction LR
-        SP["Service Providers "]
-        Dale["Dale Runtime "]
-        Mesh["Mesh "]
-        OTel["OTel Collector "]
-        SP <-->|"I/O"| Dale
-        Dale <--> Mesh
-        Dale --> OTel
-    end
-
-    subgraph CloudBox["VION Cloud"]
-        direction LR
-        CloudAPI["Cloud API "]
-        Dashboard["Dashboard "]
-        Grafana["Grafana "]
-        Dashboard --> CloudAPI
-    end
-
-    Mesh <-->|"MQTT over TLS"| CloudAPI
-    OTel -->|"OpenTelemetry"| Grafana
-
-    classDef edgeNode fill:#ecfbfa,stroke:#32656c,stroke-width:1.5px,color:#192f33,rx:8
-    classDef cloudNode fill:#32656c,stroke:#2b474e,stroke-width:1.5px,color:#ffffff,rx:8
-
-    class SP,Dale,Mesh,OTel edgeNode
-    class CloudAPI,Dashboard,Grafana cloudNode
-```
-
-**Logic runs on the edge** — close to the hardware, with millisecond latency and offline resilience. VION Cloud handles configuration, deployment, and monitoring but is not in the critical path.
-
-## Who Is It For
+## Multi-Tenancy
 
 ```mermaid
 flowchart TB
@@ -135,7 +137,25 @@ flowchart TB
     class T1,T2,T3 tenant
 ```
 
-VION is built for **system integrators** — companies that develop IoT solutions for their customers. Each integrator manages their own logic block libraries, tenants, and edge gateways independently. Role-based access control is enforced at every level.
+VION is built for **system integrators** — companies that develop IoT solutions for their customers. Each integrator manages its own logic-block libraries and edge-gateway fleet. **Tenants** are an integrator's own customers and form the data-isolation boundary; every layer of the platform (API, broker, observability) enforces the tenant scope on every request.
+
+## Terminology
+
+| Term | Meaning |
+|------|---------|
+| Dale SDK | The .NET SDK and CLI integrators build on. |
+| Dale runtime | The edge-side host for logic-block plugins. |
+| Mesh | The on-gateway bridge to VION Cloud. |
+| logic block | A self-contained unit of computation that runs on the Dale runtime. |
+| service property | A value a logic block exposes; readable and optionally writable through the dashboard. |
+| measuring point | A telemetry value a logic block records over time. |
+| service provider | An on-gateway process that drives a piece of hardware (digital I/O, Modbus, custom protocols). |
+| edge gateway | The on-premise device running the Dale runtime, Mesh, and service providers. |
+| VION Cloud | The cloud-side services: API, dashboard, observability. |
+| Dale CLI | The CLI tool for scaffolding, building, testing, and uploading logic-block libraries. |
+| DevHost | A local web UI that renders a logic-block library exactly as the production dashboard does. |
+| integrator | A VION customer that develops logic-block libraries for their own customers. |
+| tenant | An integrator's customer; the data-isolation boundary. |
 
 ## Next Steps
 
