@@ -21,17 +21,17 @@ Dale uses C# attributes to describe what a logic block does rather than how the 
 
 ```csharp
 [ServiceProperty(Title = "Temperature", Unit = "°C")]
-[ServiceMeasuringPoint(Title = "Temperature", Unit = "°C")]
-[Importance(Importance.Primary)]
+[ServiceMeasuringPoint]
+[Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
 public double Temperature { get; private set; }
 ```
 
 This single declaration tells the runtime to:
 - Expose a property called "Temperature" with unit °C
 - Publish its value as telemetry
-- Display it prominently in the Dashboard
+- Render it prominently in the dashboard's Status section
 
-The runtime, cloud, and UI all derive their behavior from these attributes. You declare intent once — everything else follows.
+The runtime, cloud, and UI all derive their behavior from these attributes. You declare intent once — everything else follows. See [Properties & Measuring Points](/sdk/properties) for the full schema-and-presentation surface, and [Declarative Presentation](/sdk/declarative-presentation) for the cross-cutting model.
 
 ## Batteries Included
 

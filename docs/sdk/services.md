@@ -1,11 +1,11 @@
 ---
 title: Hardware & External Services
-description: Connecting logic blocks to hardware I/O, Modbus devices, and external APIs through service provider contracts and utility packages.
+description: Connecting logic blocks to hardware I/O, Modbus devices, and external APIs through service provider contract bindings and utility packages.
 ---
 
 # Hardware & External Services
 
-The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O and Modbus registers to HTTP APIs. Service provider contracts connect to hardware through the Dale runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
+The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O and Modbus registers to HTTP APIs. Service provider contract bindings connect to hardware through the Dale runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
 
 ## Built-in I/O Interfaces
 
@@ -18,24 +18,24 @@ Dale provides built-in interfaces for common I/O types:
 | `IAnalogInput` | Numeric input (temperature sensor, light sensor) | `double` |
 | `IAnalogOutput` | Numeric output (dimmer, valve position, fan speed) | `double` |
 
-### Declaring I/O Contracts
+### Declaring I/O Contract Bindings
 
-Use `[ServiceProviderContract]` on a property to declare the I/O binding. The `defaultName` provides a human-readable label shown in the Dashboard during wiring.
+Use `[ServiceProviderContractBinding]` on a property to declare the I/O binding. `DefaultName` provides a human-readable label shown in the dashboard during wiring.
 
 ```csharp
-[LogicBlockInfo("Toggle Light")]
+[LogicBlock(Name = "Toggle Light")]
 public class ToggleLightBlock : LogicBlockBase
 {
     public ToggleLightBlock(ILogger logger) : base(logger) { }
 
-    [ServiceProviderContract(defaultName: "Button")]
+    [ServiceProviderContractBinding(DefaultName = "Button")]
     public IDigitalInput Button { get; set; } = null!;
 
-    [ServiceProviderContract(defaultName: "LED")]
+    [ServiceProviderContractBinding(DefaultName = "LED")]
     public IDigitalOutput Led { get; set; } = null!;
 
     [ServiceProperty(Title = "LED Enabled")]
-    [Importance(Importance.Primary)]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public bool LedEnabled { get; private set; }
 
     protected override void Ready()
@@ -56,13 +56,13 @@ Subscribe to `InputChanged` in the `Ready()` lifecycle method. The event fires w
 ```csharp
 protected override void Ready()
 {
-    // Digital: value is a bool
+    // Digital: value is a bool.
     Button.InputChanged += (sender, value) =>
     {
         Led.Set(value);
     };
 
-    // Analog: value is a double
+    // Analog: value is a double.
     TemperatureSensor.InputChanged += (sender, value) =>
     {
         CurrentTemperature = value;
@@ -83,37 +83,42 @@ HeaterOutput.Set(0.75); // 75% power
 
 ## Modbus RTU Example
 
-The `Vion.Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. You declare it with `[ServiceProviderContract]`, the Dale runtime injects an implementation, and you use it to read and write Modbus registers directly.
+The `Vion.Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. Declare it with `[ServiceProviderContractBinding]`, the Dale runtime injects an implementation, and use it to read and write Modbus registers directly.
 
 ```csharp
-[LogicBlockInfo("EM122 Electricity Meter", "flashlight-line")]
+[LogicBlock(Name = "EM122 Electricity Meter", Icon = "flashlight-line")]
 public class Em122ElectricityMeter : LogicBlockBase
 {
     public Em122ElectricityMeter(ILogger logger) : base(logger) { }
 
-    [ServiceProviderContract("Modbus", "EM122 Modbus RTU")]
+    [ServiceProviderContractBinding(Identifier = "Modbus", DefaultName = "EM122 Modbus RTU")]
     public IModbusRtu Modbus { get; set; } = null!;
 
     [ServiceProperty(Title = "Unit ID")]
-    [Category(PropertyCategory.Configuration)]
+    [Presentation(Group = PropertyGroup.Configuration)]
     public int UnitId { get; set; } = 1;
 
     [ServiceProperty(Title = "Voltage L1", Unit = "V")]
-    [ServiceMeasuringPoint(Title = "Voltage L1", Unit = "V")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status)]
     public double VoltageL1 { get; private set; }
 
     [ServiceProperty(Title = "Voltage L2", Unit = "V")]
-    [ServiceMeasuringPoint(Title = "Voltage L2", Unit = "V")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status)]
     public double VoltageL2 { get; private set; }
 
     [ServiceProperty(Title = "Voltage L3", Unit = "V")]
-    [ServiceMeasuringPoint(Title = "Voltage L3", Unit = "V")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status)]
     public double VoltageL3 { get; private set; }
 
     [ServiceProperty(Title = "Read Count")]
+    [Presentation(Group = PropertyGroup.Diagnostics)]
     public int ReadCount { get; private set; }
 
     [ServiceProperty(Title = "Error Count")]
+    [Presentation(Group = PropertyGroup.Diagnostics)]
     public int ErrorCount { get; private set; }
 
     protected override void Ready()
@@ -121,11 +126,11 @@ public class Em122ElectricityMeter : LogicBlockBase
         Modbus.IsEnabled = true;
     }
 
-    // Poll every 2 seconds
+    // Poll every 2 seconds.
     [Timer(2)]
     public void Poll()
     {
-        // Batch read: 3 contiguous float registers starting at address 0
+        // Batch read: 3 contiguous float registers starting at address 0.
         Modbus.ReadInputRegistersAsFloat(
             UnitId,
             startingAddress: 0,
@@ -151,7 +156,7 @@ public class Em122ElectricityMeter : LogicBlockBase
 The `IModbusRtu` interface provides typed read/write methods for all standard Modbus operations:
 
 | Method | Modbus Function |
-|--------|----------------|
+|--------|-----------------|
 | `ReadDiscreteInputs` | FC 2 — read discrete inputs |
 | `ReadCoils` / `WriteSingleCoil` / `WriteMultipleCoils` | FC 1, 5, 15 — coils |
 | `ReadInputRegistersAs{Float,Int,Short,...}` | FC 4 — read input registers |
@@ -161,7 +166,7 @@ The `IModbusRtu` interface provides typed read/write methods for all standard Mo
 All operations are callback-based and support configurable byte order, word order, and operation timeout:
 
 ```csharp
-// Write a holding register with explicit byte order
+// Write a holding register with explicit byte order.
 Modbus.WriteMultipleHoldingRegistersAsFloat(
     UnitId,
     registerAddress: 2,
@@ -173,10 +178,10 @@ Modbus.WriteMultipleHoldingRegistersAsFloat(
 
 ## Modbus TCP
 
-The `Vion.Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract like RTU). This is useful when your logic block connects directly to a Modbus TCP device over the network.
+The `Vion.Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract binding like RTU). Use it when a logic block connects directly to a Modbus TCP device over the network.
 
 ```csharp
-[LogicBlockInfo("Energy Meter TCP")]
+[LogicBlock(Name = "Energy Meter TCP")]
 public class EnergyMeterTcp : LogicBlockBase
 {
     private readonly ILogicBlockModbusTcpClient _modbus;
@@ -187,11 +192,12 @@ public class EnergyMeterTcp : LogicBlockBase
     }
 
     [ServiceProperty(Title = "IP Address")]
-    [Category(PropertyCategory.Configuration)]
+    [Presentation(Group = PropertyGroup.Configuration)]
     public string IpAddress { get; set; } = "192.168.1.100";
 
     [ServiceProperty(Title = "Power", Unit = "kW")]
-    [ServiceMeasuringPoint(Title = "Power", Unit = "kW")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public double Power { get; private set; }
 
     protected override void Ready()
@@ -216,12 +222,12 @@ public class EnergyMeterTcp : LogicBlockBase
 The TCP client provides the same typed read/write methods as `IModbusRtu` (same Modbus function codes), plus connection management:
 
 | Feature | Modbus RTU | Modbus TCP |
-|---------|-----------|-----------|
+|---------|------------|------------|
 | Transport | Serial via service provider | TCP/IP direct connection |
-| Declaration | `[ServiceProviderContract]` | Constructor injection (DI) |
+| Declaration | `[ServiceProviderContractBinding]` | Constructor injection (DI) |
 | Connection | Managed by runtime | `IpAddress`, `Port`, `ConnectionTimeout` |
 | Queue management | Actor-based | Configurable `QueueCapacity` and `QueueOverflowPolicy` |
-| Multiple connections | One per contract | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
+| Multiple connections | One per binding | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
 
 For connecting to multiple Modbus TCP devices from one logic block, inject `ILogicBlockModbusTcpClientFactory` and call `Create()` for each connection.
 
@@ -236,7 +242,7 @@ services.AddDaleModbusTcpSdk();
 The `Vion.Dale.Sdk.Http` package provides `ILogicBlockHttpClient` — a non-blocking HTTP client for calling external APIs from logic blocks. All operations use callbacks dispatched through the actor system, so the logic block thread is never blocked.
 
 ```csharp
-[LogicBlockInfo("Weather Station")]
+[LogicBlock(Name = "Weather Station")]
 public class WeatherStation : LogicBlockBase
 {
     private readonly ILogicBlockHttpClient _http;
@@ -247,7 +253,8 @@ public class WeatherStation : LogicBlockBase
     }
 
     [ServiceProperty(Title = "Temperature", Unit = "°C")]
-    [ServiceMeasuringPoint(Title = "Temperature", Unit = "°C")]
+    [ServiceMeasuringPoint]
+    [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public double Temperature { get; private set; }
 
     [Timer(300)]
@@ -283,7 +290,7 @@ services.AddDaleHttpSdk();
 
 ## Cardinality and Sharing
 
-Service provider contracts support cardinality and sharing options to control how many providers can be connected and whether they can be shared across blocks.
+`[ServiceProviderContractBinding]` supports cardinality and sharing options to control how many providers can be connected and whether they can be shared across blocks.
 
 ### Cardinality
 
@@ -301,15 +308,15 @@ Service provider contracts support cardinality and sharing options to control ho
 | `SharingType.Exclusive` | Provider is reserved for this block only. |
 
 ```csharp
-[ServiceProviderContract(
-    defaultName: "Sensor",
-    cardinality: CardinalityType.Optional,
-    sharing: SharingType.Exclusive)]
+[ServiceProviderContractBinding(
+    DefaultName = "Sensor",
+    Cardinality = CardinalityType.Optional,
+    Sharing = SharingType.Exclusive)]
 public IAnalogInput OptionalSensor { get; set; } = null!;
 ```
 
 ## Custom Service Providers
 
-You can build custom service providers for any hardware, bus protocol, or external system. A service provider is a standalone process that communicates with the Dale runtime (for contract messaging) and Mesh (for registration and health) over the local MQTT broker using MQTT 5.0. It can be written in any language or technology — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
+Custom service providers can be built for any hardware, bus protocol, or external system. A service provider is a standalone process that communicates with the Dale runtime (for contract messaging) and Mesh (for registration and health) over the local MQTT broker using MQTT 5.0. It can be written in any language — .NET, Python, Rust, CODESYS, TwinCAT, or bare-metal firmware.
 
-See the [Service Provider Protocol](/sdk/service-provider-protocol) for the full MQTT protocol specification covering registration, declaration, health reporting, and service-specific messaging patterns.
+See [Service Provider Protocol](/sdk/service-provider-protocol) for the full MQTT protocol specification covering registration, declaration, health reporting, and service-specific messaging patterns.
