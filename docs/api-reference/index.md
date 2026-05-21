@@ -1256,26 +1256,6 @@ Well-known UiHint values for `UiHint`. Open set — the dashboard ignores unknow
 
 ---
 
-## Vion.Dale.Sdk.Utils
-
-### IDateTimeProvider
-
-Provides an abstraction for date and time operations.
-
-**Properties:**
-
-- `UtcNow` — Gets the current date and time in UTC.
-
-**Methods:**
-
-- `Add(DateTime, TimeSpan)` — Adds the specified `TimeSpan` to the specified `DateTime`.
-  - `timestamp`: The date and time to add to.
-  - `duration`: The time span to add.
-- `GetElapsedTime(DateTime)` — Gets the elapsed time since the specified `DateTime`.
-  - `since`: The date and time to measure elapsed time from.
-
----
-
 ## Vion.Dale.Sdk.Abstractions
 
 ### ServiceProviderHandlerBase
