@@ -83,6 +83,44 @@ Assert.Equal(TimeSpan.FromSeconds(5), interval);
 - `FireTimer` invokes the timer handler immediately without waiting for the real interval.
 - `GetTimerInterval` returns the `TimeSpan` the block registered for that timer.
 
+## Testing Time-Dependent Code
+
+The test context hosts a virtual clock — a `FakeTimeProvider` — that backs both `TimeProvider.GetUtcNow()` reads inside the block and the deadlines attached to `InvokeSynchronizedAfter` actions. The clock is anchored at `2026-01-01 UTC` by default and only moves when the test advances it.
+
+Move the clock forward to fire scheduled actions and observe time-driven state:
+
+```csharp
+testContext.AdvanceTime(TimeSpan.FromSeconds(5));
+Assert.Equal(5, block.ElapsedSeconds);
+```
+
+`AdvanceTime` fires every queued action whose deadline lies within the advance window, in deadline order. The clock is set to each action's deadline before the action runs, so an action's own `UtcNow` read sees the time it was scheduled for. Use this instead of `FlushPendingActions` when the block's behaviour depends on the actual elapsed time.
+
+Read the current virtual time with `VirtualNow`:
+
+```csharp
+Assert.Equal(new DateTime(2026, 1, 1, 0, 0, 5), testContext.VirtualNow);
+```
+
+When the block takes a `TimeProvider` in its constructor, share the same `FakeTimeProvider` between the block and the test context so both read the same `UtcNow`:
+
+```csharp
+var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+var block = new MyBlock(clock, LogicBlockTestHelper.CreateLoggerMock().Object);
+var testContext = block.CreateTestContext()
+    .WithTimeProvider(clock)
+    .Build();
+
+testContext.AdvanceTime(TimeSpan.FromMinutes(1));  // advances both
+```
+
+| Member | Purpose |
+|--------|---------|
+| `TimeProvider` | The `FakeTimeProvider` backing the test context. Inject as `TimeProvider` into the block for deterministic `UtcNow`. |
+| `VirtualNow` | Current virtual time. Shorthand for `TimeProvider.GetUtcNow().UtcDateTime`. |
+| `AdvanceTime(TimeSpan)` | Advance the clock and fire elapsed `InvokeSynchronizedAfter` actions in deadline order. |
+| `WithTimeProvider(FakeTimeProvider)` | Bind the test context to a caller-owned clock so the block and the context share one instance. |
+
 ## Testing I/O
 
 Simulate hardware input changes and verify output writes:
