@@ -1167,6 +1167,7 @@ Describe a service property on a service interface or logic block property. The 
 
 - `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.annotations.description`. Independent of `Title`.
 - `WriteOnly` — Marks a writable property as a secret — clients see a redaction sentinel (`"***"`) on the publish-state channel instead of the actual value. Restricted to `string` / `string?` properties in v1. Routes into `schema.annotations.writeOnly`.
+- `ReadOnly` — Marks the property as read-only on the wire even when the C# property has a public setter. Use this when a cross-assembly helper needs to assign the value (requires the public setter) but the cloud must not be able to SetPropertyValue it back. Routes into `schema.annotations.readOnly` — same wire flag that a private setter or a `[ServiceMeasuringPoint]` would set, so the dashboard groups it with metrics.
 
 ---
 
