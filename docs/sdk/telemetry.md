@@ -1,11 +1,11 @@
 ---
 title: Telemetry
-description: Export logs, traces, and metrics from a service provider to VION's OpenTelemetry collector with the Vion.Telemetry package.
+description: Export logs, traces, and metrics from a service provider to VION's OpenTelemetry collector with the Vion.Telemetry.Export package.
 ---
 
 # Telemetry
 
-`Vion.Telemetry` wires the OpenTelemetry OTLP export pipeline — logs, traces, and metrics — behind a single `AddVionTelemetry(...)` call, so a service provider exports the same shape of observability data as the rest of VION without hand-rolling the pipeline. The package is published as [`Vion.Telemetry`](https://www.nuget.org/packages/Vion.Telemetry) on nuget.org.
+`Vion.Telemetry.Export` wires the OpenTelemetry OTLP export pipeline — logs, traces, and metrics — behind a single `AddVionTelemetryExport(...)` call, so a service provider exports the same shape of observability data as the rest of VION without hand-rolling the pipeline. The package is published as [`Vion.Telemetry.Export`](https://www.nuget.org/packages/Vion.Telemetry.Export) on nuget.org. Span *creation* lives in the companion [`Vion.Telemetry.Instrumentation`](https://www.nuget.org/packages/Vion.Telemetry.Instrumentation) package (see [Exporting your own traces](#exporting-your-own-traces)).
 
 The package is export-only. Creating spans stays with the code that records them, so OpenTelemetry never enters the dependency closure of code that does not export. See [Observability Overview](/observability/overview) for where the exported data goes once it leaves the gateway.
 
@@ -14,20 +14,20 @@ The package is export-only. Creating spans stays with the code that records them
 Add the package to your service provider project:
 
 ```bash
-dotnet add package Vion.Telemetry
+dotnet add package Vion.Telemetry.Export
 ```
 
 The package targets `net10.0` and is AOT-compatible.
 
 ## Register
 
-Call `AddVionTelemetry` on your `IServiceCollection` during startup. It registers the logging filter, the OTLP log/trace/metric exporters, the resource, the runtime-metric allow-list, and the batch/interval options:
+Call `AddVionTelemetryExport` on your `IServiceCollection` during startup. It registers the logging filter, the OTLP log/trace/metric exporters, the resource, the runtime-metric allow-list, and the batch/interval options:
 
 ```csharp
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
 using Vion.ServiceProvider.Sdk.SystemControl;
-using Vion.Telemetry;
+using Vion.Telemetry.Export;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -35,7 +35,7 @@ var serviceVersion = Assembly.GetExecutingAssembly()
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
     ?.InformationalVersion;
 
-builder.Services.AddVionTelemetry(new VionTelemetryOptions(
+builder.Services.AddVionTelemetryExport(new VionTelemetryExportOptions(
     ApplicationName: "my-service-provider",
     ServiceVersion: serviceVersion,
     CurrentLevelProvider: () => LogLevelManager.CurrentLevel,
@@ -51,7 +51,7 @@ On the edge gateway, the OTLP collector is reachable at `http://otel:4317` — t
 
 ## Options
 
-`VionTelemetryOptions` is a record; construct it with named arguments. The first five parameters are required; the rest have defaults.
+`VionTelemetryExportOptions` is a record; construct it with named arguments. The first five parameters are required; the rest have defaults.
 
 | Parameter | Description |
 |-----------|-------------|
@@ -63,20 +63,20 @@ On the edge gateway, the OTLP collector is reachable at `http://otel:4317` — t
 | `CollectorProtocol` | `OtlpExportProtocol`. Export protocol for the collector endpoint. Defaults to `Grpc`. |
 | `LogsEnabled` / `TracesEnabled` / `MetricsEnabled` | `bool`. Per-signal export toggles. Each defaults to `true`. |
 | `LogFilters` | `(string Category, LogLevel Level)[]?`. Per-category log-level overrides applied on top of `CurrentLevelProvider`. Defaults to `null`. |
-| `ActivitySourceNames` | `string[]?`. Additional `ActivitySource` names to export traces from. The shared messaging source is always collected. Defaults to `null`. |
+| `ActivitySourceNames` | `string[]?`. The `ActivitySource` names to export traces from. To collect VION's messaging spans, include `ActivitySources.Messaging.Name` from `Vion.Telemetry.Instrumentation`. Defaults to `null`. |
 | `MeterNames` | `string[]?`. Additional `Meter` names to export metrics from. A subscribed meter's instruments are exported only with a matching `MetricViews` entry. Defaults to `null`. |
 | `MetricViews` | `(string InstrumentName, MetricStreamConfiguration Configuration)[]?`. Metric views applied after the built-in runtime-metric allow-list. Defaults to `null`. |
 
 ## Exporting your own traces
 
-`Vion.Telemetry` always collects traces from the shared messaging source, `Vion.Contracts.Observability.ActivitySourceNames.Messaging`. Spans recorded on that source — by VION messaging code — are exported with no extra configuration.
+`Vion.Telemetry.Export` exports traces from whatever `ActivitySource` names you pass in `ActivitySourceNames` — it has no built-in source. To collect VION's messaging spans (publish/consume), reference the companion `Vion.Telemetry.Instrumentation` package and pass its source name, `ActivitySources.Messaging.Name`.
 
 To export spans your own code records, create an `ActivitySource` and pass its name through `ActivitySourceNames`. OpenTelemetry collects sources by name, so the name you register must match the name you construct the source with:
 
 ```csharp
 using System.Diagnostics;
 using Vion.ServiceProvider.Sdk.SystemControl;
-using Vion.Telemetry;
+using Vion.Telemetry.Export;
 
 public static class Telemetry
 {
@@ -84,7 +84,7 @@ public static class Telemetry
     public static readonly ActivitySource Source = new(SourceName);
 }
 
-builder.Services.AddVionTelemetry(new VionTelemetryOptions(
+builder.Services.AddVionTelemetryExport(new VionTelemetryExportOptions(
     ApplicationName: "my-service-provider",
     ServiceVersion: serviceVersion,
     CurrentLevelProvider: () => LogLevelManager.CurrentLevel,
@@ -106,9 +106,9 @@ By default the package exports a fixed set of .NET runtime metrics (GC, memory, 
 ```csharp
 using OpenTelemetry.Metrics;
 using Vion.ServiceProvider.Sdk.SystemControl;
-using Vion.Telemetry;
+using Vion.Telemetry.Export;
 
-builder.Services.AddVionTelemetry(new VionTelemetryOptions(
+builder.Services.AddVionTelemetryExport(new VionTelemetryExportOptions(
     ApplicationName: "my-service-provider",
     ServiceVersion: serviceVersion,
     CurrentLevelProvider: () => LogLevelManager.CurrentLevel,
