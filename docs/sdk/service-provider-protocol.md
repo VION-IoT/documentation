@@ -123,7 +123,8 @@ Configure a Last Will Testament (LWT) so the broker publishes an offline health 
 | Field | Value |
 |-------|-------|
 | Will Topic | `{installationTopic}/{serviceProviderIdentifier}/component/health/state` |
-| Will Payload | Health status with `connectionStatus: Offline` |
+| Will Payload | `ComponentHealthStatusPayload` with `connectionStatus: Offline` |
+| Will Content-Type | `application/json` or `application/x-flatbuffers` — must match your health payload format |
 | Will QoS | 1 |
 | Will Retain | yes |
 
@@ -179,9 +180,19 @@ On connection and periodically, publish health state:
 | Field | Value |
 |-------|-------|
 | Topic | `{installationTopic}/{serviceProviderIdentifier}/component/health/state` |
-| Payload | Health status (FlatBuffer `ComponentHealthStatusPayload` or equivalent) |
+| Payload | `ComponentHealthStatusPayload` — single-component health |
+| Format | FlatBuffers **or** JSON (see below) |
 | QoS | 0 |
 | Retain | yes |
+
+Mesh accepts the health payload in **either** wire format and selects the decoder from the MQTT `Content-Type`:
+
+| Content-Type | Format |
+|--------------|--------|
+| `application/json` | JSON `ComponentHealthStatusPayload` — recommended for providers without a FlatBuffers toolchain (Python, TwinCAT / Structured Text, bare-metal firmware) |
+| `application/x-flatbuffers` | FlatBuffers `ComponentHealthStatusPayload` (binary) — used by the built-in .NET providers |
+
+Both formats carry the same `schema` user property (`ComponentHealthStatusPayload`); only the `Content-Type` differs. Set the **same `Content-Type` on your Last Will message** (see [Last Will Testament](#last-will-testament)), or Mesh decodes the retained `Offline` will with the wrong format.
 
 ## MQTT Message Conventions
 
@@ -192,7 +203,7 @@ All messages during the operational phase follow these conventions:
 | Protocol version | MQTT 5.0 required |
 | User property `schema` | Payload type name (e.g., `DiStatePayload`, `SetDoPayload`) |
 | User property `published_at` | ISO 8601 UTC timestamp |
-| Content-Type | `application/x-flatbuffer`, `application/json`, or `application/octet-stream` |
+| Content-Type | `application/x-flatbuffers`, `application/json`, or `application/octet-stream` |
 
 ## Service-Specific Messaging
 
@@ -298,7 +309,7 @@ Service providers choose their own serialization format. The `Content-Type` MQTT
 
 | Content-Type | Description |
 |-------------|-------------|
-| `application/x-flatbuffer` | FlatBuffers binary format (used by built-in DigitalIo and AnalogIo) |
+| `application/x-flatbuffers` | FlatBuffers binary format (used by built-in DigitalIo and AnalogIo) |
 | `application/json` | JSON (recommended for custom providers — easiest to implement across technologies) |
 | `application/octet-stream` | Custom binary format |
 
