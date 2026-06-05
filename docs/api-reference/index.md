@@ -1056,10 +1056,10 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 
 **Methods:**
 
-- `Configure(ILogicBlockConfigurationBuilder)` — Binds this logic block's interfaces, contracts, services and timers from their declarative attributes. Internal infrastructure invoked by the runtime; not an extension point.
 - `Ready` — Called once after the block has been configured (attribute-driven bindings are in place) and is ready to run, but BEFORE the runtime has restored persisted `ServicePropertyAttribute` values, registered per-contract sender instances, or fired . The right place to attach event handlers to contract / interface elements and to do other block-local one-time setup that doesn't depend on SDK runtime state.
 - `Starting` — Called once after and after the runtime has restored persisted `ServicePropertyAttribute` values and registered per-contract sender instances. The right place for setup that depends on SDK runtime state: reading persisted property values, enumerating contract links via `GetLinkedXxx()`, scheduling first periodic ticks, and emitting initial cross-block contract state-updates.
 - `Stopping` — Called once before the block is removed, after the runtime processes a stop request. The right place to release resources acquired during the block's lifetime: detach event handlers attached in , cancel in-flight operations, dispose injected clients, flush pending I/O.
+- `Configure(ILogicBlockConfigurationBuilder)` — Binds this logic block's interfaces, contracts, services and timers from their declarative attributes. Internal infrastructure invoked by the runtime; not an extension point.
 - `InvokeActionMessage.#ctor(Action)` — Represents a message that contains an action to be executed in the context of the actor. This is not serializable, therefore only usable locally, usually within one actor
 
 ---
