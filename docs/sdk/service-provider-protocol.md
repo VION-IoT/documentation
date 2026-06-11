@@ -48,7 +48,7 @@ The secret, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier
 
 **Recommended secret format:** A UUID v4 without hyphens — 32 lowercase hex characters (e.g., `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`). This is what Mesh uses internally.
 
-For .NET service providers, use `RegistrationSecret.Generate()` from the `Vion.Dale.ServiceProvider.Sdk` package (or `Guid.NewGuid().ToString("N")`).
+For .NET service providers, generate the secret with `Guid.NewGuid().ToString("N")` and hand it to the `ServiceProviderClientConfigurationBuilder` from the [`Vion.ServiceProvider.Sdk`](https://www.nuget.org/profiles/VION-IoT) package — the SDK runs the registration flow and reconnects with the Mesh-issued credentials for you.
 :::
 
 ### Subscribe to the Response
@@ -165,25 +165,67 @@ Declaration payload:
 
 The `type` field must match a `[ServiceProviderContractType]` known to the Dale runtime (for example, `DigitalInput`, `DigitalOutput`, `AnalogInput`, `AnalogOutput`, `ModbusRtu`, or a custom type from a third-party Dale SDK package).
 
+A service may also declare **properties** (typed read/writable values) and **measuring points** (typed readings) alongside its contracts. Each carries a **structured type** — a `schema` (a JSON Schema 2020-12 document in the *Dale profile*: `type`, `format`, nullability, `readOnly` / `writeOnly`, unit metadata, and numeric bounds), plus optional `presentation` (UI hints) and `runtime` (e.g. persistence) siblings — not a stringified type name. Read-only-ness is expressed by `readOnly` inside the schema, not a separate boolean. This is the same model the Dale runtime emits for logic-block introspection.
+
+```json
+{
+  "services": [
+    {
+      "identifier": "inverter",
+      "properties": [
+        {
+          "identifier": "targetPower",
+          "schema": { "type": "number", "minimum": 0, "maximum": 5000 },
+          "presentation": { "displayName": "Target Power" }
+        }
+      ],
+      "measuringPoints": [
+        {
+          "identifier": "actualPower",
+          "schema": { "type": "number", "readOnly": true }
+        }
+      ]
+    }
+  ]
+}
+```
+
+.NET providers build these from a `ServiceSchema<T>` (the SDK's `ServiceField`s carry the schema); other languages emit the JSON directly.
+
 ## Health Reporting
 
-Mesh periodically queries health status from all components.
+Health uses **two channels**: the service provider publishes lifecycle `online` / `offline` to the **state** topic, and Mesh **pulls** health detail on demand with a query/response. The `since` / `reason` discipline at the end of this section matters — getting it wrong floods the cloud.
 
-### Respond to Health Queries
+### Connection state (`online` / `offline`)
 
-Subscribe to `{installationTopic}/{serviceProviderIdentifier}/component/health/get`. When a message arrives, publish a health response to the `ResponseTopic` from the request, echoing the `CorrelationData`.
-
-### Publish Health State
-
-On connection and periodically, publish health state:
+`online` / `offline` mean exactly one thing: **whether the service provider is connected to the local broker.** Publish `online` (retained) once you are operationally connected, and configure your [Last Will](#last-will-testament) so the broker publishes `offline` if you drop. **Never** flip `online` / `offline` for any other reason — if an *external* dependency is unreachable (your provider can't reach its upstream cloud or field bus), you are still `online`; report that as **unhealthy** in your health response, not as `offline`.
 
 | Field | Value |
 |-------|-------|
 | Topic | `{installationTopic}/{serviceProviderIdentifier}/component/health/state` |
-| Payload | `ComponentHealthStatusPayload` — single-component health |
-| Format | FlatBuffers **or** JSON (see below) |
+| Payload | `ComponentHealthStatusPayload` |
 | QoS | 0 |
 | Retain | yes |
+
+On an `online` / `offline` message the health **status defaults to `Unknown`** unless you assert one (for example `online` + `Healthy`), which Mesh respects. Set a UTC-now `since` when you can — it lets Mesh distinguish a genuine new `online` from a duplicate (two `online`s with `since` unset are ambiguous). The state topic is **not** only for `online` / `offline` — pushing an actual health *change* here is allowed. But **never push to `state` as part of answering a health poll:** Mesh **clears its pending health request the moment a message lands on the state topic**, so replying on the `ResponseTopic` *and* pushing to `state` corrupts Mesh's request tracking (and a poll doesn't change your health, so there's nothing to push). The only reason to push a health change to `state` is when *another* service provider watches your state and must react when you go unhealthy without polling you. For Mesh, never push — it polls, and the poll response time is part of the evaluation (next section).
+
+### Respond to health queries
+
+Subscribe to `{installationTopic}/{serviceProviderIdentifier}/component/health/get`. When a query arrives, publish your current health to the request's `ResponseTopic`, echoing its `CorrelationData`.
+
+Response timeliness **gates whether Mesh trusts your status at all:** reply **in time** and Mesh respects whatever you report — a timely `Unhealthy` is `Unhealthy`, a timely `Healthy` is `Healthy`. Reply **late, or not at all,** and Mesh ignores your reported status and marks you **unhealthy** ("did not respond in time") — a `Healthy` that arrives too late is still unhealthy. So timeliness is itself the liveness signal, and a provider with nothing of its own to report just answers **`Healthy`, `since = null`, `reason = null`**.
+
+### Keep `since` and `reason` stable
+
+::: warning
+Mesh diffs successive health to detect state changes, and **every change is written to a store-and-forward outbox and forwarded to the cloud.** A `since` or `reason` that changes on every response makes *every poll* look like a new state change — and after a cloud-link outage those phantom changes pile up in the outbox, where they can take **hours** to drain on reconnect, delaying real telemetry behind them. So:
+
+- A `null` `since` is fine — Mesh assigns the transition time itself when it first sees the state.
+- **Never** stamp the current time on every response.
+- **Never** put a constantly-changing value in `reason`. Use a stable category — `"messages dropped"`, not `"dropped 1234 messages"`. Keep the varying count in your logs.
+:::
+
+### Wire format
 
 Mesh accepts the health payload in **either** wire format and selects the decoder from the MQTT `Content-Type`:
 
@@ -192,7 +234,7 @@ Mesh accepts the health payload in **either** wire format and selects the decode
 | `application/json` | JSON `ComponentHealthStatusPayload` — recommended for providers without a FlatBuffers toolchain (Python, TwinCAT / Structured Text, bare-metal firmware) |
 | `application/x-flatbuffers` | FlatBuffers `ComponentHealthStatusPayload` (binary) — used by the built-in .NET providers |
 
-Both formats carry the same `schema` user property (`ComponentHealthStatusPayload`); only the `Content-Type` differs. Set the **same `Content-Type` on your Last Will message** (see [Last Will Testament](#last-will-testament)), or Mesh decodes the retained `Offline` will with the wrong format.
+Both formats carry the same `schema` user property (`ComponentHealthStatusPayload`); only the `Content-Type` differs. Set the **same `Content-Type` on your Last Will message** (see [Last Will Testament](#last-will-testament)), or Mesh decodes the retained `offline` will with the wrong format.
 
 ## MQTT Message Conventions
 
