@@ -185,6 +185,20 @@ Specifies the word order for 64-bit values composed of four 16-bit words.
 
 ## Vion.Dale.Sdk.Modbus.Core.Exceptions
 
+### InvalidServerAddressException
+
+Thrown when a server-side register or bit access lies outside the declared extent of its area.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `InvalidServerAddressException` class.
+  - `area`: The register area that was accessed.
+  - `startingAddress`: The first address of the attempted access.
+  - `quantity`: The number of registers or bits of the attempted access.
+  - `extent`: The declared extent of the area (addresses 0 to extent - 1 are served).
+
+---
+
 ### ModbusException
 
 Represents errors that occur during Modbus communication.
@@ -219,6 +233,172 @@ Specifies the Modbus exception type.
 - `MemoryParityError` — Specialized use in conjunction with function codes 20 and 21 and reference type 6, to indicate that the extended file area failed to pass a consistency check.
 - `GatewayPathUnavailable` — Specialized use in conjunction with gateways, indicates that the gateway was unable to allocate an internal communication path from the input port to the output port for processing the request.
 - `GatewayTargetDeviceFailedToRespond` — Specialized use in conjunction with gateways, indicates that no response was obtained from the target device.
+
+---
+
+## Vion.Dale.Sdk.Modbus.Core.Server
+
+### IModbusBitAccessor
+
+Typed access to one bit-addressed server area (coils or discrete inputs) inside a server snapshot.
+
+> Only valid inside the snapshot callback that provided it — the server lock is held for the duration of the callback and released afterwards. Do not capture accessors outside the callback.
+
+**Methods:**
+
+- `Read(ushort)` — Reads a single bit.
+  - `address`: The bit address to read.
+- `Write(ushort, bool)` — Writes a single bit.
+  - `address`: The bit address to write.
+  - `value`: The bit value to write.
+
+---
+
+### IModbusRegisterAccessor
+
+Typed access to one register-addressed server area (holding or input registers) inside a server snapshot.
+
+> Only valid inside the snapshot callback that provided it — the server lock is held for the duration of the callback and released afterwards. Do not capture accessors outside the callback. Method names, parameters, and defaults mirror the typed method family of the Modbus TCP client (`Raw`/`As&lt;Type&gt;`); all conversions are converter-backed, so byte and word order are explicit parameters and the underlying buffer is only ever touched in wire order.
+
+**Methods:**
+
+- `ReadRaw(ushort, ushort)` — Reads registers as raw bytes in wire order (big-endian per 16-bit word).
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers (16 bit per register) to read.
+- `WriteRaw(ushort, byte[])` — Writes raw register bytes in wire order (big-endian per 16-bit word).
+  - `startingAddress`: The register address to start writing at.
+  - `registerBytes`: The register bytes to write (2 bytes per register).
+- `ReadAsShort(ushort, ByteOrder)` — Reads one register as a signed 16-bit integer.
+  - `startingAddress`: The register address to read.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+- `WriteAsShort(ushort, short, ByteOrder)` — Writes one register as a signed 16-bit integer.
+  - `startingAddress`: The register address to write.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+- `ReadAsUShort(ushort, ByteOrder)` — Reads one register as an unsigned 16-bit integer.
+  - `startingAddress`: The register address to read.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+- `WriteAsUShort(ushort, ushort, ByteOrder)` — Writes one register as an unsigned 16-bit integer.
+  - `startingAddress`: The register address to write.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+- `ReadAsInt(ushort, ByteOrder, WordOrder32)` — Reads two consecutive registers as a signed 32-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is stored in. Default is `MswToLsw`.
+- `WriteAsInt(ushort, int, ByteOrder, WordOrder32)` — Writes two consecutive registers as a signed 32-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to store the data in. Default is `MswToLsw`.
+- `ReadAsUInt(ushort, ByteOrder, WordOrder32)` — Reads two consecutive registers as an unsigned 32-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is stored in. Default is `MswToLsw`.
+- `WriteAsUInt(ushort, uint, ByteOrder, WordOrder32)` — Writes two consecutive registers as an unsigned 32-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to store the data in. Default is `MswToLsw`.
+- `ReadAsFloat(ushort, ByteOrder, WordOrder32)` — Reads two consecutive registers as a 32-bit floating-point number.
+  - `startingAddress`: The register address of the first register.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is stored in. Default is `MswToLsw`.
+- `WriteAsFloat(ushort, float, ByteOrder, WordOrder32)` — Writes two consecutive registers as a 32-bit floating-point number.
+  - `startingAddress`: The register address of the first register.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to store the data in. Default is `MswToLsw`.
+- `ReadAsLong(ushort, ByteOrder, WordOrder64)` — Reads four consecutive registers as a signed 64-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is stored in. Default is `ABCD`.
+- `WriteAsLong(ushort, long, ByteOrder, WordOrder64)` — Writes four consecutive registers as a signed 64-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to store the data in. Default is `ABCD`.
+- `ReadAsULong(ushort, ByteOrder, WordOrder64)` — Reads four consecutive registers as an unsigned 64-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is stored in. Default is `ABCD`.
+- `WriteAsULong(ushort, ulong, ByteOrder, WordOrder64)` — Writes four consecutive registers as an unsigned 64-bit integer.
+  - `startingAddress`: The register address of the first register.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to store the data in. Default is `ABCD`.
+- `ReadAsDouble(ushort, ByteOrder, WordOrder64)` — Reads four consecutive registers as a 64-bit floating-point number.
+  - `startingAddress`: The register address of the first register.
+  - `byteOrder`: The byte order the data is stored in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order the data is stored in. Default is `ABCD`.
+- `WriteAsDouble(ushort, double, ByteOrder, WordOrder64)` — Writes four consecutive registers as a 64-bit floating-point number.
+  - `startingAddress`: The register address of the first register.
+  - `value`: The value to write.
+  - `byteOrder`: The byte order to store the data in. Default is `MsbToLsb`.
+  - `wordOrder`: The word order to store the data in. Default is `ABCD`.
+- `ReadAsString(ushort, ushort, TextEncoding)` — Reads consecutive registers as a string.
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers (16 bit per register) to read.
+  - `textEncoding`: The text encoding of the stored data. Default is `Ascii`.
+- `WriteAsString(ushort, string, TextEncoding)` — Writes a string to consecutive registers.
+  - `startingAddress`: The register address to start writing at.
+  - `value`: The string to write.
+  - `textEncoding`: The text encoding to store the data in. Default is `Ascii`.
+
+---
+
+### IModbusServerSnapshot
+
+A consistent view of all four register areas of a hosted Modbus server, valid for the duration of one synchronization callback.
+
+> The server lock is held for the whole callback and released afterwards: reads and writes across all areas within one callback are atomic with respect to client requests, so read-modify-publish patterns (e.g. echoing a master-written heartbeat into a feedback register) need no further coordination. Only valid inside the callback that provided it — do not capture the snapshot or its accessors.
+
+**Properties:**
+
+- `HoldingRegisters` — The holding registers (client-writable setpoints; the server may seed defaults or echo feedback).
+- `InputRegisters` — The input registers (server-published telemetry; read-only for clients).
+- `Coils` — The coils (client-writable commands; the server may reset consumed command bits).
+- `DiscreteInputs` — The discrete inputs (server-published flags; read-only for clients).
+
+---
+
+### ModbusServerArea
+
+Identifies one of the four Modbus register areas a server serves.
+
+**Fields/Values:**
+
+- `HoldingRegisters` — Holding registers (read/write for clients; function codes 3, 6, 16, 23).
+- `InputRegisters` — Input registers (read-only for clients; function code 4).
+- `Coils` — Coils (read/write for clients; function codes 1, 5, 15).
+- `DiscreteInputs` — Discrete inputs (read-only for clients; function code 2).
+
+---
+
+### ModbusServerAreaExtents
+
+The declared register-map extents of a Modbus server, per area.
+
+> Counts are extents, not sizes from an offset: addresses `0` to `Count - 1` are served. A map that starts at an offset (e.g. a 10-register map at address 0x8000) declares `offset + size` (0x800A). A count of 0 means the area is not served at all. Extents drive request validation and accessor bounds checks — they do not size any buffer (the underlying server buffers always cover the full Modbus address range).
+
+**Properties:**
+
+- `HoldingRegisterCount` — The number of addressable holding registers, starting at address 0.
+- `InputRegisterCount` — The number of addressable input registers, starting at address 0.
+- `CoilCount` — The number of addressable coils, starting at address 0.
+- `DiscreteInputCount` — The number of addressable discrete inputs, starting at address 0.
+
+**Methods:**
+
+- *Constructor* — The declared register-map extents of a Modbus server, per area.
+  - `HoldingRegisterCount`: The number of addressable holding registers, starting at address 0.
+  - `InputRegisterCount`: The number of addressable input registers, starting at address 0.
+  - `CoilCount`: The number of addressable coils, starting at address 0.
+  - `DiscreteInputCount`: The number of addressable discrete inputs, starting at address 0.
+- `Covers(ModbusServerArea, ushort, uint)` — Determines whether the given address range lies fully inside the declared extent of an area.
+  - `area`: The register area the range refers to.
+  - `startingAddress`: The first address of the range.
+  - `quantity`: The number of registers or bits in the range. Must be at least 1 to be coverable.
 
 ---
 
@@ -955,6 +1135,46 @@ Exception thrown when a request is dropped from the queue. This occurs when the 
 
 ---
 
+## Vion.Dale.Sdk.Modbus.Tcp.Server.LogicBlock
+
+### ILogicBlockModbusTcpServer
+
+Hosts a Modbus TCP server (slave role) for logic blocks: external Modbus clients connect to the logic block and read or write its register map.
+
+> The server is configured via properties and gated by `IsEnabled`, exactly like the Modbus TCP client: configure while disabled, then enable. Configuration properties can only be changed while the server is disabled — to reconfigure, disable the server first, update the settings, then re-enable it (a port or address change is a rebind). All register access happens inside callbacks, which execute synchronously on the caller's thread while holding the server lock — client requests are served from the register buffers on background threads, and the lock makes each callback atomic with respect to them. No events or callbacks are ever delivered to the logic block from background threads. The block chooses its own cadence (a timer, a reactive trigger) and may use several independent cadences; each `Sync` call is atomic on its own. The register buffers exist independently of the listener: `Sync` also works while the server is disabled, so a block can seed default values before it starts listening. Buffer contents survive disable/enable cycles. The server accepts requests for any unit identifier and echoes the request's unit identifier in the response — the endpoint behavior the Modbus TCP specification intends for directly connected servers. Client requests outside the declared register-map extents are answered with an IllegalDataAddress Modbus exception. The server should be disposed when no longer needed. Disposal stops the listener and releases all resources; benign teardown races of the underlying server library are caught and logged, never thrown.
+
+**Properties:**
+
+- `IsEnabled` — Gets or sets whether the server is enabled. Default is `false`.
+- `ListenAddress` — Gets or sets the local IP address the server listens on. Default is `"0.0.0.0"` (all interfaces).
+- `Port` — Gets or sets the local port the server listens on. Default is 502 (standard Modbus TCP port).
+- `HoldingRegisterCount` — Gets or sets the declared holding register extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `InputRegisterCount` — Gets or sets the declared input register extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `CoilCount` — Gets or sets the declared coil extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `DiscreteInputCount` — Gets or sets the declared discrete input extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `IsListening` — Gets a value indicating whether the server is currently listening for client connections.
+- `ConnectionCount` — Gets the number of currently connected clients.
+- `LastClientWriteAt` — Gets the time of the most recent client write to any register area, or `null` when no client has written yet.
+
+**Methods:**
+
+- `Sync(Action<IModbusServerSnapshot>)` — Executes with a consistent view of all four register areas.
+  - `access`: The callback receiving the snapshot. It runs synchronously on the caller's thread while the server lock is held — keep it short and free of blocking calls, and do not capture the snapshot outside the callback.
+- `Sync<T>(Func<IModbusServerSnapshot, T>)` — Executes with a consistent view of all four register areas and returns its result.
+  - `access`: The callback receiving the snapshot. It runs synchronously on the caller's thread while the server lock is held — keep it short and free of blocking calls, and do not capture the snapshot outside the callback.
+
+---
+
+### ILogicBlockModbusTcpServerFactory
+
+Factory for creating instances of `ILogicBlockModbusTcpServer`.
+
+**Methods:**
+
+- `Create` — Creates a new instance of `ILogicBlockModbusTcpServer`.
+
+---
+
 ## Vion.Dale.Sdk.Core
 
 ### CommandAttribute
@@ -1295,6 +1515,27 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
 **Fields/Values:**
 
 - `ServiceProviderTopicPrefix` — The wildcard prefix prepended to all subscription action paths. Matches the `/{serviceProviderIdentifier}/{service}/{contract}` routing prefix in the topic structure. Centralized here to enforce the convention and enable programmatic broker ACL configuration.
+
+---
+
+### ServiceProviderMqttMessage
+
+A parsed MQTT message for service provider handlers. Provides pre-extracted routing information and typed payload access, hiding the internal `MqttMessageReceived` type.
+
+**Properties:**
+
+- `ContractId` — The service provider contract this message targets, parsed from the topic.
+- `CorrelationId` — The correlation ID from the MQTT message headers. `Empty` if no correlation data was present or the format was not recognized.
+- `Topic` — The full MQTT topic of the received message.
+- `ResponseTopic` — The MQTT 5.0 response topic, if present. Used in request-response patterns.
+- `RawPayload` — The raw payload bytes for custom deserialization.
+
+**Methods:**
+
+- `GetJsonPayload<T>(JsonSerializerOptions)` — Deserializes the payload as JSON.
+  - `serializerOptions`: Optional JSON serializer options. If null, `DefaultOptions` are used.
+- `GetFlatBufferPayload` — Returns the payload as a FlatBuffer ByteBuffer for deserialization.
+- `GetPayloadBytes` — Returns the raw payload as a byte array. Use `RawPayload` to avoid the copy when possible.
 
 ---
 
