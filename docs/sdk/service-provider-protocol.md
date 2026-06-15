@@ -124,7 +124,7 @@ Configure a Last Will Testament (LWT) so the broker publishes an offline health 
 |-------|-------|
 | Will Topic | `{installationTopic}/{serviceProviderIdentifier}/component/health/state` |
 | Will Payload | `ComponentHealthStatusPayload` with `connectionStatus: Offline` |
-| Will Content-Type | `application/json` or `application/x-flatbuffers` — must match your health payload format |
+| Will Content-Type | `application/json` |
 | Will QoS | 1 |
 | Will Retain | yes |
 
@@ -227,14 +227,7 @@ Mesh diffs successive health to detect state changes, and **every change is writ
 
 ### Wire format
 
-Mesh accepts the health payload in **either** wire format and selects the decoder from the MQTT `Content-Type`:
-
-| Content-Type | Format |
-|--------------|--------|
-| `application/json` | JSON `ComponentHealthStatusPayload` — recommended for providers without a FlatBuffers toolchain (Python, TwinCAT / Structured Text, bare-metal firmware) |
-| `application/x-flatbuffers` | FlatBuffers `ComponentHealthStatusPayload` (binary) — used by the built-in .NET providers |
-
-Both formats carry the same `schema` user property (`ComponentHealthStatusPayload`); only the `Content-Type` differs. Set the **same `Content-Type` on your Last Will message** (see [Last Will Testament](#last-will-testament)), or Mesh decodes the retained `offline` will with the wrong format.
+Health is a **JSON** `ComponentHealthStatusPayload`, published with `Content-Type: application/json` and the `schema` user property `ComponentHealthStatusPayload`. Set the same `application/json` `Content-Type` on your [Last Will](#last-will-testament) so the broker's retained `offline` will decodes correctly. JSON keeps health reportable from any provider, including those without a FlatBuffers toolchain (Python, TwinCAT / Structured Text, bare-metal firmware).
 
 ## MQTT Message Conventions
 
