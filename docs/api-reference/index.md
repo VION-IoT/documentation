@@ -1375,6 +1375,7 @@ Define a measuring point on a service interface or logic block property. The opt
 **Properties:**
 
 - `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.annotations.description`. Independent of `Title`.
+- `StringFormat` — Advisory JSON-Schema `format` for a `string` measuring point (e.g. `Ipv4`). Routes into `schema.format`; drives a specialized input + soft-validation in the dashboard / DevHost. Never enforced on the wire. String-only and not a type-kind format (`date-time` / `duration` / `uuid`) — see DALE033.
 - `Kind` — Semantic classification of the measuring point's time-series shape — drives default chart rendering, aggregation, and storage strategy. Routes into `schema.annotations.x-kind`. Defaults to `Measurement` (instantaneous samples).
 
 ---
@@ -1386,6 +1387,7 @@ Describe a service property on a service interface or logic block property. The 
 **Properties:**
 
 - `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.annotations.description`. Independent of `Title`.
+- `StringFormat` — Advisory JSON-Schema `format` for a `string` value (e.g. `Ipv4`). Routes into `schema.format`; drives a specialized input + soft-validation in the dashboard / DevHost. Never enforced on the wire. String-only and not a type-kind format (`date-time` / `duration` / `uuid`) — see DALE033.
 - `WriteOnly` — Marks a writable property as a secret — clients see a redaction sentinel (`"***"`) on the publish-state channel instead of the actual value. Restricted to `string` / `string?` properties in v1. Routes into `schema.annotations.writeOnly`.
 - `ReadOnly` — Marks the property as read-only on the wire even when the C# property has a public setter. Use this when a cross-assembly helper needs to assign the value (requires the public setter) but the cloud must not be able to SetPropertyValue it back. Routes into `schema.annotations.readOnly` — same wire flag that a private setter or a `[ServiceMeasuringPoint]` would set, so the dashboard groups it with metrics.
 
@@ -1450,9 +1452,27 @@ Severity level for status indicator enum values.
 
 ---
 
+### StringFormats
+
+Well-known JSON-Schema `format` values for string properties, set via `StringFormat` on `ServicePropertyAttribute` / `StructFieldAttribute`. Open set — integrators may pass any value; UIs recognize these and fall back to a plain text input for unknown ones. Advisory only: the runtime never rejects on format. Do NOT use these for `DateTime` / `TimeSpan` / `Guid` values — those are CLR types whose format is derived (`date-time` / `duration` / `uuid`); see DALE033.
+
+**Fields/Values:**
+
+- `Ipv4` — IPv4 dotted-quad address, e.g. `192.168.1.10`.
+- `Ipv6` — IPv6 address.
+- `Hostname` — DNS hostname (RFC 1123 label form).
+- `Email` — Email address.
+- `Uri` — URI / URL string.
+
+---
+
 ### StructFieldAttribute
 
 Per-field annotations for fields of a flat struct used as a service-element value. Applies to positional record-struct constructor parameters (preferred) or properties.
+
+**Properties:**
+
+- `StringFormat` — Advisory JSON-Schema `format` for a string field (e.g. `Ipv4`). Routes into the field's `schema.format`. String-only — see DALE033.
 
 ---
 
