@@ -7,6 +7,47 @@ description: Auto-generated API reference for types marked with [PublicApi].
 
 > Auto-generated from source code. Types marked with `[PublicApi]`.
 
+## Vion.Dale.Sdk.AnalogIo.TestKit
+
+### IAnalogInputExtensions
+
+Extension methods to simulate analog input changes in tests.
+
+**Methods:**
+
+- `RaiseInputChanged(IAnalogInput, double)` — Raise the InputChanged event on an `IAnalogInput` for tests.
+  - `analogInput`: The analog input instance to raise the event on.
+  - `value`: The new analog input value.
+
+---
+
+### IAnalogOutputExtensions
+
+Extension methods to simulate analog output changes in tests.
+
+**Methods:**
+
+- `RaiseOutputChanged(IAnalogOutput, double)` — Raise the OutputChanged event on an `IAnalogOutput` for tests.
+  - `analogOutput`: The analog output instance to raise the event on.
+  - `value`: The new analog output value.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Extension methods to verify analog output messages in test contexts.
+
+**Methods:**
+
+- `VerifyAnalogOutputSet<T>(LogicBlockTestContext<T>, IAnalogOutput, double?, double, Times?)` — Assert that at the specified analog output was set with the given value.
+  - `testContext`: The test context for the logic block.
+  - `analogOutput`: The analog output to verify, or null to verify any analog output.
+  - `value`: The expected value, or null to skip value verification.
+  - `tolerance`: The tolerance for comparing the expected value.
+  - `times`: The expected number of times the output was set, or null for once.
+
+---
+
 ## Vion.Dale.Sdk.AnalogIo.Input
 
 ### IAnalogInput
@@ -25,6 +66,46 @@ Represents an analog output that can be used to communicate with hardware.
 
 - `Set(double)` — Sets the analog output to the specified value.
   - `value`: The value to set the analog output to.
+
+---
+
+## Vion.Dale.Sdk.DigitalIo.TestKit
+
+### IDigitalInputExtensions
+
+Extension methods to simulate digital input changes in tests.
+
+**Methods:**
+
+- `RaiseInputChanged(IDigitalInput, bool)` — Raise the InputChanged event on an `IDigitalInput` for tests.
+  - `digitalInput`: The digital input instance to raise the event on.
+  - `value`: The new digital input value.
+
+---
+
+### IDigitalOutputExtensions
+
+Extension methods to simulate digital output changes in tests.
+
+**Methods:**
+
+- `RaiseOutputChanged(IDigitalOutput, bool)` — Raise the OutputChanged event on an `IDigitalOutput` for tests.
+  - `digitalOutput`: The digital output instance to raise the event on.
+  - `value`: The new digital output value.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Extension methods to verify digital output messages in test contexts.
+
+**Methods:**
+
+- `VerifyDigitalOutputSet<T>(LogicBlockTestContext<T>, IDigitalOutput, bool?, Times?)` — Assert that at the specified digital output was set with the given value.
+  - `testContext`: The test context for the logic block.
+  - `digitalOutput`: The digital output to verify, or null to verify any digital output.
+  - `value`: The expected value, or null to skip value verification.
+  - `times`: The expected number of times the output was set, or null for once.
 
 ---
 
@@ -402,6 +483,60 @@ The declared register-map extents of a Modbus server, per area.
 
 ---
 
+## Vion.Dale.Sdk.Modbus.Rtu.TestKit
+
+### IModbusRtuExtensions
+
+Extension methods on `IModbusRtu` for simulating Modbus responses in tests.
+
+**Methods:**
+
+- `SimulateReadResponse<T>(IModbusRtu, LogicBlockTestContext<T>, byte[], ushort?)` — Simulates a successful read response by invoking the pending request's callback with the given data. The data bytes are processed through the same callback chain as in production (SwapBytes, CastFromBytes, etc.).
+  - `modbusRtu`: The Modbus RTU contract instance.
+  - `testContext`: The test context containing recorded messages.
+  - `responseData`: The raw response bytes (big-endian by default, matching Modbus wire format).
+  - `startingAddress`: Optional filter to match a specific request by starting address.
+- `SimulateReadError<T>(IModbusRtu, LogicBlockTestContext<T>, Exception, ushort?)` — Simulates a read error by invoking the pending request's callback with the given exception.
+- `SimulateWriteResponse<T>(IModbusRtu, LogicBlockTestContext<T>, ushort?)` — Simulates a successful write response by invoking the pending request's callback with no error.
+- `SimulateWriteError<T>(IModbusRtu, LogicBlockTestContext<T>, Exception, ushort?)` — Simulates a write error by invoking the pending request's callback with the given exception.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Verification extension methods for asserting Modbus RTU messages in tests.
+
+**Methods:**
+
+- `VerifyModbusReadSent<T>(LogicBlockTestContext<T>, IModbusRtu, ushort?, ushort?, Times?)` — Assert that a Modbus read request was sent.
+  - `testContext`: The test context for the logic block.
+  - `modbusRtu`: The Modbus RTU contract to filter by, or null for any.
+  - `startingAddress`: The expected starting address, or null to skip verification.
+  - `quantity`: The expected register/coil quantity, or null to skip verification.
+  - `times`: The expected number of times, or null for once.
+- `VerifyModbusWriteSent<T>(LogicBlockTestContext<T>, IModbusRtu, ushort?, Times?)` — Assert that a Modbus write request was sent.
+  - `testContext`: The test context for the logic block.
+  - `modbusRtu`: The Modbus RTU contract to filter by, or null for any.
+  - `address`: The expected write address, or null to skip verification.
+  - `times`: The expected number of times, or null for once.
+
+---
+
+### ModbusResponseBuilder
+
+Helpers for constructing Modbus response byte arrays in big-endian (MSB-first) order, matching the default Modbus wire format (`ByteOrder.MsbToLsb`).
+
+**Methods:**
+
+- `FromFloats(float[])` — Converts float values to big-endian bytes (4 bytes each).
+- `FromShorts(short[])` — Converts short values to big-endian bytes (2 bytes each).
+- `FromUShorts(ushort[])` — Converts ushort values to big-endian bytes (2 bytes each).
+- `FromInts(int[])` — Converts int values to big-endian bytes (4 bytes each).
+- `FromDoubles(double[])` — Converts double values to big-endian bytes (8 bytes each).
+- `FromBools(bool[])` — Packs boolean values into bytes using Modbus coil/discrete input bit packing. Each byte holds up to 8 coils, LSB first within each byte.
+
+---
+
 ## Vion.Dale.Sdk.Modbus.Rtu
 
 ### IModbusRtu
@@ -716,6 +851,234 @@ Provides Modbus RTU read and write operations.
   - `errorCallback`: The callback invoked when the operation fails. For common exceptions that may be passed to this callback, see the remarks on `IModbusRtu`. Errors are always logged, regardless of whether an error callback is specified.
   - `textEncoding`: The text encoding to use for encoding the string. Default is `Ascii`.
   - `operationTimeout`: The maximum time allowed for the Modbus operation before it is canceled. If `null`, `DefaultOperationTimeout` is used. See `DefaultOperationTimeout` for details on what the timeout covers.
+
+---
+
+## Vion.Dale.Sdk.Modbus.Tcp.TestKit
+
+### ConnectionEvent
+
+A single connect / disconnect event observed by the fake proxy.
+
+**Methods:**
+
+- *Constructor* — A single connect / disconnect event observed by the fake proxy.
+
+---
+
+### ConnectionEventKind
+
+The kind of connection event recorded on `ConnectionHistory`.
+
+---
+
+### FakeModbusTcpClientProxy
+
+In-memory fake for `IModbusTcpClientProxy`. Stores register / coil contents in raw bytes per (unitId, address); the SDK's real `ModbusTcpClientWrapper` handles all byte / word-order conversion against them. Most tests should use `FakeModbusTcpHarness` rather than constructing this directly.
+
+**Properties:**
+
+- `ConnectionHistory` — Ordered log of every `ConnectAsync` / `Disconnect` the fake observed.
+- `ReadHistory` — Ordered log of every read the SUT issued through the proxy layer.
+- `WriteHistory` — Ordered log of every write the SUT issued through the proxy layer.
+- `IsConnected` — True after `ConnectAsync` has been called and before `Disconnect`. The real wrapper calls `ConnectAsync` lazily on the first operation if disconnected.
+
+**Methods:**
+
+- `SetHoldingRegister(int, ushort, byte, byte)` — Pre-populates one 16-bit holding register at (unitId, address) with two bytes + in standard Modbus big-endian wire order.
+- `SetHoldingRegisters(int, ushort, byte[])` — Pre-populates a contiguous range of holding registers starting at . must be a multiple of 2 (one register = 2 bytes, big-endian).
+- `SetInputRegister(int, ushort, byte, byte)` — Pre-populates a single input register. Mirrors .
+- `SetInputRegisters(int, ushort, byte[])` — Pre-populates a contiguous range of input registers. Mirrors .
+- `SetCoil(int, ushort, bool)` — Pre-populates a single coil value.
+- `SetDiscreteInput(int, ushort, bool)` — Pre-populates a single discrete input value.
+- `EnqueueReadFault(int, ushort, Exception)` — Queues an exception to throw on the next read at (unitId, startingAddress). Consumed FIFO — queue multiple to model "fail, fail, recover" sequences. Matches by the read's starting address (Modbus exceptions apply to the whole request, not per-register).
+- `EnqueueWriteFault(int, ushort, Exception)` — Queues an exception to throw on the next write at (unitId, address). Consumed FIFO.
+- `EnqueueReadModbusException(int, ushort, ModbusExceptionCode, string)` — Convenience: queues a Modbus protocol exception (e.g. `IllegalDataAddress`) to surface on the next read at (unitId, startingAddress).
+- `EnqueueWriteModbusException(int, ushort, ModbusExceptionCode, string)` — Convenience: queues a Modbus protocol exception (e.g. `IllegalDataValue`) to surface on the next write at (unitId, address).
+- `EnqueueReadTimeout(int, ushort)` — Convenience: queues an `OperationTimeoutException` to surface on the next read at (unitId, startingAddress). The synchronous test queue can't wait for a wall-clock timeout, so the exception fires immediately — observably identical to a real timeout from the SUT's point of view (same exception type via the same error callback).
+- `EnqueueWriteTimeout(int, ushort)` — Convenience: queues an `OperationTimeoutException` to surface on the next write at (unitId, address). Same immediate-fire behaviour as .
+- `EnqueueConnectFailure(Exception)` — Queues an exception to throw on the next `ConnectAsync` call. Consumed FIFO. The attempt is still recorded on `ConnectionHistory` with its target IP and port, so the SUT's reconnect target is verifiable even on failure.
+
+---
+
+### FakeModbusTcpClientProxyExtensions
+
+Verification extension methods for asserting Modbus TCP operations in tests.
+
+**Methods:**
+
+- `VerifyReadSent(FakeModbusTcpClientProxy, int?, ushort?, ushort?, ReadEventKind?, Times?)` — Assert that a Modbus read was sent.
+  - `proxy`: The fake proxy to inspect.
+  - `unitId`: The expected unit identifier, or null for any.
+  - `startingAddress`: The expected starting address, or null for any.
+  - `quantity`: The expected register/coil quantity, or null for any.
+  - `kind`: The expected Modbus function, or null for any.
+  - `times`: The expected number of times, or null for once.
+- `VerifyWriteSent(FakeModbusTcpClientProxy, int?, ushort?, byte[], WriteEventKind?, Times?)` — Assert that a Modbus write was sent.
+  - `proxy`: The fake proxy to inspect.
+  - `unitId`: The expected unit identifier, or null for any.
+  - `address`: The expected target address, or null for any.
+  - `expectedBytes`: The expected wire-format payload (raw bytes), or null to skip byte verification.
+  - `kind`: The expected write function, or null for any.
+  - `times`: The expected number of times, or null for once.
+- `VerifyConnectAttempted(FakeModbusTcpClientProxy, string, int?, Times?)` — Assert that a `ConnectAsync` attempt was made.
+  - `proxy`: The fake proxy to inspect.
+  - `ipAddress`: The expected IP address (as a string), or null for any.
+  - `port`: The expected port, or null for any.
+  - `times`: The expected number of times, or null for once.
+- `VerifyDisconnectCalled(FakeModbusTcpClientProxy, Times?)` — Assert that `Disconnect` was called on the proxy.
+  - `proxy`: The fake proxy to inspect.
+  - `times`: The expected number of times, or null for once.
+
+---
+
+### FakeModbusTcpHarness
+
+Wires a `FakeModbusTcpClientProxy` and `SynchronousRequestQueue` into a real `LogicBlockModbusTcpClient`, so the SUT exercises real SDK byte / word-order conversion against the fake's in-memory state. var harness = new FakeModbusTcpHarness(); harness.Proxy.SetHoldingRegisters(unitId: 1, startingAddress: 40000, registerBytes: [0x12, 0x34, 0x56, 0x78]); var sut = new MyBlock(harness.Client, new Mock&lt;ILogger&gt;().Object); var ctx = sut.CreateTestContext().Build(); sut.Tick(); ctx.FlushPendingActions(); Assert.AreEqual(0x12345678u, sut.Power);
+
+**Properties:**
+
+- `Proxy` — The fake proxy — pre-populate registers, inject faults, inspect histories.
+- `Client` — The fully wired client to inject into the SUT.
+
+---
+
+### FakeModbusTcpServerClient
+
+The test-side master view of a fake Modbus TCP server: drives the wire side of a server-fronted block without sockets. Method names follow the Modbus TCP client surface so wire-contract tests read like client code. Typed values are deliberately encoded with `BinaryPrimitives` (big-endian), independent of the SDK's converter — so a conversion bug cannot cancel itself out in a test.
+
+**Methods:**
+
+- `WriteSingleHoldingRegister(ushort, ushort)` — Writes a single holding register (function code 6).
+  - `address`: The register address to write.
+  - `value`: The register value.
+- `WriteMultipleHoldingRegistersRaw(ushort, byte[])` — Writes multiple holding registers from raw wire bytes (function code 16).
+  - `startingAddress`: The register address to start writing at.
+  - `registerBytes`: The register bytes in wire order (2 bytes per register).
+- `WriteSingleCoil(ushort, bool)` — Writes a single coil (function code 5).
+  - `address`: The coil address to write.
+  - `value`: The coil value.
+- `ReadHoldingRegistersRaw(ushort, ushort)` — Reads holding registers as raw wire bytes (function code 3).
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers to read.
+- `ReadInputRegistersRaw(ushort, ushort)` — Reads input registers as raw wire bytes (function code 4).
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers to read.
+- `ReadCoils(ushort, ushort)` — Reads coils (function code 1).
+  - `startingAddress`: The coil address to start reading from.
+  - `quantity`: The number of coils to read.
+- `ReadDiscreteInputs(ushort, ushort)` — Reads discrete inputs (function code 2).
+  - `startingAddress`: The discrete input address to start reading from.
+  - `quantity`: The number of discrete inputs to read.
+
+---
+
+### FakeModbusTcpServerHarness
+
+Wires a `FakeModbusTcpServerProxy` into a real `LogicBlockModbusTcpServer`, so the SUT exercises real SDK extent validation and byte / word-order conversion against the fake's in-memory register store — no sockets, no free-port dance. var harness = new FakeModbusTcpServerHarness(); var sut = new MyServerBlock(/* inject a factory returning */ harness.Server); harness.Client.WriteSingleHoldingRegister(address: 0, value: 42); // act as the master sut.Tick(); CollectionAssert.AreEqual(expectedWireBytes, harness.Client.ReadInputRegistersRaw(0, 2));
+
+**Properties:**
+
+- `Proxy` — The fake proxy — inspect or pre-populate the register buffers, shape diagnostics.
+- `Server` — The fully wired server to inject into the SUT (or hand out via `ServerFactory`).
+- `ServerFactory` — A factory handing out `Server` — for blocks that are factory-injected.
+- `Client` — The test-side master view driving the wire side of the server.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `FakeModbusTcpServerHarness` class with a fresh fake proxy.
+- *Constructor* — Initializes a new instance of the `FakeModbusTcpServerHarness` class with the given fake proxy.
+  - `proxy`: The fake proxy backing the server's register buffers.
+- `Dispose` — *(no description)*
+
+---
+
+### FakeModbusTcpServerProxy
+
+In-memory `IModbusTcpServerProxy`: full-range register buffers without any sockets. The simulate-client methods replay what a connected Modbus master would do, including the extent validation the real server performs (out-of-map access throws a `ModbusException` with `IllegalDataAddress`, mirroring the wire behavior) and the `LastClientWriteAt` bookkeeping.
+
+**Properties:**
+
+- `Extents` — The extents passed to the most recent call. Drives the simulate-client validation.
+- `TimeProvider` — The clock stamping `LastClientWriteAt` on simulated client writes. Default is `System`; assign a `FakeTimeProvider` for deterministic tests.
+- `IsListening` — *(no description)*
+- `ConnectionCount` — The number of connected clients reported to the server. Settable so tests can shape diagnostics.
+- `LastClientWriteAt` — The last-client-write timestamp reported to the server. Set automatically by the simulate-client write methods (via `TimeProvider`); settable so tests can shape diagnostics directly.
+- `Lock` — *(no description)*
+
+**Methods:**
+
+- `Start(IPAddress, int, ModbusServerAreaExtents)` — *(no description)*
+- `Stop` — *(no description)*
+- `GetHoldingRegisterBuffer` — *(no description)*
+- `GetInputRegisterBuffer` — *(no description)*
+- `GetCoilBuffer` — *(no description)*
+- `GetDiscreteInputBuffer` — *(no description)*
+- `Dispose` — *(no description)*
+- `SimulateClientWriteHoldingRegisters(ushort, byte[])` — Simulates a connected master writing holding registers (function codes 6/16).
+  - `startingAddress`: The register address to start writing at.
+  - `registerBytes`: The register bytes in wire order (2 bytes per register).
+- `SimulateClientWriteSingleCoil(ushort, bool)` — Simulates a connected master writing a single coil (function code 5).
+  - `address`: The coil address to write.
+  - `value`: The coil value to write.
+- `SimulateClientReadHoldingRegisters(ushort, ushort)` — Simulates a connected master reading holding registers (function code 3).
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers to read.
+- `SimulateClientReadInputRegisters(ushort, ushort)` — Simulates a connected master reading input registers (function code 4).
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers to read.
+- `SimulateClientReadCoils(ushort, ushort)` — Simulates a connected master reading coils (function code 1).
+  - `startingAddress`: The coil address to start reading from.
+  - `quantity`: The number of coils to read.
+- `SimulateClientReadDiscreteInputs(ushort, ushort)` — Simulates a connected master reading discrete inputs (function code 2).
+  - `startingAddress`: The discrete input address to start reading from.
+  - `quantity`: The number of discrete inputs to read.
+
+---
+
+### ReadEvent
+
+A single read operation observed by the fake proxy.
+
+**Methods:**
+
+- *Constructor* — A single read operation observed by the fake proxy.
+
+---
+
+### ReadEventKind
+
+The Modbus function family of a read recorded on `ReadHistory`.
+
+---
+
+### SynchronousRequestQueue
+
+Drop-in `IRequestQueue` that runs each request synchronously on the calling thread instead of dispatching to a background consumer. Success / error callbacks flow through `IActorDispatcher.InvokeSynchronized` just as in production and drain on the next `LogicBlockTestContext.FlushPendingActions()`.
+
+**Properties:**
+
+- `QueuedRequestCount` — Always zero — the synchronous queue never holds queued work.
+
+**Methods:**
+
+- `Initialize(int, QueueOverflowPolicy)` — No-op. Capacity / overflow policy don't apply to the synchronous executor.
+
+---
+
+### WriteEvent
+
+A single write operation observed by the fake proxy. `Bytes` is the raw wire-format payload (MSB-first per register).
+
+**Methods:**
+
+- *Constructor* — A single write operation observed by the fake proxy. `Bytes` is the raw wire-format payload (MSB-first per register).
+
+---
+
+### WriteEventKind
+
+The Modbus function family of a write recorded on `WriteHistory`.
 
 ---
 
@@ -1172,6 +1535,144 @@ Factory for creating instances of `ILogicBlockModbusTcpServer`.
 **Methods:**
 
 - `Create` — Creates a new instance of `ILogicBlockModbusTcpServer`.
+
+---
+
+## Vion.Dale.Sdk.TestKit
+
+### Constants
+
+Provides default constant values for logic block test setup.
+
+---
+
+### EmissionPolicyMode
+
+Controls whether the RFC 0004 emission policy (attribute-driven throttling) is active when a logic block runs under the TestKit's controllable fake clock.
+
+**Fields/Values:**
+
+- `Off` — Default. The emission policy is gated OFF: every service-property / measuring-point assignment flows straight through as a change message, so tests are not silently throttled by min-interval / min-change rules.
+- `FromAttributes` — Forces the emission policy ON from the block's `[ServiceProperty]` / `[ServiceMeasuringPoint]` throttle attributes, despite the fake clock. Use this to exercise throttling deterministically with .
+
+---
+
+### ILoggerMockExtensions
+
+Extension methods to verify log output on ILogger mocks.
+
+**Methods:**
+
+- `VerifyLogContains(Mock<ILogger>, string, LogLevel, Times)` — Verifies that a log entry containing the specified string was logged at the specified log level the expected number of times.
+
+---
+
+### LogicBlockBaseExtensions
+
+Extension methods to initialize logic blocks for testing with a fluent builder API.
+
+**Methods:**
+
+- `InitializeForTest<T>(T)` — Initializes the given logic block for testing, returning a typed test context.
+- `CreateTestContext<T>(T)` — Creates a test context builder for the given logic block to allow test context customization. Call Build() at the end to get the test context.
+
+---
+
+### LogicBlockTestContext
+
+Test-friendly minimal actor context that records messages sent by the logic block. Use the provided query/assertion helpers to inspect recorded messages. testContext.VerifyServicePropertyChanged(lb => lb.Power, value => Assert.AreEqual(3.5, value)); Hosts a `FakeTimeProvider` as the virtual clock for both `UtcNow` reads (production code that depends on `TimeProvider`) and for the deadlines attached to `InvokeSynchronized` / `InvokeSynchronizedAfter` actions. Call to move the clock forward and fire actions whose deadlines have elapsed; call for the legacy clock-agnostic drain.
+
+**Properties:**
+
+- `TimeProvider` — The virtual clock backing this test context. Inject as `TimeProvider` into your logic block to make its `UtcNow` reads deterministic.
+- `VirtualNow` — Current virtual time. Shorthand for `TimeProvider.GetUtcNow().UtcDateTime`.
+- `BuiltServiceProvider` — The service provider the block was initialized with. Set by the builder after `BuildServiceProvider` completes so tests can assert which registrations the builder applied (e.g. `EmissionPolicyForceMarker` when `WithEmissionPolicy(FromAttributes)` was called).
+
+**Methods:**
+
+- `VerifySendCommand<T>(InterfaceId?, Action<T>, Times?)` — Assert that a SendCommand call was made with the given target and message. testContext.VerifySendCommand&lt;PingRequest&gt;(mappedPong, msg => Assert.AreEqual(42, msg.Value));
+- `VerifySendRequest<T>(InterfaceId?, Action<T>, Times?)` — Assert that a SendRequest call was made with the given target and message. testContext.VerifySendRequest&lt;PingRequest&gt;(mappedPong, msg => Assert.AreEqual(42, msg.Value));
+- `VerifySendStateUpdate<T>(Action<T>, Times?)` — Assert that a SendStateUpdate call was made with the given message. testContext.VerifySendStateUpdate&lt;MyState&gt;(msg => Assert.AreEqual(expected, msg.Value));
+- `VerifyServicePropertyChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service property change was recorded for the specified property. testContext.VerifyServicePropertyChanged(lb => lb.Power, value => Assert.AreEqual(3.5, value));
+- `VerifyServicePropertyEmitted<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert on the emitted service-property values — the messages that survived the RFC 0004 emission policy. Same shape and underlying stream as (it reads the recorded `ServicePropertyValueChanged` messages), but its name documents intent: under `FromAttributes` a held assignment is not an emission until its throttle interval elapses (drive that with ), and a sub-threshold assignment never emits at all. With the policy off it behaves identically to . testContext.VerifyServicePropertyEmitted(lb => lb.Power, value => Assert.AreEqual(3.5, value));
+- `VerifyServiceMeasuringPointChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service measuring point change was recorded for the specified property. testContext.VerifyServiceMeasuringPointChanged(lb => lb.Temperature, value => Assert.AreEqual(22.5, value));
+- `VerifyServiceMeasuringPointEmitted<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert on the emitted service-measuring-point values — the measuring-point analogue of . Reads the post-policy `ServiceMeasuringPointValueChanged` stream, so under `FromAttributes` a held assignment is not an emission until its throttle interval elapses (drive that with ). With the policy off it behaves identically to . testContext.VerifyServiceMeasuringPointEmitted(lb => lb.Frequency, value => Assert.AreEqual(50.0, value));
+- `GetContractMessages<T>(string)` — Returns all recorded contract messages of the specified data type, optionally filtered by contract identifier. Useful for TestKit extensions that need to extract pending requests for response simulation.
+- `ClearRecordedMessages` — Clear recorded messages, e.g. if the test arranging phase triggers messages, that should be ignored.
+- `AdvanceTime(TimeSpan)` — Advance the virtual clock by and dispatch every queued action whose deadline has elapsed, in deadline order. The clock is set to each action's deadline immediately before that action runs, so an action's own `UtcNow` read sees the time it was scheduled for (not the post-advance target). Actions queued during dispatch with a deadline still ≤ the target time fire in the same call (cascading); actions whose deadline lies beyond the target stay pending for a later `AdvanceTime`.
+- `FlushPendingActions` — Execute every action currently queued by or , ignoring their scheduled deadlines and ignoring the virtual clock. New code that wants deterministic time semantics should prefer ; this method exists for tests that just want to drain the queue without caring about elapsed simulated time. sut.OnTimer(); // sends requests, queues Calculate sut.HandleResponse(id, response); // feed response data testContext.FlushPendingActions(); // now Calculate() runs The drain is single-pass: actions queued by an action that runs during this call are deferred to the next `FlushPendingActions` call. A self-rescheduling tick will therefore fire exactly once per call, not loop until the queue is empty.
+- `GetSentMessagesOfTypePublic<T>` — Returns every recorded message of in send order. A public escape hatch for assertions that need a message type the typed `Verify*` helpers do not cover (e.g. `ServicePropertyValueCleared` for the RFC 0004 clear-bypass path).
+- `SetTimeProvider(FakeTimeProvider)` — Internal swap point used by `LogicBlockTestContextBuilder.WithTimeProvider` so the same FakeTimeProvider can be passed to the block's constructor and then bound to the test context, instead of the two clocks drifting independently.
+
+---
+
+### LogicBlockTestContextBuilder
+
+Fluent test builder to initialize LogicBlock instances for unit tests.
+
+**Methods:**
+
+- `WithLogicInterfaceMapping<T>(Func<T, T>, InterfaceId)` — Adds a mapping to another logic block using a specific (self or delegated) implementation of the interface. When is inferred as a concrete class (the common shape of `WithLogicInterfaceMapping(lb =&gt; lb, id)`), this method throws if the class implements more than one `[LogicInterface]`-decorated contract interface — without an explicit generic argument the mapping would silently route to whichever contract happens to come first in metadata order, and a second ambiguous mapping would land on the wrong sender. Pass the contract interface explicitly, e.g. `WithLogicInterfaceMapping&lt;IContractA&gt;(lb =&gt; lb, id)`.
+- `WithLogicInterfaceMapping<T>(InterfaceId)` — Adds a mapping to another logic block using the logic block's own implementation of the interface.
+- `WithPersistentValue<T>(Expression<Func<T, T>>, T)` — Registers a persistent value to be restored after initialization, simulating a restart with previously saved state. var testContext = block.CreateTestContext() .WithPersistentValue(lb => lb.MaxPower, 42.0) .WithPersistentValue(lb => lb.Mode, OperatingMode.Manual) .Build();
+- `WithServices(Action<IServiceCollection>)` — Registers additional DI services for logic block initialization. Use this to register services required by contract types (e.g. Modbus RTU).
+- `WithoutAutoStart` — Prevents the logic block from being started after initialization. By default, the builder starts the block so that service property changes produce messages. Use this when testing initialization or pre-start behavior.
+- `WithTimeProvider(FakeTimeProvider)` — Bind the test context's virtual clock to a caller-owned `FakeTimeProvider`. Use this when the block's constructor takes a `TimeProvider` and the test needs to ensure the block and `testContext.TimeProvider` share the same instance. var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)); var sut = new MyBlock(clock, loggerMock.Object); var ctx = sut.CreateTestContext().WithTimeProvider(clock).Build(); ctx.AdvanceTime(TimeSpan.FromSeconds(5)); // advances both sut's reads and ctx's deadlines
+- `WithEmissionPolicy(EmissionPolicyMode)` — Controls whether the RFC 0004 emission policy runs under the TestKit's fake clock. By default (`Off`) the policy is gated off so every assignment surfaces as a change. Pass `FromAttributes` to force the policy on from the block's throttle attributes — the builder registers a marker the block reads at init (`_forcePolicyFromAttributes`), so drives the throttling deterministically. var ctx = block.CreateTestContext() .WithEmissionPolicy(EmissionPolicyMode.FromAttributes) .Build(); block.Power = 1.0; // first emit seeds the throttler block.Power = 1.5; // held by the 250 ms min-interval ctx.AdvanceTime(TimeSpan.FromMilliseconds(250)); // flushes the held value ctx.VerifyServicePropertyEmitted(lb => lb.Power, times: Times.Exactly(2));
+- `Build` — Initialize the logic block and apply any linked interfaces mapping. After this returns the logic block's Configure(...), Ready(), and Starting() will have been executed and the block is ready to process messages. Use to skip starting.
+- `GuardAgainstAmbiguousMappingTarget(Type)` — When is a class that implements more than one `[LogicInterface]`-decorated contract interface, the existing IsAssignableFrom+FirstOrDefault resolution in cannot tell which contract the caller meant. Two such mappings stack onto the same dictionary key, get routed to the first matching sender, and the second contract's sender silently receives zero mappings. Catch the ambiguity at registration time so the bug surfaces at the call site instead of as a missing verification later.
+- `InitializeLogicBlock` — Sends the InitializeLogicBlock message to the logic block to initialize it. Auto-discovers service identifiers from [Service] attributes so that service property and measuring point changes are routed correctly when the block is started.
+- `LinkRuntimeActors` — Sends LinkRuntimeActors so the logic block has its runtime actor refs populated. In production this is sent by dale's LogicSystemConfigurationInitializer.LinkRuntimeActors; in TestKit we use TestActorReference stand-ins (returned by the test context's `IActorContext.LookupByName`). Without this, LogicBlockBase's deferred-init path leaves Ready() and SendBindLogicBlockServices unfired.
+- `RegisterContractAssemblyServices(IServiceCollection)` — Auto-discovers contract properties on the logic block, finds `IConfigureServices` implementations in each contract assembly, and invokes them. Mirrors what the full Dale runtime does with shared assembly discovery.
+- `DiscoverContractIds` — Discovers contract identifiers from properties whose type has [ServiceProviderContractType]. Generates a LogicBlockContractId for each so that contracts are fully initialized in tests.
+- `DiscoverServiceIds` — Discovers service identifiers from the logic-block class name and from any property whose type carries service-bearing attributes. The dropped [Service] attribute no longer participates in discovery — class-name and property-name are canonical.
+- `RestorePersistentState` — If persistent values were registered, resolves their persistence keys and sends a RestorePersistentDataRequest.
+- `ResolvePersistenceKey(string)` — Resolves a C# property name to its persistence key by searching the service binder's bindings. Falls back to the opt-in key format (_direct.{PropertyName}) if not found as a service property.
+- `StartLogicBlock` — If auto-start was requested, sends StartLogicBlockRequest and clears the infrastructure messages produced during startup (initial state publishes, periodic save scheduling).
+- `SetLinkedInterfaces` — Sets the linked interfaces on the logic block based on the configured mappings with the help of some reflection.
+
+---
+
+### LogicBlockTestHelper
+
+Static helper methods to create logic block instances with mocked dependencies for testing.
+
+**Methods:**
+
+- `CreateLoggerMock` — Creates a mock ILogger for logic blocks.
+- `Create<T>` — Creates a logic block instance with a default logger mock. The logic block must have a constructor that accepts `ILogger`. var block = LogicBlockTestHelper.Create&lt;MyBlock&gt;();
+- `CreateWithLogger<T>` — Creates a logic block instance and returns both the instance and the logger mock, for tests that need to verify log output. var (block, loggerMock) = LogicBlockTestHelper.CreateWithLogger&lt;MyBlock&gt;();
+
+---
+
+### LogicBlockTimerExtensions
+
+Extension methods for simulating timer ticks in unit tests. Uses reflection to access the internal timer callback dictionary on `LogicBlockBase`.
+
+**Methods:**
+
+- `FireTimer(LogicBlockBase, string)` — Fires a timer callback by its identifier. The identifier is typically the method name unless overridden via `[Timer(identifier: "custom")]`.
+- `FireTimer<T>(T, Expression<Action<T>>)` — Fires a timer callback using a method selector expression for type-safety. The method must be accessible from the test. block.FireTimer((MyBlock lb) => lb.OnTimer());
+- `GetTimerInterval(LogicBlockBase, string)` — Returns the configured interval for the specified timer.
+- `GetTimerInterval<T>(T, Expression<Action<T>>)` — Returns the configured interval for the specified timer using a method selector expression. var interval = block.GetTimerInterval((MyBlock lb) => lb.OnTimer());
+
+---
+
+### TestActorReference
+
+Mock actor reference implementation for testing without a real actor system.
+
+---
+
+### TestKitVerificationException
+
+Exception thrown when a TestKit verification assertion fails.
+
+---
+
+### TimesExtensions
+
+Extension methods to validate Moq Times constraints against actual invocation counts.
 
 ---
 
