@@ -1781,11 +1781,10 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 - `Starting` — Called once after and after the runtime has restored persisted `ServicePropertyAttribute` values and registered per-contract sender instances. The right place for setup that depends on SDK runtime state: reading persisted property values, enumerating contract links via `GetLinkedXxx()`, scheduling first periodic ticks, and emitting initial cross-block contract state-updates.
 - `Stopping` — Called once before the block is removed, after the runtime processes a stop request. The right place to release resources acquired during the block's lifetime: detach event handlers attached in , cancel in-flight operations, dispose injected clients, flush pending I/O.
 - `Configure(ILogicBlockConfigurationBuilder)` — Binds this logic block's interfaces, contracts, services and timers from their declarative attributes. Internal infrastructure invoked by the runtime; not an extension point.
-- `BuildThrottlers` — RFC 0004: constructs one `Throttler` per bound service property and measuring point from its declarative emission attributes. Keyed by (ServiceIdentifier, member name) so / the measuring-point handler can look up the gate on each change. The attribute (an `IThrottleConfigured`) is read off the binding's root source `PropertyInfo`; the value type comes from `TargetPropertyType`.
-- `ResetThrottlerPending(ValueTuple<string, string>)` — RFC 0004: discards a throttler's pending held flush (and its emitted state) on a value-clear, so the cleared edge is not undone by a later trailing flush. Reconstructs the gate from its stored policy via a fresh `Throttler` — there is no in-place cancel on the gate.
+- `BuildThrottlers` — RFC 0004: constructs one `Throttler` per bound service property and per bound measuring point from its declarative emission attributes, into the matching stream collection (`_servicePropertyThrottlers` / `_measuringPointThrottlers`) keyed by (ServiceIdentifier, member name). A dual-annotated member thus gets one gate per stream, so the two streams don't cross-suppress. The attribute (an `IThrottleConfigured`) is read off the binding's root source `PropertyInfo`; the value type comes from `TargetPropertyType`.
+- `ResetThrottlerPending(Dictionary<ValueTuple<string, string>, Throttler>, ValueTuple<string, string>)` — RFC 0004: discards a throttler's pending held flush (and its emitted state) on a value-clear, so the cleared edge is not undone by a later trailing flush. Reconstructs the gate from its own `Policy` via a fresh `Throttler` — there is no in-place cancel on the gate. The caller passes the member's stream collection.
 - `ScheduleEmissionFlush(DateTimeOffset)` — RFC 0004: ensures one trailing-edge flush is scheduled at the earliest pending deadline across all throttlers. Mirrors — a single idiomatic self-send via the pause-gated / stepper-aware self-scheduling path. The flush body () coalesces and reschedules the next-earliest, so an extra wakeup at worst finds nothing due and reschedules. The flush is dispatched as an `InvokeSynchronized` action rather than a bespoke self-message: the action wrapper is what both the production actor loop and the TestKit's virtual clock (AdvanceTime / FlushPendingActions) actually pump, so the trailing flush is observable under deterministic tests. A raw self-message would be delivered in production but silently dropped by the TestKit, which never re-dispatches non-action self-messages.
 - `OnEmissionFlushDue` — RFC 0004: flushes every throttler whose hold deadline has elapsed, emitting its pending value, then reschedules a single wakeup for the earliest still-pending deadline (if any).
-- `EmitFlushedValue(string, string, object)` — Emits a flushed value to the correct handler. A key in `_throttlers` may be a service property or a measuring point; resolve which by membership in the binder's maps so the value reaches the right central handler.
 - `DrainThrottlers` — RFC 0004: on stop, emit each throttled member's exact current value if it differs from the throttler's last-emitted value — bypassing throttle and deadband — so the final retained state is exact. Reads the current value straight from the binding getter.
 - `InvokeActionMessage.#ctor(Action)` — Represents a message that contains an action to be executed in the context of the actor. This is not serializable, therefore only usable locally, usually within one actor
 
@@ -1877,7 +1876,7 @@ Declare a service interface as a C# interface. Use the ServiceProperty and Servi
 
 ### ServiceMeasuringPointAttribute
 
-Define a measuring point on a service interface or logic block property. The optional properties become annotations in the introspection schema document.
+Define a measuring point on a service interface or logic block property. The optional properties become annotations in the introspection schema document. A property MAY also carry `ServicePropertyAttribute` — the two are independent. Each publishes to its own retained MQTT stream (`…/measuring-point/state` vs `…/property/state`) and is throttled / deadbanded separately (RFC 0004); neither suppresses the other. Common for telemetry charted in the cloud that is also surfaced as live state (e.g. grid-meter power).
 
 **Properties:**
 
@@ -1892,7 +1891,7 @@ Define a measuring point on a service interface or logic block property. The opt
 
 ### ServicePropertyAttribute
 
-Describe a service property on a service interface or logic block property. The optional properties become annotations in the introspection schema document.
+Describe a service property on a service interface or logic block property. The optional properties become annotations in the introspection schema document. A property MAY also carry `ServiceMeasuringPointAttribute` — the two are independent. Each publishes to its own retained MQTT stream (`…/property/state` vs `…/measuring-point/state`) and is throttled / deadbanded separately (RFC 0004); neither suppresses the other. Declaring both surfaces the same value as live state AND a charted time series — common for telemetry (e.g. grid-meter power).
 
 **Properties:**
 
