@@ -37,9 +37,9 @@ The board was onboarded before and you need to register it again, or commissioni
 
 A Raspberry Pi board does not join the WiFi network after flashing.
 
-**Cause:** WiFi presets are applied only on Raspberry Pi boards, and the regulatory domain (country) must match the network. NanoPi and Beckhoff CX boards are Ethernet-only and have no WiFi.
+**Cause:** WiFi is available only on Raspberry Pi boards, and the regulatory domain (country) must match the network. NanoPi and Beckhoff CX boards are Ethernet-only and have no WiFi.
 
-**Solution:** reflash with the VION Imager and fill in the WiFi SSID, passphrase, and country during [onboarding](/edge-gateway/onboarding). Make sure the country matches the band your access point uses. If the board is not a Raspberry Pi, connect it by Ethernet instead.
+**Solution:** set the WiFi SSID, passphrase, and country during the device's first-login commissioning prompt (see [onboarding](/edge-gateway/onboarding)). Make sure the country matches the band your access point uses. If the board is not a Raspberry Pi, connect it by Ethernet instead.
 
 ## Dashboard Deployment Issues
 

@@ -166,52 +166,7 @@ public double StateOfCharge { get; private set; }
 
 ## Emission Policy
 
-The emission policy governs how often a logic block re-publishes its own observable state. By default, every service property and measuring point re-emits at most once every 250 ms — a `MinInterval` throttle — on top of an always-on value-equality dedup that drops re-emissions of an unchanged value. Three init-only knobs on `[ServiceProperty]` and `[ServiceMeasuringPoint]` tune this.
-
-::: warning
-The 250 ms throttle is **on by default**. A read-only value that previously re-published on every change now emits at most ~4 Hz unless you raise the rate with `MinInterval = "0"` or `Immediate = true`. Inbound writes to a writable property are unaffected — only the block's outbound re-publishing is throttled.
-:::
-
-The knobs are identical on both attributes:
-
-| Field | Description |
-|-------|-------------|
-| `MinInterval` | Minimum spacing between two emitted values, as a duration string. Defaults to `"250ms"`. `"0"` disables interval throttling. |
-| `MinChange` | Deadband: the minimum change a new value must clear before it re-emits. Format depends on the value's type. Defaults to none. |
-| `Immediate` | When `true`, emits every change immediately, bypassing the throttle and deadband. Defaults to `false`. |
-
-Emission policy governs the **outbound** re-publish of a block's own readings. A write *into* a writable property is always forwarded to the block immediately. Put these knobs on read-only computed or sensed values, not on operator inputs.
-
-### Throttling
-
-`MinInterval` rate-limits re-emission with leading-edge semantics: the first change after an idle period emits immediately, and later changes within the interval coalesce latest-wins and flush once at the interval boundary. The duration grammar is a number with an optional `us` / `ms` / `s` / `m` / `h` suffix; a bare number is milliseconds. So `"250ms"`, `"2s"`, and `"500us"` are all valid, and `"0"` disables the throttle entirely.
-
-```csharp
-[ServiceMeasuringPoint(Title = "Temperature", Unit = "°C", MinInterval = "2s")]
-public double Temperature { get; private set; }
-```
-
-### Deadband
-
-`MinChange` suppresses re-emission until the value moves by at least the given amount, relative to the last emitted value. The format is type-dependent: an invariant-culture number for `double`, `float`, `decimal`, `int`, and `long` (e.g. `"0.5"`), and a duration for `TimeSpan` (e.g. `"1s"`). `bool` has no magnitude and is not supported. The compiler reports an error if `MinChange` is set on a type with no numeric or `TimeSpan` change support.
-
-```csharp
-[ServiceMeasuringPoint(Title = "Reading", Unit = "kW", MinInterval = "0", MinChange = "0.5")]
-public double Reading { get; private set; }
-```
-
-### Immediate
-
-`Immediate = true` bypasses both the throttle and the deadband, so every change re-emits. Use it for safety and error flags where latency matters more than wire traffic. The value-equality floor still applies, so an assignment that does not change the value is still dropped.
-
-```csharp
-[ServiceMeasuringPoint(Title = "Fault", Immediate = true)]
-public bool Fault { get; private set; }
-```
-
-A member that carries **both** attributes is throttled independently per stream — the property stream and the measuring-point stream each run their own gate, and neither suppresses the other. Unlike `Title`, `Unit`, `Minimum`, and `Maximum`, the emission knobs do **not** cross-fill: set them on each attribute that needs them.
-
-The example below combines the knobs on one block. `Setpoint` is a plain writable input with no policy; the read-only readings below it each carry their own gate, including a dual-annotated `Power` whose two streams throttle independently.
+Emission policy governs how often a logic block re-publishes its own observable state. Three init-only knobs on `[ServiceProperty]` and `[ServiceMeasuringPoint]` tune it, on top of an always-on dedup that drops re-emissions of an unchanged value.
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -257,6 +212,28 @@ namespace Examples.Emission
     }
 }
 ```
+
+The knobs are identical on both attributes:
+
+| Knob | Description |
+|------|-------------|
+| `MinInterval` | Minimum spacing between two emitted values, as a duration string. Defaults to `"250ms"`. `"0"` disables interval throttling. |
+| `MinChange` | Deadband: the minimum change a new value must clear before it re-emits. Defaults to none. |
+| `Immediate` | When `true`, emits every change immediately, bypassing the throttle and deadband. Defaults to `false`. |
+
+::: warning
+The 250 ms `MinInterval` throttle is **on by default**. A read-only value that previously re-published on every change now emits at most ~4 Hz unless you raise the rate with `MinInterval = "0"` or `Immediate = true`. Inbound writes are unaffected — only the block's outbound re-publishing is throttled.
+:::
+
+Emission is **outbound-only**: a write into a writable property is always forwarded to the block immediately, so put these knobs on read-only computed or sensed values, not on operator inputs.
+
+`MinInterval` uses leading-edge semantics: the first change after an idle period emits immediately; later changes within the interval coalesce latest-wins and flush at the boundary. Durations are a number with an optional `us` / `ms` / `s` / `m` / `h` suffix; a bare number is milliseconds and `"0"` disables it.
+
+`MinChange` suppresses re-emission until the value moves by at least the given amount relative to the last emitted value. Use an invariant-culture number for `double`, `float`, `decimal`, `int`, and `long` (e.g. `"0.5"`), and a duration for `TimeSpan` (e.g. `"1s"`). `bool` is unsupported and the compiler reports an error if `MinChange` is set on a type with no numeric or `TimeSpan` change support.
+
+`Immediate = true` re-emits every change; the value-equality floor still drops assignments that do not change the value. Use it for safety and error flags where latency matters more than wire traffic.
+
+A member carrying **both** attributes throttles independently per stream — the property and measuring-point streams each run their own gate, and neither suppresses the other. The emission knobs do **not** cross-fill: set them on each attribute that needs them.
 
 To assert these gates deterministically under the TestKit, see [Testing emission policy](/sdk/testing#testing-emission-policy).
 

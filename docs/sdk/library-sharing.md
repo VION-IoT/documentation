@@ -17,7 +17,7 @@ To make a library Public, open Integrator → Libraries in the [Dashboard](https
 
 A grant gives one named integrator access to a single private library, without making it Public. In the Dashboard, open the library's Share library dialog and enter the grantee integrator's slug.
 
-The slug is the integrator's globally unique handle. Integrator names are not unique, so sharing is keyed on the slug rather than the name. The grantee shares its slug with you out of band; you enter it to create the grant. Each grant is a one-directional relationship from the owning integrator to the grantee for one library.
+The slug is the integrator's globally unique handle — sharing is keyed on it because integrator names are not unique. The grantee shares its slug with you out of band. Each grant is a one-directional relationship from the owning integrator to the grantee for one library.
 
 ## Consuming a shared or public library
 
@@ -32,7 +32,7 @@ The library list also has a Source filter with Owned, Public, and Shared options
 
 ## Revoking access
 
-Turning Public off or revoking a grant is prospective. Configurations that are already activated and running keep working, because revocation is not enforced against live edge gateways. Enforcement happens at the next activation: when a tenant activates a logic configuration that still references a library that is no longer visible to its integrator, the activation is blocked with an error naming the affected packages, for example:
+Turning Public off or revoking a grant is prospective: already-activated configurations keep running, because revocation is not enforced against live edge gateways. Enforcement happens at the next activation. When a tenant activates a logic configuration that still references a library no longer visible to its integrator, the activation is blocked with an error naming the affected packages:
 
 ```text
 The logic configuration references logic block libraries that are not available to this tenant: <package id>. Remove those logic blocks or obtain a grant before activating.

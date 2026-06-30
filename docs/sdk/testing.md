@@ -124,9 +124,9 @@ testContext.AdvanceTime(TimeSpan.FromMinutes(1));  // advances both
 
 ## Testing Emission Policy
 
-Under the TestKit's fake clock the [emission policy](/sdk/properties#emission-policy) is **off** by default (`EmissionPolicyMode.Off`), so every service-property and measuring-point assignment surfaces as a change message and emission-count assertions are not silently throttled. To exercise throttling and deadbands, opt in with `WithEmissionPolicy(EmissionPolicyMode.FromAttributes)` — the policy then runs from the block's `[ServiceProperty]` / `[ServiceMeasuringPoint]` attributes, and you drive the trailing-edge flush with `AdvanceTime`.
+Under the TestKit's fake clock the [emission policy](/sdk/properties#emission-policy) is **off** by default (`EmissionPolicyMode.Off`), so every assignment surfaces as a change message and emission-count assertions are not silently throttled. Opt in with `WithEmissionPolicy(EmissionPolicyMode.FromAttributes)` to run the policy from the block's `[ServiceProperty]` / `[ServiceMeasuringPoint]` attributes, then drive the trailing-edge flush with `AdvanceTime`.
 
-Assert the post-gate emissions with `VerifyServicePropertyEmitted` and `VerifyServiceMeasuringPointEmitted`, both of which take an optional `times` count. The test below shows a deadband drop and an interval-coalesced burst against the `SensorBlock` from the [Emission Policy](/sdk/properties#emission-policy) example:
+Assert post-gate emissions with `VerifyServicePropertyEmitted` and `VerifyServiceMeasuringPointEmitted`, both taking an optional `times` count. This test shows a deadband drop and an interval-coalesced burst against the `SensorBlock` from the [Emission Policy](/sdk/properties#emission-policy) example:
 
 ```csharp
 using System;
@@ -177,7 +177,7 @@ namespace Examples.Emission.Test
 }
 ```
 
-[Scenarios](/sdk/scenarios) are the deterministic executable counterpart to these TestKit unit tests. When a scenario outgrows the JSON format, `dale scenario scaffold` graduates it into a TestKit / xUnit test that replays the scenario's setup and steps with `TODO` assertions for its human judgments.
+[Scenarios](/sdk/scenarios) are the deterministic executable counterpart to these TestKit unit tests. When a scenario outgrows the JSON format, `dale scenario scaffold` graduates it into a TestKit / xUnit test that replays its setup and steps with `TODO` assertions for the human judgments.
 
 ## Testing I/O
 

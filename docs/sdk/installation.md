@@ -63,10 +63,10 @@ Builds the project and all dependencies.
 dale build
 ```
 
-Unrecognized options after `--` forward to `dotnet build`. Pass a build configuration this way:
+Unrecognized options forward to `dotnet build`. Pass a build configuration this way:
 
 ```bash
-dale build -- -c Release
+dale build -c Release
 ```
 
 ### `dale test` — Run Tests
@@ -78,10 +78,10 @@ dale test
 # Passed!  - Failed: 0, Passed: 4, Skipped: 0, Total: 4
 ```
 
-Unrecognized options after `--` forward to `dotnet test`. Filter to a subset of tests this way:
+Unrecognized options forward to `dotnet test`. Filter to a subset of tests this way:
 
 ```bash
-dale test -- --filter Name~Foo
+dale test --filter Name~Foo
 ```
 
 ### `dale dev` — Local Development

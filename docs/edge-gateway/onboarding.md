@@ -48,23 +48,7 @@ Identify your board on the [supported devices](/edge-gateway/supported-devices) 
 
 ## Step 3: Flash the image
 
-Write the image to the SD card or eMMC. Use the VION Imager, which also applies per-device settings, or any raw image-flashing tool such as balenaEtcher.
-
-### Flash with the VION Imager
-
-The VION Imager writes the image and stores hostname, timezone, locale, cloud environment, and (on Raspberry Pi) WiFi settings on the boot partition, where they survive future updates. Follow these steps:
-
-1. Pick the `.img.gz` image you downloaded.
-2. Pick the target SD card. The list is filtered to removable, USB, and MMC devices.
-3. Fill in the per-device settings: VION environment, hostname, timezone, and locale. On Raspberry Pi boards, also fill in the WiFi SSID, passphrase, and country. NanoPi and Beckhoff CX boards are Ethernet-only and show no WiFi fields.
-4. Confirm the destructive write. The Imager requires a two-step acknowledgement because writing erases the card.
-5. The Imager writes the image, applies the settings, and ejects the card.
-
-The WiFi passphrase can be stored as a precomputed PMK hash instead of plaintext so the human passphrase never lands on the card.
-
-### Flash with balenaEtcher
-
-If you flash with balenaEtcher or another raw writer, decompress is handled automatically by the tool. Select the `.img.gz`, select the target card, and write. The device falls back to an interactive commissioning prompt on first login, so per-device settings are not preset — prefer the VION Imager when you need WiFi or a custom hostname.
+Write the image to the SD card or eMMC with [balenaEtcher](https://etcher.balena.io/) (recommended) or another raw image writer: select the `.img.gz` you downloaded, select the target card, and write. The tool decompresses the image as it writes. Per-device settings such as WiFi and hostname are configured through an interactive commissioning prompt on the device's first login.
 
 ## Step 4: Boot the device
 
@@ -89,7 +73,7 @@ After you enter the identifier, the wizard shows live commissioning status. The 
 | Timed out — check the device | The device did not check in within the commissioning window. Confirm it is powered and online. |
 | Commissioning failed | Commissioning could not complete. See [Troubleshooting](/edge-gateway/troubleshooting). |
 
-Once the device is ready, VION Cloud deploys the initial software (Dale runtime, Mesh, monitoring agents) and the wizard reports the gateway as connected.
+Once the device is ready, its initial software (Dale runtime, Mesh) is deployed and the wizard reports the gateway as connected. Depending on the onboarding flow, this deployment runs automatically or you trigger it from the Dashboard.
 
 ## What happens after onboarding
 

@@ -174,7 +174,7 @@ The template includes xUnit tests (xunit.v3) written with the Dale TestKit. `The
 dale test
 ```
 
-`dale test` forwards arguments after `--` to `dotnet test` — for example `dale test -- --filter Heat_WhenRoomIsBelowTheSetpoint`. See [Testing](/sdk/testing) for the full TestKit surface.
+`dale test` forwards unrecognized options to `dotnet test` — for example `dale test --filter Heat_WhenRoomIsBelowTheSetpoint`. See [Testing](/sdk/testing) for the full TestKit surface.
 
 ## Add Your Own Logic Block
 
