@@ -5,13 +5,11 @@ description: Author and run *.scenario.json checks that drive the wired DevHost 
 
 # Scenarios
 
-A scenario is a committed, replayable JSON check that drives the wired DevHost network and asserts outcomes. Scenarios live as `*.scenario.json` files under a project's `scenarios/` directory and run identically in CI and in the DevHost web UI. The file format is versioned: each file carries a `version`.
+A scenario is a committed, replayable JSON check that drives the wired DevHost network and asserts outcomes. Scenarios live as `*.scenario.json` files under a project's `scenarios/` directory and run identically in CI and in the DevHost web UI.
 
 ## Scenario files
 
-The runner is a sequential interpreter over the DevHost control surface — no loops, expressions, or computed values. Anything that needs logic graduates to a C# test (see [Testing](/sdk/testing)).
-
-The file name is `<id>.scenario.json`, and its `id` field must match the file name. The DevHost discovers files under `{cwd}/scenarios/`. The template library ships `scenarios/thermostat.scenario.json`:
+The runner is a sequential interpreter over the DevHost control surface — no loops or computed values; anything needing logic graduates to a C# test (see [Testing](/sdk/testing)). The file name is `<id>.scenario.json`, its `id` field must match the file name, and the DevHost discovers files under `{cwd}/scenarios/`. The template library ships `scenarios/thermostat.scenario.json`:
 
 ```json
 {
@@ -44,7 +42,7 @@ The file name is `<id>.scenario.json`, and its `id` field must match the file na
 }
 ```
 
-The top-level fields are:
+Top-level fields:
 
 | Field | Description |
 |-------|-------------|
@@ -58,9 +56,9 @@ The top-level fields are:
 | `watch` | Name paths pinned as live value tiles and validated up front. |
 | `judge` | Human-judgment checklist items reported as `requires human` in CI. |
 
-Properties are addressed by a dot-separated name path: `Block.Property`, or `Block.Service.Property` to disambiguate a multi-service block, with an optional trailing `.Field` for a scalar leaf inside a struct. The runner resolves every path against the wired graph and fails on a typo, an unknown target, or a read-only target.
+Name paths are `Block.Property`, `Block.Service.Property` to disambiguate a multi-service block, with an optional trailing `.Field` for a scalar leaf in a struct. The runner resolves every path against the wired graph and fails on a typo, unknown target, or read-only target.
 
-A step is exactly one shape. The vocabulary is:
+A step is exactly one shape:
 
 | Step | Description |
 |------|-------------|
@@ -72,15 +70,11 @@ A step is exactly one shape. The vocabulary is:
 | `{ "serviceProviderExpect": { "logicBlock": …, "contract": …, "equals": … } }` | Assert the value a block last wrote on a service provider output contract, with one comparator. |
 | `{ "waitUntil": { "property": "Block.Property", "equals": … }, "timeoutSeconds": 20 }` | Wait for a condition to hold, up to `timeoutSeconds`. |
 
-Every comparator step (`expect`, `serviceProviderExpect`, `waitUntil`) takes exactly one of `above`, `below`, `equals`, `notEquals`, or `oneOf`; an `equals` on a number may carry a `tolerance`. Each step also accepts an optional `label` (shown in the Player and reports) and an optional `spec` trace id. A `setup` entry stages state only — it accepts the `set` and `serviceProviderSet` shapes.
-
-Assert state, not the simulation's schedule: drive the network to a steady state with `advance`, then assert the converged values with `expect`.
+Every comparator step (`expect`, `serviceProviderExpect`, `waitUntil`) takes exactly one of `above`, `below`, `equals`, `notEquals`, or `oneOf`; an `equals` on a number may carry a `tolerance`. Each step also accepts an optional `label` and `spec` trace id; a `setup` entry accepts only the `set` and `serviceProviderSet` shapes. Assert converged state (drive with `advance`, then `expect`), not the simulation's schedule.
 
 ## Topology files
 
-A topology declares the instance graph scenarios run against: which logic block instances exist and how they wire together. A scenario references its topology by id (`"topology": "default"`), so many scenarios share one topology file.
-
-Topology files live under `topologies/` as `<id>.topology.json`. The DevHost discovers logic block types from the loaded plugin assemblies, so you declare instances by type name rather than editing `Program.cs`. The template library's `topologies/default.topology.json` declares a single instance:
+A topology declares the instance graph scenarios run against — which logic block instances exist and how they wire — referenced by id (`"topology": "default"`) so many scenarios share one file. Files live under `topologies/` as `<id>.topology.json`:
 
 ```json
 {
@@ -97,8 +91,6 @@ Topology files live under `topologies/` as `<id>.topology.json`. The DevHost dis
 }
 ```
 
-The fields are:
-
 | Field | Description |
 |-------|-------------|
 | `id` (required) | The topology id a scenario references. |
@@ -106,23 +98,19 @@ The fields are:
 | `interfaceMappings` | Wiring between logic block interfaces. |
 | `contractMappings` | Service provider contract bindings; an unmapped contract gets a DevHost mock. |
 
-The instance `name` is what scenario name paths bind to — keep it short and stable. To migrate an existing C# preset, run `dale dev --export-topology <file>`, which boots the wired network and writes it as a `*.topology.json` dev profile.
+The instance `name` is what scenario name paths bind to. To migrate an existing C# preset, run `dale dev --export-topology <file>`.
 
 ## Command group
 
-The `dale scenario` verbs have no SDK dependency, so they run wherever the Dale CLI is installed. Each verb accepts the global `-o json` option for machine-readable output, except `schema` and `scaffold`, where `-o` names an output file instead (shown below).
+The `dale scenario` verbs have no SDK dependency and run wherever the Dale CLI is installed. Each accepts the global `-o json` option, except `schema` and `scaffold`, where `-o` names an output file instead.
 
 ### run
 
-`dale scenario run <id>` executes a scenario against the running DevHost and reports the result — the same report the Player's copy button produces.
-
-Run a scenario against a DevHost started with `dale dev`:
+Execute a scenario against the running DevHost and report the result — the same report the Player's copy button produces.
 
 ```bash
 dale scenario run thermostat
 ```
-
-Options:
 
 | Flag | Description |
 |------|-------------|
@@ -132,16 +120,12 @@ Options:
 
 ### validate
 
-`dale scenario validate` checks every scenario file for structure, name-path resolution, and topology match — the offline CI gate that catches a rename without running the scenario. It does not check that a `waitUntil` is ever satisfiable; only `dale scenario run` confirms the runtime semantics.
-
-Validate every scenario against a configuration exported from the DevHost:
+Check every scenario file for structure, name-path resolution, and topology match — the offline CI gate. It does not check that a `waitUntil` is satisfiable; only `dale scenario run` confirms runtime semantics.
 
 ```bash
 dale dev --export-config config.json
 dale scenario validate --config config.json
 ```
-
-Options:
 
 | Flag | Description |
 |------|-------------|
@@ -151,16 +135,12 @@ Options:
 
 ### schema
 
-`dale scenario schema` prints the scenario JSON Schema, enriched with the topology's actual name paths when a configuration is available. Commit it at `scenarios/.dale/scenario.schema.json` and reference it from each file via `"$schema"` for editor completion.
-
-Generate the per-project schema offline from an exported configuration:
+Print the scenario JSON Schema, enriched with the topology's actual name paths when a configuration is available. Commit it at `scenarios/.dale/scenario.schema.json` and reference it from each file via `"$schema"` for editor completion.
 
 ```bash
 dale dev --export-config config.json
 dale scenario schema --config config.json -o scenarios/.dale/scenario.schema.json
 ```
-
-Options:
 
 | Flag | Description |
 |------|-------------|
@@ -170,15 +150,11 @@ Options:
 
 ### scaffold
 
-`dale scenario scaffold <id>` generates a typed C# test from a scenario file — the graduation path when a scenario outgrows the format. The test runs the scenario's setup and steps, with TODO assertions for its human judgments. See [Testing](/sdk/testing) for the test project setup.
-
-Generate a test class from a scenario:
+Generate a typed C# test from a scenario file — the graduation path when a scenario outgrows the format. The test runs the scenario's setup and steps, with TODO assertions for its human judgments. See [Testing](/sdk/testing).
 
 ```bash
 dale scenario scaffold thermostat
 ```
-
-Options:
 
 | Flag | Description |
 |------|-------------|
@@ -188,15 +164,11 @@ Options:
 
 ### open
 
-`dale scenario open <id>` opens a scenario in the running DevHost's Player, resolving the `#/scenario/{id}` deep link on the host's actual port. Cite a scenario by id in a pull request rather than a hardcoded localhost URL, since the port is per-machine.
-
-Open a scenario in the Player:
+Open a scenario in the running DevHost's Player, resolving the `#/scenario/{id}` deep link on the host's actual port. Cite a scenario by id in a pull request rather than a per-machine localhost URL.
 
 ```bash
 dale scenario open thermostat
 ```
-
-Options:
 
 | Flag | Description |
 |------|-------------|
@@ -204,9 +176,7 @@ Options:
 
 ## Deterministic stepping
 
-`dale dev --stepped` boots the DevHost on a controllable virtual clock instead of the wall clock, so the same scenario file produces the same result every run, in CI and in the Player. Use the default real-clock mode for live watching; under the stepped clock, timers idle between runs and the emission throttle is inactive.
-
-Boot a stepped host for a reproducible scenario run:
+`dale dev --stepped` boots the DevHost on a controllable virtual clock instead of the wall clock, so the same scenario file produces the same result every run. Use the default real-clock mode for live watching; under the stepped clock, timers idle between runs and the emission throttle is inactive.
 
 ```bash
 dale dev --stepped --headless
@@ -214,15 +184,11 @@ dale dev --stepped --headless
 
 ## The Player
 
-The Player is the DevHost web UI view for a scenario. It renders the ordered steps with their acks and elapsed times, the watch tiles, and the judgment checklist, plus a copy button that produces a verification report carrying the scenario id, file hash, step results, and judgment verdicts. Paste that report into a pull request to record what was verified.
-
-The `--headless` mode of `dale dev` serves the same control API without the browser — the substrate that tools and agents drive. See [AI-Assisted Development](/agentic/) for the agent workflow.
+The Player is the DevHost web UI view for a scenario: ordered steps with acks and elapsed times, watch tiles, and the judgment checklist, plus a copy button that produces a verification report (scenario id, file hash, step results, judgment verdicts) to paste into a pull request. `dale dev --headless` serves the same control API without the browser — the substrate tools and agents drive (see [AI-Assisted Development](/agentic/)).
 
 ## ScenarioWireAttribute
 
-`ScenarioWireAttribute` marks a service provider handler with the wire struct its contract carries, so the DevHost can drive an input contract or assert an output contract through the generic handler. It is a declarative marker used only for scenario testing in the DevHost — the production runtime never reads it and the attribute carries no runtime behavior.
-
-Apply it to a `ServiceProviderHandlerBase`, declaring the inbound struct a scenario drives, the outbound struct a scenario asserts, or both:
+`ScenarioWireAttribute` marks a service provider handler with the wire struct its contract carries, letting the DevHost drive an input contract or assert an output contract through the generic handler. It is a DevHost-only declarative marker for scenario testing — the production runtime never reads it and it carries no runtime behavior. Apply it to a `ServiceProviderHandlerBase` with the inbound struct a scenario drives, the outbound struct a scenario asserts, or both:
 
 ```csharp
 using Vion.Dale.Sdk.Abstractions;

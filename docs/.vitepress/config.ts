@@ -9,6 +9,16 @@ export default withMermaid(
     lastUpdated: true,
     cleanUrls: true,
 
+    // Shiki bundles neither PromQL nor LogQL; alias them to a similar query
+    // language so the observability query examples highlight instead of
+    // emitting a "language not loaded" build warning.
+    markdown: {
+      languageAlias: {
+        promql: 'sql',
+        logql: 'sql',
+      },
+    },
+
     head: [
       ['link', { rel: 'icon', type: 'image/svg+xml', href: '/vion-logo.svg' }],
     ],

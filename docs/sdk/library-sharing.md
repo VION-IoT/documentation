@@ -32,12 +32,6 @@ The library list also has a Source filter with Owned, Public, and Shared options
 
 ## Revoking access
 
-Turning Public off or revoking a grant is prospective: already-activated configurations keep running, because revocation is not enforced against live edge gateways. Enforcement happens at the next activation. When a tenant activates a logic configuration that still references a library no longer visible to its integrator, the activation is blocked with an error naming the affected packages:
-
-```text
-The logic configuration references logic block libraries that are not available to this tenant: <package id>. Remove those logic blocks or obtain a grant before activating.
-```
-
-To recover, remove the affected logic blocks from the configuration, or obtain a Public publication or a fresh grant for the library, then activate again.
+Turning Public off or revoking a grant is prospective: already-activated configurations keep running, because revocation is not enforced against live edge gateways. Enforcement happens at the next activation — a logic configuration that references a library the integrator can no longer see is blocked the next time a tenant activates it. To recover, drop those logic blocks from the configuration or obtain a fresh grant or Public publication, then activate again.
 
 For packaging and uploading libraries, see [Publishing & CI/CD](/sdk/publishing).
