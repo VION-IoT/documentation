@@ -170,6 +170,8 @@ InvokeSynchronizedAfter(() =>
 
 These methods ensure that state mutations are always safe, even when triggered by external events.
 
+A read-only property updated from a timer or callback re-publishes under the [Emission Policy](/sdk/properties#emission-policy), which throttles and deduplicates the block's own outbound state by default.
+
 ## Dependency Injection
 
 logic blocks are resolved through dependency injection. Register them in a class that implements `IConfigureServices`:

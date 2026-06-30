@@ -1,41 +1,48 @@
 ---
 title: Supported Devices
-description: Hardware requirements and tested devices for VION edge gateways.
+description: Hardware boards and prebuilt images for VION edge gateways.
 ---
 
 # Supported Devices
 
-VION edge gateways run on any Linux device capable of running Docker. The platform is designed to be hardware-agnostic — if it runs Linux and has network access, it can likely be a VION edge gateway.
+VION edge gateways run from custom Mender images built for specific hardware boards. Each image carries a Linux base, Docker, the Mender client, and the auto-commissioning tools the platform needs, so a board boots ready to join VION Cloud without manual installation.
 
-## Requirements
+## Supported boards
 
-| Requirement | Minimum |
-|-------------|---------|
-| **OS** | Debian-based Linux (Debian, Raspberry Pi OS, Ubuntu) |
-| **RAM** | 256 MB |
-| **Storage** | 4 GB free disk space |
-| **Network** | Internet access (HTTPS outbound) |
-| **Access** | SSH access for initial setup |
-| **Runtime** | Docker & Docker Compose (installed during setup) |
+VION publishes a prebuilt image for each board below. Pick the board you have, download its image, and flash it during [onboarding](/edge-gateway/onboarding).
 
-## Tested Devices
+| Board | Network | Image |
+|-------|---------|-------|
+| Raspberry Pi 3 (Model B / B+) | Ethernet, WiFi | [raspberry-pi-3.img.gz](https://images.vion.swiss/releases/raspberry-pi-3.img.gz) |
+| Raspberry Pi 4 (Model B) | Ethernet, WiFi | [raspberry-pi-4.img.gz](https://images.vion.swiss/releases/raspberry-pi-4.img.gz) |
+| Raspberry Pi 5 (Model B) | Ethernet, WiFi | [raspberry-pi-5.img.gz](https://images.vion.swiss/releases/raspberry-pi-5.img.gz) |
+| Raspberry Pi Zero 2 W | WiFi | [raspberry-pi-zero2w.img.gz](https://images.vion.swiss/releases/raspberry-pi-zero2w.img.gz) |
+| NanoPi Zero2 | Ethernet | [nanopi-zero2.img.gz](https://images.vion.swiss/releases/nanopi-zero2.img.gz) |
+| NanoPi NEO3 Plus | Ethernet | [nanopi-neo3-plus.img.gz](https://images.vion.swiss/releases/nanopi-neo3-plus.img.gz) |
+| Beckhoff CX82xx | Ethernet | [beckhoff-cx82xx.img.gz](https://images.vion.swiss/releases/beckhoff-cx82xx.img.gz) |
+| Beckhoff CX9240 | Ethernet | Coming soon |
 
-The following devices have been tested and are known to work well:
+WiFi is available on Raspberry Pi boards only. The NanoPi and Beckhoff CX boards are Ethernet-only — connect them by cable.
 
-| Device | Model | Architecture | Notes |
-|--------|-------|-------------|-------|
-| **Raspberry Pi 3** | Model B, B+ | armhf | Minimum viable hardware |
-| **Raspberry Pi 4** | Model B (2/4/8 GB) | arm64 | Recommended for development |
-| **Raspberry Pi 5** | All models | arm64 | Best performance |
-| **WAGO PFC200** | 750-8212, 750-8214 | armhf | Industrial PLC, Linux variant |
-| **Beckhoff CX** | CX8200 (Linux) | x86_64 | Industrial embedded PC |
+## Image contents
 
-::: tip Other Hardware
-If your target device is not listed above but meets the requirements, it will likely work. [Contact VION](https://vion.swiss) for compatibility verification and support for additional hardware platforms.
-:::
+Every image ships in an identical, ready-to-commission state. The board derives its identity from a hardware identifier on first boot, so VION performs no per-device provisioning step before shipping.
+
+Each image includes:
+
+- A Debian or Armbian Linux base
+- Docker and the Docker Compose plugin as the container runtime
+- The Mender client for over-the-air updates
+- The VION auto-commissioning tools that run on first boot
+
+The flashed image is approximately 9.8 GB after expansion. Use an SD card or eMMC of 16 GB or larger.
+
+## Downloading an image
+
+Each image link above resolves to `https://images.vion.swiss/releases/<board>.img.gz`. The image is gzip-compressed; the flashing tool in [onboarding](/edge-gateway/onboarding) decompresses it as it writes.
 
 ## Simulation Mode
 
-For evaluation and development, VION offers a **simulated edge gateway** that runs entirely in VION Cloud. No physical hardware is required — the platform spins up a simulated gateway environment that behaves like a real device.
+For evaluation and development, VION offers a simulated edge gateway that runs entirely in VION Cloud. No physical hardware is required — the platform spins up a simulated gateway environment that behaves like a real device.
 
 Select **Simulation** during the [onboarding wizard](https://dashboard.vion.swiss/#/onboarding) to get started without hardware.

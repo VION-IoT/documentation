@@ -28,6 +28,7 @@ logic blocks do **not** read each other's service properties directly. Inter-blo
 | `Minimum` | Minimum allowed value. Defaults to `double.NegativeInfinity`. |
 | `Maximum` | Maximum allowed value. Defaults to `double.PositiveInfinity`. |
 | `WriteOnly` | Marks a `string` / `string?` property as a secret. See [Secrets](#secrets). |
+| `MinInterval`, `MinChange`, `Immediate` | Outbound re-publish throttle, deadband, and bypass. See [Emission Policy](#emission-policy). |
 
 ### Basic Example
 
@@ -92,6 +93,7 @@ Container types compose — `ImmutableArray<Coordinates?>` is a valid shape.
 | `Minimum` | Lower bound. Defaults to `double.NegativeInfinity`. |
 | `Maximum` | Upper bound. Defaults to `double.PositiveInfinity`. |
 | `Kind` | Time-series shape: `Measurement` (default), `Total`, or `TotalIncreasing`. See [Measuring Point Kinds](#measuring-point-kinds). |
+| `MinInterval`, `MinChange`, `Immediate` | Outbound re-publish throttle, deadband, and bypass. See [Emission Policy](#emission-policy). |
 
 ### Basic Example
 
@@ -161,6 +163,77 @@ public double StateOfCharge { get; private set; }
 | Dashboard value **and** time-series recording | Both attributes |
 | Cumulative counter charted as a delta | `[ServiceMeasuringPoint(Kind = MeasuringPointKind.TotalIncreasing)]` |
 | Secret string the operator sets but never reads back | `[ServiceProperty(WriteOnly = true)]` |
+
+## Emission Policy
+
+Three init-only knobs on `[ServiceProperty]` and `[ServiceMeasuringPoint]` govern how often a logic block re-publishes its own state, on top of an always-on dedup that drops unchanged values.
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+
+namespace Examples.Emission
+{
+    [LogicBlock(Name = "Emission Policy Demo", Icon = "device-line")]
+    public class SensorBlock : LogicBlockBase
+    {
+        // Plain writable input — writes are always forwarded, no policy.
+        [ServiceProperty(Title = "Setpoint", Unit = "kW", Minimum = 0, Maximum = 100)]
+        [Presentation(Group = PropertyGroup.Configuration)]
+        public double Setpoint { get; set; } = 25.0;
+
+        // Deadband: re-emitted only when it moves by at least 0.5.
+        [ServiceMeasuringPoint(Title = "Reading", Unit = "kW", MinInterval = "0", MinChange = "0.5")]
+        [Presentation(Group = PropertyGroup.Metric)]
+        public double Reading { get; private set; }
+
+        // Throttle and deadband together.
+        [ServiceMeasuringPoint(Title = "Temperature", Unit = "°C", MinInterval = "2s", MinChange = "0.5")]
+        [Presentation(Group = PropertyGroup.Metric)]
+        public double Temperature { get; private set; }
+
+        // Dual-annotated: two independently throttled streams.
+        [ServiceProperty(Title = "Power", Unit = "W", MinInterval = "2s")]
+        [ServiceMeasuringPoint(Title = "Power", Unit = "W", MinInterval = "500ms", MinChange = "1")]
+        [Presentation(Group = PropertyGroup.Metric)]
+        public double Power { get; private set; }
+
+        public SensorBlock(ILogger logger) : base(logger) { }
+
+        [Timer(1)]
+        public void OnTick()
+        {
+            Reading = Setpoint;
+            Temperature = Setpoint + 2.0;
+            Power = Setpoint * 40.0;
+        }
+
+        protected override void Ready() { }
+    }
+}
+```
+
+The knobs are identical on both attributes:
+
+| Knob | Description |
+|------|-------------|
+| `MinInterval` | Minimum spacing between two emitted values, as a duration string. Defaults to `"250ms"`. `"0"` disables interval throttling. |
+| `MinChange` | Deadband: the minimum change a new value must clear before it re-emits. Defaults to none. |
+| `Immediate` | When `true`, emits every change immediately, bypassing the throttle and deadband. Defaults to `false`. |
+
+::: warning
+The 250 ms `MinInterval` throttle is **on by default**. A read-only value emits at most ~4 Hz unless you set `MinInterval = "0"` or `Immediate = true`. Inbound writes are unaffected.
+:::
+
+Emission is **outbound-only**: writes into a writable property are always forwarded immediately, so put these knobs on read-only computed or sensed values, not operator inputs.
+
+- `MinInterval` is leading-edge: the first change after idle emits immediately; later changes within the interval coalesce latest-wins and flush at the boundary. Durations take an optional `us` / `ms` / `s` / `m` / `h` suffix; a bare number is milliseconds.
+- `MinChange` takes an invariant-culture number for `double` / `float` / `decimal` / `int` / `long` (e.g. `"0.5"`) or a duration for `TimeSpan` (e.g. `"1s"`); `bool` is a compile error.
+- `Immediate = true` emits every change, but the value-equality floor still drops no-op assignments. Use it for safety and error flags.
+
+A member carrying **both** attributes throttles independently per stream — neither gate suppresses the other, and the knobs do **not** cross-fill.
+
+To assert these gates deterministically under the TestKit, see [Testing emission policy](/sdk/testing#testing-emission-policy).
 
 ## Complex Value Types
 

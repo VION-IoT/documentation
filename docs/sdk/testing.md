@@ -43,6 +43,7 @@ var testContext = block.CreateTestContext()
 | `WithLogicInterfaceMapping`     | Wire a service interface to a remote block ID.           |
 | `WithPersistentValue`           | Pre-load a persisted property value.                     |
 | `WithServices`                  | Register additional services into the DI container.      |
+| `WithEmissionPolicy`            | Turn the emission policy on or off under the fake clock. See [Testing Emission Policy](#testing-emission-policy). |
 | `Build`                         | Finalize and return the test context.                    |
 
 ## Verifying Messages
@@ -120,6 +121,61 @@ testContext.AdvanceTime(TimeSpan.FromMinutes(1));  // advances both
 | `VirtualNow` | Current virtual time. Shorthand for `TimeProvider.GetUtcNow().UtcDateTime`. |
 | `AdvanceTime(TimeSpan)` | Advance the clock and fire elapsed `InvokeSynchronizedAfter` actions in deadline order. |
 | `WithTimeProvider(FakeTimeProvider)` | Bind the test context to a caller-owned clock so the block and the context share one instance. |
+
+## Testing Emission Policy
+
+Under the fake clock the [emission policy](/sdk/properties#emission-policy) is **off** by default (`EmissionPolicyMode.Off`), so every assignment surfaces as a change. Opt in with `WithEmissionPolicy(EmissionPolicyMode.FromAttributes)` to run the block's attribute gates, drive the trailing-edge flush with `AdvanceTime`, and assert post-gate emissions with `VerifyServicePropertyEmitted` / `VerifyServiceMeasuringPointEmitted` (both take an optional `times`):
+
+```csharp
+using System;
+using Moq;
+using Vion.Dale.Sdk.TestKit;
+using Xunit;
+
+namespace Examples.Emission.Test
+{
+    public class SensorBlockShould
+    {
+        [Fact]
+        public void DropTheReadingWhenTheSetpointMovesBelowTheDeadband()
+        {
+            var block = LogicBlockTestHelper.Create<SensorBlock>();
+            var ctx = block.CreateTestContext()
+                .WithEmissionPolicy(EmissionPolicyMode.FromAttributes)
+                .Build();
+
+            block.Setpoint = 26.0;
+            block.OnTick(); // Reading = 26 -> leading-edge emit (1)
+            block.Setpoint = 26.2;
+            block.OnTick(); // Δ0.2 < 0.5 -> dropped by the deadband
+
+            ctx.VerifyServiceMeasuringPointEmitted(lb => lb.Reading, times: Times.Once());
+        }
+
+        [Fact]
+        public void CoalesceTheThrottledTemperatureBurst()
+        {
+            var block = LogicBlockTestHelper.Create<SensorBlock>();
+            var ctx = block.CreateTestContext()
+                .WithEmissionPolicy(EmissionPolicyMode.FromAttributes)
+                .Build();
+
+            // Drive 12 ticks 250 ms apart; Temperature is throttled to 2 s.
+            for (var i = 0; i < 12; i++)
+            {
+                block.Setpoint = 20.0 + i;
+                block.OnTick();
+                ctx.AdvanceTime(TimeSpan.FromMilliseconds(250));
+            }
+
+            // The 12 changes coalesce latest-wins and flush on the 2 s interval.
+            ctx.VerifyServiceMeasuringPointEmitted(lb => lb.Temperature, times: Times.AtMost(4));
+        }
+    }
+}
+```
+
+[Scenarios](/sdk/scenarios) are the deterministic executable counterpart to these unit tests. `dale scenario scaffold` graduates a scenario that outgrows the JSON format into a TestKit / xUnit test with `TODO` assertions.
 
 ## Testing I/O
 

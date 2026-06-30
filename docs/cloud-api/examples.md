@@ -135,6 +135,58 @@ curl -H "Authorization: Bearer $TOKEN" \
   $API/Tenant/$TENANT_ID/LogicConfigurations
 ```
 
+## Share a Library with Another Integrator
+
+Logic block libraries are Private by default. To grant one of your libraries to another integrator, post to the grants endpoint with the library ID and the grantee integrator's slug. These operations are keyed on your integrator ID:
+
+```bash
+INTEGRATOR_ID="<your-integrator-id>"
+```
+
+Create a grant from your integrator to the partner integrator (the grantee is named by its globally unique slug, not its name):
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "logicBlockLibraryId": "<library-id>",
+    "granteeIntegratorSlug": "<partner-slug>"
+  }' \
+  "$API/Integrator/$INTEGRATOR_ID/LogicBlockLibraryGrants"
+```
+
+List the grants you have made on your libraries:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/Integrator/$INTEGRATOR_ID/LogicBlockLibraryGrants"
+```
+
+Revoke a grant by its ID:
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "$API/Integrator/$INTEGRATOR_ID/LogicBlockLibraryGrants/{grantId}"
+```
+
+To make a library Public instead of sharing it with a single integrator, send a `PUT` with `"visibility": "Public"` (the `name` and `description` fields are required):
+
+```bash
+curl -X PUT \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Library",
+    "description": "Smart building blocks",
+    "visibility": "Public"
+  }' \
+  "$API/Integrator/$INTEGRATOR_ID/LogicBlockLibraries/{libraryId}"
+```
+
+Revoking a grant or turning Public off is prospective: running configurations keep working, and the next activation referencing a now-invisible library is blocked.
+
 ## Full API Reference
 
 These examples cover the most common operations. For the complete API with all endpoints, request/response schemas, and interactive testing:

@@ -21,7 +21,7 @@ Verify the installation:
 
 ```bash
 dale --version
-# dale 1.0.0 - Vion IoT
+# dale <version> - Vion IoT
 ```
 
 ## Commands
@@ -63,6 +63,12 @@ Builds the project and all dependencies.
 dale build
 ```
 
+Unrecognized options forward to `dotnet build`. Pass a build configuration this way:
+
+```bash
+dale build -c Release
+```
+
 ### `dale test` — Run Tests
 
 Runs unit tests using the Dale TestKit.
@@ -70,6 +76,12 @@ Runs unit tests using the Dale TestKit.
 ```bash
 dale test
 # Passed!  - Failed: 0, Passed: 4, Skipped: 0, Total: 4
+```
+
+Unrecognized options forward to `dotnet test`. Filter to a subset of tests this way:
+
+```bash
+dale test --filter Name~Foo
 ```
 
 ### `dale dev` — Local Development
@@ -83,6 +95,21 @@ dale dev
 
 The DevHost lets you inspect and modify property values, simulate inputs, and debug logic block behavior — all in your browser.
 
+Options:
+| Flag | Description |
+|------|-------------|
+| `--headless` | Run without opening a browser. Serves the control API and prints a JSON readiness line on stdout — for tools, CI, and agents. |
+| `--stepped` | Boot in deterministic stepping mode (a controllable virtual clock) so [Scenarios](/sdk/scenarios) step exactly instead of waiting on the wall clock. |
+| `--export-config <file>` | Boot the wired network, write its configuration as JSON to `<file>`, and exit — the data source for `dale scenario validate` and `dale scenario schema`. See [Scenarios](/sdk/scenarios). |
+| `--export-topology <file>` | Boot the wired network, write it as a `*.topology.json` dev profile to `<file>`, and exit — the migration path from a C# preset to a topology file. |
+| `--preset <name>` | Pass `<name>` as the DevHost app's first program argument (`args[0]`) to select a consumer-defined preset. Combines with `--export-config` / `--export-topology` to export a non-default preset. |
+
+Extra arguments after `--` forward to the DevHost app:
+
+```bash
+dale dev -- my-preset
+```
+
 ### `dale list` — Introspect Project
 
 Shows all logic blocks, contracts, properties, and measuring points.
@@ -93,7 +120,7 @@ dale list
 
 ```
   Project: MyDemo (v0.0.1)
-  SDK: Vion.Dale.Sdk 1.0.0
+  SDK: Vion.Dale.Sdk <version>
 
 ┌ HelloWorld ─────────────────┐
 │ Properties │ Greeting       │
@@ -117,7 +144,7 @@ dale list --output json
 {
   "packageId": "MyDemo",
   "version": "0.0.1",
-  "sdkVersion": "1.0.0",
+  "sdkVersion": "<version>",
   "logicBlocks": [
     {
       "name": "HelloWorld",
@@ -130,6 +157,16 @@ dale list --output json
   ]
 }
 ```
+
+### `dale scenario` — Scenario Files
+
+Runs, validates, and scaffolds `*.scenario.json` checks against the DevHost.
+
+```bash
+dale scenario validate
+```
+
+The verbs `run`, `validate`, `schema`, `scaffold`, and `open` are documented in [Scenarios](/sdk/scenarios).
 
 ## `dale add` — Code Generation
 
@@ -216,6 +253,11 @@ Creates a NuGet package (`.nupkg`) for distribution.
 dale pack
 ```
 
+Options:
+| Flag | Description |
+|------|-------------|
+| `--version <version>` | Override the package version, e.g. from a tag or CI. |
+
 ### `dale upload` — Publish to Cloud
 
 Packages and uploads the library to VION Cloud in one step.
@@ -236,8 +278,9 @@ Options:
 | `--client-id` | Keycloak client ID (for CI) |
 | `--client-secret` | Keycloak client secret (for CI) |
 | `--release-notes` | Release notes for this version |
-| `--environment` | Target environment (overrides stored config) |
+| `-e`, `--environment` | Target environment (overrides stored config) |
 | `--integrator-id` | Integrator ID (overrides stored config) |
+| `--version <version>` | Override the package version, e.g. from a tag or CI. |
 | `--skip-duplicate` | Treat 409 Conflict (version already exists) as success — safe for CI re-runs |
 
 ### `dale login` / `dale logout` / `dale whoami` — Authentication

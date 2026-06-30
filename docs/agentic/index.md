@@ -30,10 +30,30 @@ The Dale CLI gives AI agents a complete development feedback loop:
 | `dale test` | Test failures to diagnose |
 | `dale list --output json` | Machine-readable project introspection |
 | `dale add logicblock Thermostat` | Code generation without writing boilerplate |
-| `dale add serviceproperty Temperature --type double` | Add properties via command |
-| `dale add timer Poll --interval 5` | Add timers via command |
+| `dale add serviceproperty Temperature --type double` | Add a service property via command |
+| `dale add timer Poll --interval 5` | Add a timer via command |
+| `dale dev --headless` | Boots the DevHost without a browser and prints a JSON readiness line for the agent to parse |
+| `dale dev --stepped` | Boots a deterministic virtual clock so scenario runs step exactly |
+| `dale scenario run <id>` | Drives a committed scenario and returns a structured report |
+| `dale scenario validate` | Resolves every name path and topology offline — the CI gate |
+| `dale scenario scaffold <id>` | Graduates a scenario to a typed xUnit test |
 
 The `--output json` flag on every command means agents can parse results programmatically rather than scraping terminal output.
+
+## The Scenario Feedback Loop
+
+The DevHost gives an agent a closed loop it can drive without a human in front of a browser. It boots the real wired network — the same messaging path that runs on the edge gateway — so it catches wired-path bugs that the TestKit's stubbed collaborators miss.
+
+The loop has four moves:
+
+1. Boot a headless, deterministic DevHost with `dale dev --headless --stepped`. The host prints a JSON readiness line on stdout (`{"ready":true,"port":...}`) that the agent parses to learn the port.
+2. Drive a committed scenario with `dale scenario run <id>`. This returns the same structured report the Player's copy button produces — pass or fail, with the failing step's detail.
+3. Iterate on the failure detail until the report is green.
+4. Gate the work offline in CI with `dale scenario validate`, which resolves every name path and topology against the wired-host configuration without a running host.
+
+When a scenario outgrows the file format, `dale scenario scaffold <id>` graduates it to a typed xUnit test (it runs the scenario's setup and steps via `ScenarioRunner.ApplyAsync` and leaves TODO assertions for the human judgments).
+
+Scenario files are authored in a JSON format. See [Scenarios](/sdk/scenarios) for the file grammar, step types, and the deterministic clock semantics.
 
 ## What This Means in Practice
 
@@ -50,9 +70,9 @@ An AI agent with access to the Dale CLI and SDK documentation can:
 5. `dale build` and `dale test` to verify
 6. `dale upload` to publish
 
-This workflow turns natural-language requirements into deployed IoT logic in minutes.
+This workflow turns natural-language requirements into deployed IoT logic without writing boilerplate by hand.
 
-## Agent-Ready Out of the Box
+## Agent-Ready by Default
 
 When you scaffold a new project with `dale new`, the generated project includes tailored **AGENTS.md** and **CLAUDE.md** files. These files give AI agents immediate context about:
 
@@ -72,10 +92,13 @@ The source-available [Dale SDK repository](https://github.com/VION-IoT/dale-sdk/
 |---------|---------------------|
 | **PingPong** | Inter-block communication with contracts, commands, and state updates |
 | **ToggleLight** | Digital I/O with `IDigitalInput` and `IDigitalOutput` service provider contracts |
-| **Energy** | Complex multi-block energy management with batteries, PV, and grid simulation |
+| **Energy** | Multi-block energy management with batteries, PV, and grid simulation |
 | **ModbusRtu** | Reading Modbus RTU registers from an electricity meter (EM122) |
+| **Emission** | Emission policy on service properties and measuring points — throttle, deadband, and dedup knobs for fast-moving telemetry |
+| **Presentation** | Declarative presentation hints — groups, importance, units, and display formatting |
+| **RichTypes** | Service properties over custom and structured value types |
 
-These examples include tests and DevHost configurations — point an AI agent at one and ask it to explain, extend, or use it as a template.
+These examples include tests, topology files, and committed scenarios — point an AI agent at one and ask it to explain, extend, or use it as a template.
 
 ## Tool-Agnostic
 
