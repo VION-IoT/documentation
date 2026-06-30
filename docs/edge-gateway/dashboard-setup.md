@@ -37,4 +37,11 @@ The Dashboard shows the current status of each gateway:
 
 ## Software Updates
 
-Software updates (Dale runtime, Mesh, monitoring agents) are managed through the platform's OTA update system powered by Mender. Updates are deployed from the platform level — no manual SSH access is required after initial onboarding.
+Updates are deployed from the platform level over the air — no manual SSH access is required after initial onboarding. Two update lanes run independently:
+
+- **OS and firmware updates** replace the full root filesystem through Mender's A/B partition swap, with automatic rollback if the new system fails to boot. These are infrequent, roughly one or two per year.
+- **Application updates** deliver the Dale runtime, Mesh, and related services as docker-compose artifacts, deployed per device by VION Cloud. These are more frequent, roughly monthly.
+
+Both lanes flow through Mender but serve different purposes: the OS lane swaps the whole rootfs, while the application lane updates the containers on the data partition without touching the OS.
+
+The device is identified by a stable identifier derived from its hardware, so it keeps the same identity across reflashes and OS updates. During onboarding you can watch each commissioning stage; the [onboarding commissioning status](/edge-gateway/onboarding#commissioning-status) table lists what each stage means.

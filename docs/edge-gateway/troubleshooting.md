@@ -1,98 +1,99 @@
 ---
 title: Troubleshooting
-description: Common issues during edge gateway setup and how to resolve them.
+description: Common issues during edge gateway flashing, commissioning, and deployment, and how to resolve them.
 ---
 
 # Troubleshooting
 
 Before diving in, check the [VION status page](https://status.vion.swiss/) — a platform-wide incident can explain gateway or upload failures that otherwise look local.
 
-## Provisioning Script Issues
+## Image and Commissioning Issues
 
-### Script fails with "distribution not recognized"
+### Image won't boot or no identifier appears
 
-The provisioning script supports Debian-based distributions (Debian, Raspberry Pi OS, Ubuntu). If you see:
+The board does not start, or it boots but never shows a device identifier.
 
-```
-ERROR: your distribution (alpine) is either not recognized or not supported
-```
+**Cause:** the image was written incompletely, the card is too small, or the board family does not match the image.
 
-Make sure you're running a supported OS. See [Supported Devices](/edge-gateway/supported-devices) for requirements.
+**Solution:** confirm you flashed the correct image for your board from [Supported Devices](/edge-gateway/supported-devices), and that the SD card or eMMC is 16 GB or larger. Reflash the image, then power-cycle the board. If you flashed with a raw writer, verify the write completed without errors.
 
-### Script fails with "already commissioned"
+### Identifier not appearing yet
 
-```
-Error: already commisioned! device id: aB3xK-Ym9pQ-Rz7wL-nhpClient
-```
+The board is powered and online, but the device identifier has not shown up.
 
-The script detected an existing device identity from a previous onboarding attempt. If you need to re-provision the device, contact [VION support](https://vion.swiss) to reset the device registration.
+**Cause:** first-boot commissioning is still running. The first boot starts Docker, registers the Mender client, and enrolls the device certificate before it can derive and display the identifier.
 
-### Mender installation fails
+**Solution:** wait for the first boot to finish, which can take several minutes on a fresh card. Confirm the board has network access. Once commissioning reaches the registration point, the identifier appears.
 
-If the Mender client installation fails, check:
+### Device was already commissioned
 
-- **Internet connectivity:** `curl -I https://get.mender.io/`
-- **Disk space:** `df -h` (needs at least 500 MB free)
-- **Permissions:** the script must run with `sudo`
+The board was onboarded before and you need to register it again, or commissioning will not restart.
 
-### Certificate signing retries repeatedly
+**Cause:** the device already holds commissioning state from a previous onboarding.
 
-If the script keeps retrying certificate signing:
+**Solution:** reflash the image to reset the device. The device identifier is derived from the board's hardware, so it stays the same across reflashes — re-registering the same identifier is expected.
 
-- Verify you've entered the Device ID in the Dashboard
-- Check DNS resolution: `nslookup api.vion.swiss`
-- Check time synchronization: `date` (certificates require accurate system time)
+### WiFi not connecting
 
-Run `sudo timedatectl set-ntp true` to enable NTP if the clock is off.
+A Raspberry Pi board does not join the WiFi network after flashing.
+
+**Cause:** WiFi presets are applied only on Raspberry Pi boards, and the regulatory domain (country) must match the network. NanoPi and Beckhoff CX boards are Ethernet-only and have no WiFi.
+
+**Solution:** reflash with the VION Imager and fill in the WiFi SSID, passphrase, and country during [onboarding](/edge-gateway/onboarding). Make sure the country matches the band your access point uses. If the board is not a Raspberry Pi, connect it by Ethernet instead.
 
 ## Dashboard Deployment Issues
 
-### Deployment stuck at "Software wird installiert"
+### Deployment stuck while installing software
 
-The Dashboard polls for deployment status every 15 seconds with a 30-minute timeout. If deployment seems stuck:
+The wizard shows the deployment in progress but it does not complete.
 
-1. **Check the Mender client** on the device:
-   ```bash
-   sudo systemctl status mender-authd
-   sudo systemctl status mender-updated
-   ```
+**Cause:** a service on the device has not started, or the device lost connectivity to VION Cloud.
 
-2. **Check Docker** is running:
-   ```bash
-   sudo systemctl status docker
-   sudo docker ps
-   ```
+**Solution:** the Dashboard polls for deployment status and times out after a window, then offers **Retry**. On the device, check that the core services are running:
 
-3. **Check connectivity** to the VION Cloud:
-   ```bash
-   curl -I https://api.vion.swiss
-   ```
+```bash
+sudo systemctl status mender-authd
+sudo systemctl status mender-updated
+sudo systemctl status docker
+sudo docker ps
+```
 
-4. If all services are running, click **Retry** in the Dashboard wizard.
+Confirm the device can reach VION Cloud:
+
+```bash
+curl -I https://api.vion.swiss
+```
+
+If all services are running, click **Retry** in the wizard.
 
 ### Gateway shows as offline after successful onboarding
 
-- Verify the Mesh container is running: `sudo docker ps | grep mesh`
-- Check Mesh logs: `sudo docker logs mesh`
-- Verify MQTT connectivity to VION Cloud broker
-- Check that the device certificate is valid: `step certificate inspect device-cert.pem`
+The gateway connected during onboarding but later reports offline.
+
+**Cause:** Mesh is not running, or the device certificate is no longer valid.
+
+**Solution:** verify the Mesh container is running and inspect its logs:
+
+```bash
+sudo docker ps | grep mesh
+sudo docker logs mesh
+```
+
+Confirm the device certificate is present and valid, and that the device can reach the VION Cloud broker.
 
 ## Network Requirements
 
-The edge gateway needs outbound HTTPS access to the following services:
+The edge gateway needs outbound HTTPS access to VION Cloud and the container registry. All connections are outbound — no inbound ports need to be opened.
 
-| Service | URL Pattern | Purpose |
-|---------|-------------|---------|
-| Cloud API | `api.vion.swiss` | REST API, provisioning |
-| MQTT Broker | `klopfer.vion.swiss` | Real-time data sync |
-| Mender Server | `mender.vion.swiss` | OTA updates |
-| CA Server | `ca.vion.swiss` | Certificate management |
-| Root CA | `roots.vion.swiss` | Root certificate |
-| Docker Hub | `docker.io` | Container images |
+| Service | Purpose |
+|---------|---------|
+| VION Cloud API | REST API and commissioning |
+| VION Cloud message broker | Real-time data sync over MQTT/TLS |
+| Mender server | Over-the-air updates |
+| VION certificate authority | Device certificate issuance and renewal |
+| Container registry | Container images |
 
-::: tip Firewall Configuration
-All connections are outbound only — no inbound ports need to be opened on the edge gateway.
-:::
+The exact hostnames for each environment are shown by the Dashboard and configured into the image. The certificate authority is the platform's Step CA; the Mender server is reachable per environment.
 
 ## Log Locations
 
@@ -101,5 +102,5 @@ All connections are outbound only — no inbound ports need to be opened on the 
 | Mender | `sudo journalctl -u mender-authd -u mender-updated` |
 | Docker | `sudo journalctl -u docker` |
 | Mesh | `sudo docker logs mesh` |
-| Dale Runtime | `sudo docker logs dale` |
-| All containers | `sudo docker ps` then `sudo docker logs <name>` |
+| Dale runtime | `sudo docker logs dale` |
+| All containers | `sudo docker ps`, then `sudo docker logs <name>` |

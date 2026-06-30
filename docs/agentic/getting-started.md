@@ -24,14 +24,16 @@ This scaffolds a complete project with a library, DevHost, and test project — 
 
 Projects created with `dale new` include an `AGENTS.md` file with:
 
-- All CLI commands and their usage
-- SDK conventions and attribute reference table
-- Project structure explanation
-- Code style rules (explicit usings, nullable enabled, netstandard2.1)
+- All CLI commands and their usage, including the scenario commands
+- SDK conventions and an attribute reference table
+- Project structure explanation (library, test, DevHost, `topologies/`, `scenarios/`)
+- Code style rules (explicit usings, nullable enabled, netstandard2.1 for the library)
 - Common patterns (property change tracking, persistence, timers)
-- DevHost instructions
+- Instructions for verifying headlessly through the DevHost and scenario files
 
-A `CLAUDE.md` file is also included that references `AGENTS.md`, so Claude Code picks it up automatically. Other tools like Cursor and Windsurf read `AGENTS.md` directly.
+The test project is xUnit (xunit.v3). Tests reference `Vion.Dale.Sdk.TestKit` for stubbed-collaborator unit tests, and `Vion.Dale.DevHost.Xunit` for wired-network scenario tests.
+
+A `CLAUDE.md` file is also included. It is a one-line pointer to `AGENTS.md`, so Claude Code picks up the conventions automatically. Other tools like Cursor and Windsurf read `AGENTS.md` directly.
 
 ::: tip
 If you're working on an existing project that doesn't have these files, run `dale new` in a temp directory and copy the generated `AGENTS.md` as a starting point. Customize it for your project's specific logic blocks and domain.
@@ -47,15 +49,32 @@ dale list --output json
 
 This returns a machine-readable overview of all logic blocks, their properties, measuring points, contracts, and interfaces. The agent can use this to understand what exists and what to add.
 
+## Headless and Deterministic Runs
+
+An agent verifies behavior by booting the DevHost headless and deterministic, then driving a committed scenario against it. Two flags on `dale dev` make the host agent-drivable:
+
+```bash
+dale dev --headless --stepped
+```
+
+`--headless` runs the host without opening a browser. It serves the control API and prints a JSON readiness line on stdout — `{"ready":true,"port":...}` — that the agent parses to learn the port before driving a scenario.
+
+`--stepped` boots a deterministic virtual clock instead of the wall clock. Under the stepped clock, timers idle between runs and a scenario steps the clock explicitly: `advance` jumps the clock and fires `[Timer]` methods, and emission happens immediately under the stepped clock rather than after a real-time delay. The result is reproducible runs — the same scenario produces the same report every time, with no flakiness from wall-clock timing.
+
+The DevHost boots the real wired network, the same messaging path that runs on the edge gateway. This catches wired-path bugs that the TestKit's stubbed collaborators miss.
+
 ## Recommended Workflow
+
+Center the loop on a committed scenario the agent can run and re-run:
 
 1. **Describe what you want** in natural language
 2. **Let the agent scaffold** using `dale add` commands or direct code generation
 3. **Build** — `dale build` catches compile errors immediately
-4. **Test** — `dale test` runs TestKit tests
-5. **Iterate** — the agent fixes errors and adds tests
-6. **Verify visually** — `dale dev` starts DevHost for manual testing
-7. **Publish** — `dale upload` when ready
+4. **Author a scenario** — describe setup, steps, and expectations in a `scenarios/*.scenario.json` file (see [Scenarios](/sdk/scenarios))
+5. **Run the loop** — boot `dale dev --headless --stepped`, then `dale scenario run <id>`; the agent reads the structured report and iterates on the failure detail
+6. **Gate offline** — `dale scenario validate` resolves every name path and topology without a running host, the check to run in CI
+7. **Graduate when needed** — `dale scenario scaffold <id>` turns a scenario into a typed xUnit test the agent runs with `dale test`
+8. **Publish** — `dale upload` when ready
 
 ## Tips for Effective Prompting
 

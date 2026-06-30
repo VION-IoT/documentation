@@ -22,6 +22,8 @@ Grafana uses the same **Keycloak** identity provider as the rest of the VION pla
 
 Your Grafana account is automatically provisioned when you are added to a tenant.
 
+You have a single Grafana account tied to your VION identity. If you belong to more than one tenant, that same account shows each tenant's folder side by side. Being removed from one tenant only removes that tenant's folder from your view — it does not affect your access to the others.
+
 ## Permissions
 
 | Role | What You Can Do |
@@ -33,10 +35,11 @@ By default, tenant members are assigned the **Viewer** role. Contact [VION suppo
 
 ## Navigation
 
-After login, you'll see your tenant's folder in the Grafana sidebar. Each tenant has a dedicated folder containing their pre-built dashboards:
+After login, you'll see your tenant's folder in the Grafana sidebar. Each tenant has a dedicated folder containing three pre-built dashboards:
 
-- **Overview** — gateway uptime, active gateways, error rate
 - **Logs** — searchable log stream from all edge components
+- **Metrics** — edge-gateway resource metrics (memory, CPU, GC, messaging)
+- **Actor Vitals** — per-actor health from the Dale runtime
 
 ## Data Sources
 

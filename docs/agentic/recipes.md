@@ -39,7 +39,7 @@ These recipes show example prompts and the expected agent workflow. They work wi
 
 **Expected agent workflow:**
 1. `dale list --output json` to understand the block's structure
-2. Create test class using TestKit
+2. Create an xUnit test class using the TestKit
 3. Use `InitializeForTest()` and `CreateTestContext()`
 4. Test boundary conditions around the hysteresis
 5. `dale test` to run the tests
@@ -47,13 +47,15 @@ These recipes show example prompts and the expected agent workflow. They work wi
 ## Build, Test, and Publish
 
 **Prompt:**
-> Build the project, run tests, fix any failures, then upload to VION Cloud with release notes "Added room controller with hysteresis logic".
+> Build the project, run tests and scenarios, fix any failures, then upload to VION Cloud with release notes "Added room controller with hysteresis logic".
 
 **Expected agent workflow:**
 1. `dale build` — fix any compilation errors
-2. `dale test` — fix any test failures
-3. `dale upload --release-notes "Added room controller with hysteresis logic"`
-4. Report success or failure
+2. `dale test` — fix any xUnit test failures
+3. `dale scenario validate` — resolve every scenario's name paths and topology offline
+4. Boot `dale dev --headless --stepped`, then `dale scenario run <id>` for each scenario as the gate before upload
+5. `dale upload --release-notes "Added room controller with hysteresis logic"`
+6. Report success or failure
 
 ## Refactor Properties for Dashboard Display
 
@@ -67,3 +69,69 @@ These recipes show example prompts and the expected agent workflow. They work wi
 4. Create a `BatteryState` enum with `[EnumLabel("...")]` and `[Severity(StatusSeverity.X)]` on each member
 5. Add a status enum property with `[Presentation(Group = PropertyGroup.Alarm, StatusIndicator = true)]`
 6. `dale build` to verify (the Dale analyzers catch most authoring mistakes)
+
+## Run a Scenario as the Feedback Loop
+
+**Prompt:**
+> Verify the RoomController behaves correctly: with a setpoint of 21 and the temperature driven to 20, heating should be on. Run it headless and report the result.
+
+**Expected agent workflow:**
+1. Boot the DevHost headless and deterministic with `dale dev --headless --stepped`, then parse the JSON readiness line to learn the port
+2. `dale scenario run room-controller` to drive the committed scenario against the wired network
+3. Read the structured report — the same one the Player's copy button produces
+4. If a step failed, fix the logic block and re-run; iterate until the report is green
+
+The DevHost runs the real wired messaging path, so this catches wiring bugs that a stubbed-collaborator unit test would miss. For the scenario file grammar, see [Scenarios](/sdk/scenarios).
+
+## Use the Deterministic Clock for Reproducible Runs
+
+**Prompt:**
+> The RoomController scenario passes sometimes and fails other times depending on timing. Make the run reproducible.
+
+**Expected agent workflow:**
+1. Boot with `dale dev --stepped` so the host uses a virtual clock instead of the wall clock
+2. Ensure the scenario advances time explicitly with `advance` steps rather than relying on wall-clock delays — under the stepped clock, timers fire when the scenario advances the clock and emission happens immediately
+3. `dale scenario run room-controller` — the run now produces the same report every time
+4. Pin any remaining non-deterministic input (live data, RNG) so the result is fully reproducible
+
+## Graduate a Scenario to an xUnit Test
+
+**Prompt:**
+> The room-controller scenario needs assertions the file format can't express. Turn it into a typed xUnit test.
+
+**Expected agent workflow:**
+1. `dale scenario scaffold room-controller` to generate a typed test that runs the scenario's setup and steps via `ScenarioRunner.ApplyAsync`, with TODO assertions for the human judgments
+2. Or hand-write a `[Theory]` over the committed scenario files using the wired DevHost fixture
+3. Fill in the typed assertions and run `dale test`
+
+The scaffold is the fast path. To run every committed scenario as its own test row, hand-write a theory that loads the wired host on the scenario's topology with the deterministic clock and runs it:
+
+```csharp
+using System.Threading.Tasks;
+using Vion.Dale.DevHost.Xunit;
+using Xunit;
+
+namespace RoomController.Test
+{
+    public sealed class ScenarioTests
+    {
+        private sealed class Fixture : DevHostScenarioFixture
+        {
+            protected override DevHostBuilder ConfigureDi(DevHostBuilder builder) =>
+                builder.WithDi<DependencyInjection>();
+        }
+
+        private readonly Fixture _fixture = new();
+
+        [Theory]
+        [ScenarioFiles]
+        public async Task EveryScenarioSucceeds(string id, string topology)
+        {
+            await using var host = await _fixture.LoadAsync(topology, stepped: true);
+            (await host.RunScenarioAsync(id)).AssertSucceeded();
+        }
+    }
+}
+```
+
+`[ScenarioFiles]` yields one test row per committed `*.scenario.json` file, named by the scenario title. `LoadAsync(topology, stepped: true)` builds a fresh wired host on the scenario's declared topology under the deterministic clock, and `RunScenarioAsync(id).AssertSucceeded()` runs the scenario and throws with the first failed step's detail if it does not succeed. Replace `DependencyInjection` with the block catalog type your project generates.

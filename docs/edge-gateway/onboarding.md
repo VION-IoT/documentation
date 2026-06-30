@@ -1,136 +1,103 @@
 ---
 title: Onboarding
-description: How to provision and register a new edge gateway with the VION platform.
+description: How to flash, commission, and register a new edge gateway with the VION platform.
 ---
 
 # Onboarding an Edge Gateway
 
-Onboarding connects a physical device to the VION platform. The process is guided through the [Dashboard onboarding wizard](https://dashboard.vion.swiss/#/onboarding) and involves running a provisioning script on the device via SSH.
+Onboarding connects a board to the VION platform. You flash a prebuilt image, power on the device, and register the device identifier it shows you in the [Dashboard onboarding wizard](https://dashboard.vion.swiss/#/onboarding). On first boot the device commissions itself — no SSH access or provisioning script is involved.
 
 ## Overview
 
+The diagram below shows the participants and the order of the commissioning stages.
+
 ```mermaid
 sequenceDiagram
-    participant User
+    participant User as Integrator
     participant Dashboard
-    participant Device as Edge Gateway
+    participant Gateway as Edge gateway
+    participant CA as Step CA
     participant Cloud as VION Cloud
+    participant Mender
 
-    User->>Dashboard: Start onboarding wizard
-    Dashboard->>User: Show project setup steps
-    User->>Dashboard: Enter project details
-    Dashboard->>User: Display provisioning commands
-    User->>Device: SSH into device
-    User->>Device: Run provisioning script
-    Device->>Device: Install Mender, Step CLI
-    Device->>Device: Generate device identity
-    Device-->>User: Display Device ID
-    User->>Dashboard: Enter Device ID
-    Device->>Cloud: Certificate signing (mTLS)
-    Dashboard->>Cloud: Provision gateway
-    Cloud->>Device: Deploy software via Mender
-    Dashboard->>User: Gateway connected ✓
+    User->>Dashboard: Start wizard, enter device identifier
+    Note over Gateway: First boot auto-commissions
+    Gateway->>Cloud: Ping with device identifier
+    Cloud->>CA: Issue device certificate
+    CA-->>Gateway: Signed certificate (mTLS)
+    Gateway->>Mender: Authenticate
+    Mender-->>Cloud: Device pending
+    Cloud->>Mender: Accept device
+    Cloud->>Dashboard: Device ready
+    Cloud->>Gateway: Deploy software
 ```
 
-## Step 1: Start the Wizard
+## Step 1: Start the wizard
 
-In the Dashboard, start the onboarding process. You'll be asked to:
+In the Dashboard, start the onboarding process. The wizard asks you to:
 
-1. **Select a use case** — Energy Management, Building Automation, or Empty Project
-2. **Create a project** — provide a company name and project name
-3. **Choose gateway type** — Simulation (no hardware needed) or Own Hardware
+1. Select a use case — Energy Management, Building Automation, or an empty project
+2. Create a project — provide a company name and project name
+3. Choose a gateway type — Simulation (no hardware needed) or Own hardware
 
-If you select **Own Hardware**, the wizard continues with device setup.
+If you choose **Simulation**, VION Cloud creates a simulated gateway and you can skip the flashing steps. If you choose **Own hardware**, continue below.
 
-## Step 2: Prepare the Device
+## Step 2: Download the board image
 
-Before running the provisioning script, make sure your device:
+Identify your board on the [supported devices](/edge-gateway/supported-devices) page and download its image. The image is a gzip-compressed file served from `https://images.vion.swiss/releases/<board>.img.gz`, where `<board>` is the token for your board.
 
-- Has a fresh, up-to-date OS installed (e.g., Raspberry Pi OS)
-- Is connected to the internet
-- Has SSH access enabled
+## Step 3: Flash the image
 
-Connect to your device via SSH:
+Write the image to the SD card or eMMC. Use the VION Imager, which also applies per-device settings, or any raw image-flashing tool such as balenaEtcher.
 
-```bash
-ssh user@<device-ip>
-```
+### Flash with the VION Imager
 
-## Step 3: Run the Provisioning Script
+The VION Imager writes the image and stores hostname, timezone, locale, cloud environment, and (on Raspberry Pi) WiFi settings on the boot partition, where they survive future updates. Follow these steps:
 
-The Dashboard displays two commands. Copy and run them on the device:
+1. Pick the `.img.gz` image you downloaded.
+2. Pick the target SD card. The list is filtered to removable, USB, and MMC devices.
+3. Fill in the per-device settings: VION environment, hostname, timezone, and locale. On Raspberry Pi boards, also fill in the WiFi SSID, passphrase, and country. NanoPi and Beckhoff CX boards are Ethernet-only and show no WiFi fields.
+4. Confirm the destructive write. The Imager requires a two-step acknowledgement because writing erases the card.
+5. The Imager writes the image, applies the settings, and ejects the card.
 
-**Download the script:**
-```bash
-curl -X 'GET' '<url-shown-in-dashboard>' \
-  -H 'accept: */*' > installEdgeGateway.sh
-```
+The WiFi passphrase can be stored as a precomputed PMK hash instead of plaintext so the human passphrase never lands on the card.
 
-::: info
-The script URL is unique to your environment. Always use the exact URL shown in the Dashboard — do not copy it from this documentation.
-:::
+### Flash with balenaEtcher
 
-**Run the script:**
-```bash
-chmod +x installEdgeGateway.sh && sudo ./installEdgeGateway.sh
-```
+If you flash with balenaEtcher or another raw writer, decompress is handled automatically by the tool. Select the `.img.gz`, select the target card, and write. The device falls back to an interactive commissioning prompt on first login, so per-device settings are not preset — prefer the VION Imager when you need WiFi or a custom hostname.
 
-The script is interactive and will prompt you through each step. It installs and configures:
+## Step 4: Boot the device
 
-| Component | Purpose |
-|-----------|---------|
-| **Mender client** | Over-the-air (OTA) software updates |
-| **Step CLI** | Device certificate management (mTLS) |
-| **Docker & Docker Compose** | Container runtime for VION services |
-| **Mender update modules** | Script and Docker Compose update support |
+Insert the SD card or eMMC into the board and apply power. The first boot runs auto-commissioning: it starts Docker, registers the Mender client, and enrolls a device certificate with Step CA. These tools are baked into the image, so nothing is installed over the network at this stage.
 
-## Step 4: Enter the Device ID
+When commissioning reaches the point where it needs to be registered, the device shows a **device identifier** derived from the board's hardware. This identifier is stable across reflashes — flashing a fresh image onto the same board produces the same identifier.
 
-At the end of the script, a **Device ID** is displayed on the terminal:
+## Step 5: Register the device identifier
 
-```
-NEW device id! Please enter it in the ui!
+Enter the device identifier from the previous step into the wizard's **Set up VION** step. Registering the identifier approves the device, after which VION Cloud issues its certificate and accepts it into Mender.
 
-aB3xK-Ym9pQ-Rz7wL-nhpClient
-```
+## Commissioning status
 
-Copy this ID and enter it in the Dashboard wizard.
+After you enter the identifier, the wizard shows live commissioning status. The stages are:
 
-::: warning
-The Device ID is generated once per device. If the script detects an existing ID (from a previous run), it will stop to prevent duplicate registrations.
-:::
+| Status | Meaning |
+|--------|---------|
+| Key approved — waiting for the device | You registered the identifier; VION Cloud is waiting for the device to check in. |
+| Certificate issued | The device requested and received its mTLS certificate from Step CA. |
+| Device accepted | VION Cloud accepted the device into Mender. |
+| Device ready | Commissioning finished; the device is ready for software deployment. |
+| Timed out — check the device | The device did not check in within the commissioning window. Confirm it is powered and online. |
+| Commissioning failed | Commissioning could not complete. See [Troubleshooting](/edge-gateway/troubleshooting). |
 
-## Step 5: Certificate Provisioning
+Once the device is ready, VION Cloud deploys the initial software (Dale runtime, Mesh, monitoring agents) and the wizard reports the gateway as connected.
 
-After you enter the Device ID, the script automatically:
-
-1. Downloads the VION root CA certificate
-2. Generates an EC P-384 key pair on the device
-3. Creates a Certificate Signing Request (CSR)
-4. Sends the CSR to the VION CA for signing
-5. Receives and stores the signed device certificate
-
-This establishes **mutual TLS (mTLS)** between the device and the VION Cloud — the device proves its identity on every connection.
-
-## Step 6: Software Deployment
-
-Once the device is registered, the Dashboard triggers the initial software deployment. The wizard shows the progress as each component is deployed:
-
-- **Infrastructure modules** — base system configuration
-- **Infrastructure Docker** — container runtime setup
-- **Software bundle** — VION edge components (Dale runtime, Mesh, monitoring agents)
-
-Deployment is handled by Mender and typically takes 2–5 minutes. The Dashboard polls every 15 seconds and updates the status in real time.
-
-::: tip
-If deployment fails, click **Retry** in the wizard. Common issues are covered in [Troubleshooting](/edge-gateway/troubleshooting).
-:::
-
-## What Happens After Onboarding
+## What happens after onboarding
 
 Once the gateway shows as connected:
 
-- The **Dale runtime** is running and ready to execute logic blocks
-- The **Mesh gateway** is connected to the VION Cloud via MQTT over TLS
-- **Telemetry** is flowing to the observability stack
+- The Dale runtime is running and ready to execute logic blocks
+- Mesh is connected to VION Cloud and bridges telemetry and commands
+- Telemetry is flowing to the observability stack
 - You can deploy logic block libraries and configure logic in the Dashboard
+
+For day-to-day management, see [Dashboard Setup](/edge-gateway/dashboard-setup).

@@ -28,6 +28,7 @@ logic blocks do **not** read each other's service properties directly. Inter-blo
 | `Minimum` | Minimum allowed value. Defaults to `double.NegativeInfinity`. |
 | `Maximum` | Maximum allowed value. Defaults to `double.PositiveInfinity`. |
 | `WriteOnly` | Marks a `string` / `string?` property as a secret. See [Secrets](#secrets). |
+| `MinInterval`, `MinChange`, `Immediate` | Outbound re-publish throttle, deadband, and bypass. See [Emission Policy](#emission-policy). |
 
 ### Basic Example
 
@@ -92,6 +93,7 @@ Container types compose — `ImmutableArray<Coordinates?>` is a valid shape.
 | `Minimum` | Lower bound. Defaults to `double.NegativeInfinity`. |
 | `Maximum` | Upper bound. Defaults to `double.PositiveInfinity`. |
 | `Kind` | Time-series shape: `Measurement` (default), `Total`, or `TotalIncreasing`. See [Measuring Point Kinds](#measuring-point-kinds). |
+| `MinInterval`, `MinChange`, `Immediate` | Outbound re-publish throttle, deadband, and bypass. See [Emission Policy](#emission-policy). |
 
 ### Basic Example
 
@@ -161,6 +163,102 @@ public double StateOfCharge { get; private set; }
 | Dashboard value **and** time-series recording | Both attributes |
 | Cumulative counter charted as a delta | `[ServiceMeasuringPoint(Kind = MeasuringPointKind.TotalIncreasing)]` |
 | Secret string the operator sets but never reads back | `[ServiceProperty(WriteOnly = true)]` |
+
+## Emission Policy
+
+The emission policy governs how often a logic block re-publishes its own observable state. By default, every service property and measuring point re-emits at most once every 250 ms — a `MinInterval` throttle — on top of an always-on value-equality dedup that drops re-emissions of an unchanged value. Three init-only knobs on `[ServiceProperty]` and `[ServiceMeasuringPoint]` tune this.
+
+::: warning
+The 250 ms throttle is **on by default**. A read-only value that previously re-published on every change now emits at most ~4 Hz unless you raise the rate with `MinInterval = "0"` or `Immediate = true`. Inbound writes to a writable property are unaffected — only the block's outbound re-publishing is throttled.
+:::
+
+The knobs are identical on both attributes:
+
+| Field | Description |
+|-------|-------------|
+| `MinInterval` | Minimum spacing between two emitted values, as a duration string. Defaults to `"250ms"`. `"0"` disables interval throttling. |
+| `MinChange` | Deadband: the minimum change a new value must clear before it re-emits. Format depends on the value's type. Defaults to none. |
+| `Immediate` | When `true`, emits every change immediately, bypassing the throttle and deadband. Defaults to `false`. |
+
+Emission policy governs the **outbound** re-publish of a block's own readings. A write *into* a writable property is always forwarded to the block immediately. Put these knobs on read-only computed or sensed values, not on operator inputs.
+
+### Throttling
+
+`MinInterval` rate-limits re-emission with leading-edge semantics: the first change after an idle period emits immediately, and later changes within the interval coalesce latest-wins and flush once at the interval boundary. The duration grammar is a number with an optional `us` / `ms` / `s` / `m` / `h` suffix; a bare number is milliseconds. So `"250ms"`, `"2s"`, and `"500us"` are all valid, and `"0"` disables the throttle entirely.
+
+```csharp
+[ServiceMeasuringPoint(Title = "Temperature", Unit = "°C", MinInterval = "2s")]
+public double Temperature { get; private set; }
+```
+
+### Deadband
+
+`MinChange` suppresses re-emission until the value moves by at least the given amount, relative to the last emitted value. The format is type-dependent: an invariant-culture number for `double`, `float`, `decimal`, `int`, and `long` (e.g. `"0.5"`), and a duration for `TimeSpan` (e.g. `"1s"`). `bool` has no magnitude and is not supported. The compiler reports an error if `MinChange` is set on a type with no numeric or `TimeSpan` change support.
+
+```csharp
+[ServiceMeasuringPoint(Title = "Reading", Unit = "kW", MinInterval = "0", MinChange = "0.5")]
+public double Reading { get; private set; }
+```
+
+### Immediate
+
+`Immediate = true` bypasses both the throttle and the deadband, so every change re-emits. Use it for safety and error flags where latency matters more than wire traffic. The value-equality floor still applies, so an assignment that does not change the value is still dropped.
+
+```csharp
+[ServiceMeasuringPoint(Title = "Fault", Immediate = true)]
+public bool Fault { get; private set; }
+```
+
+A member that carries **both** attributes is throttled independently per stream — the property stream and the measuring-point stream each run their own gate, and neither suppresses the other. Unlike `Title`, `Unit`, `Minimum`, and `Maximum`, the emission knobs do **not** cross-fill: set them on each attribute that needs them.
+
+The example below combines the knobs on one block. `Setpoint` is a plain writable input with no policy; the read-only readings below it each carry their own gate, including a dual-annotated `Power` whose two streams throttle independently.
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+
+namespace Examples.Emission
+{
+    [LogicBlock(Name = "Emission Policy Demo", Icon = "device-line")]
+    public class SensorBlock : LogicBlockBase
+    {
+        // Plain writable input — writes are always forwarded, no policy.
+        [ServiceProperty(Title = "Setpoint", Unit = "kW", Minimum = 0, Maximum = 100)]
+        [Presentation(Group = PropertyGroup.Configuration)]
+        public double Setpoint { get; set; } = 25.0;
+
+        // Deadband: re-emitted only when it moves by at least 0.5.
+        [ServiceMeasuringPoint(Title = "Reading", Unit = "kW", MinInterval = "0", MinChange = "0.5")]
+        [Presentation(Group = PropertyGroup.Metric)]
+        public double Reading { get; private set; }
+
+        // Throttle and deadband together.
+        [ServiceMeasuringPoint(Title = "Temperature", Unit = "°C", MinInterval = "2s", MinChange = "0.5")]
+        [Presentation(Group = PropertyGroup.Metric)]
+        public double Temperature { get; private set; }
+
+        // Dual-annotated: two independently throttled streams.
+        [ServiceProperty(Title = "Power", Unit = "W", MinInterval = "2s")]
+        [ServiceMeasuringPoint(Title = "Power", Unit = "W", MinInterval = "500ms", MinChange = "1")]
+        [Presentation(Group = PropertyGroup.Metric)]
+        public double Power { get; private set; }
+
+        public SensorBlock(ILogger logger) : base(logger) { }
+
+        [Timer(1)]
+        public void OnTick()
+        {
+            Reading = Setpoint;
+            Temperature = Setpoint + 2.0;
+            Power = Setpoint * 40.0;
+        }
+
+        protected override void Ready() { }
+    }
+}
+```
+
+To assert these gates deterministically under the TestKit, see [Testing emission policy](/sdk/testing#testing-emission-policy).
 
 ## Complex Value Types
 

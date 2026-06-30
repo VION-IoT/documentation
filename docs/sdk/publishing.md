@@ -95,6 +95,14 @@ This runs `dotnet pack -c Release` and outputs the package location. The version
 Increment the `<Version>` before each upload — VION Cloud rejects duplicate versions.
 :::
 
+Instead of editing the `.csproj`, pass `--version` to override the package version for a single run. This drives the produced `.nupkg` and is the usual choice in CI, where the version comes from a tag or ref rather than the checked-in file:
+
+```bash
+dale pack --version 1.2.3
+```
+
+`dale upload --version <version>` does the same when packing and uploading in one step.
+
 ## Uploading
 
 ### Via CLI
@@ -114,6 +122,10 @@ dale upload --release-notes "Added temperature monitoring"
 3. Click **Upload New Version**
 4. Select the `.nupkg` file
 5. Optionally add release notes
+
+### Library visibility & sharing
+
+A newly uploaded library is Private: usable only by your integrator. To widen access, you can make it Public — usable by every integrator on the platform — or share it with one named integrator by entering that integrator's slug in the Dashboard. The Dale CLI does not set visibility; both actions are managed in the Dashboard under Integrator → Libraries. For the full guide, see [Library Visibility & Sharing](/sdk/library-sharing).
 
 ## CI/CD Publishing
 
@@ -169,6 +181,7 @@ jobs:
           dale upload \
             --client-id ${{ secrets.DALE_CLIENT_ID }} \
             --client-secret ${{ secrets.DALE_CLIENT_SECRET }} \
+            --version ${{ github.ref_name }} \
             --release-notes "Release ${{ github.ref_name }}" \
             --skip-duplicate
 ```
