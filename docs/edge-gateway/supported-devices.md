@@ -20,7 +20,7 @@ VION publishes a prebuilt image for each board below. Pick the board you have, d
 | NanoPi Zero2 | Ethernet | [nanopi-zero2.img.gz](https://images.vion.swiss/releases/nanopi-zero2.img.gz) |
 | NanoPi NEO3 Plus | Ethernet | [nanopi-neo3-plus.img.gz](https://images.vion.swiss/releases/nanopi-neo3-plus.img.gz) |
 | Beckhoff CX82xx | Ethernet | [beckhoff-cx82xx.img.gz](https://images.vion.swiss/releases/beckhoff-cx82xx.img.gz) |
-| Beckhoff CX9240 | Ethernet | [beckhoff-cx9240.img.gz](https://images.vion.swiss/releases/beckhoff-cx9240.img.gz) |
+| Beckhoff CX9240 | Ethernet | Coming soon |
 
 WiFi is available on Raspberry Pi boards only. The NanoPi and Beckhoff CX boards are Ethernet-only — connect them by cable.
 
