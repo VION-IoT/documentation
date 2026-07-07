@@ -1986,6 +1986,7 @@ Per-field annotations for fields of a flat struct used as a service-element valu
 **Properties:**
 
 - `StringFormat` — Advisory JSON-Schema `format` for a string field (e.g. `Ipv4`). Routes into the field's `schema.format`. String-only — see DALE033.
+- `WriteOnly` — Marks this field as a secret — clients see a redaction sentinel (`"***"`) on the publish-state channel instead of the actual value, while the struct's other fields stay visible. Restricted to `string` / `string?` fields in v1. Routes into the field's `schema.annotations.writeOnly`.
 
 ---
 
