@@ -278,7 +278,7 @@ public readonly record struct Coordinates(
     double Lon);
 ```
 
-`[StructField]` accepts `Title`, `Description`, `Unit`, `Minimum`, and `Maximum`.
+`[StructField]` accepts `Title`, `Description`, `Unit`, `Minimum`, `Maximum`, and `WriteOnly` — the last marks a member as a secret (see [Secrets](#secrets)).
 
 Structs used as service-element values must be **flat**:
 
@@ -466,7 +466,7 @@ The getter-always-false pattern is a transitional bridge until a first-class `[S
 
 ## Secrets
 
-A `string` or `string?` property with `WriteOnly = true` is a secret. The Dale runtime strips the actual value at the publish boundary and replaces it with a redaction sentinel before anything leaves the gateway. Operators can set, clear, and overwrite the value — but they cannot read it back.
+A `string` or `string?` property with `WriteOnly = true` is a secret. On the read path the Dale runtime replaces the real value with a redaction sentinel (`"***"`) before anything leaves the gateway, so operators can set, clear, and overwrite the value — but never read it back.
 
 ```csharp
 [ServiceProperty(Title = "API Key", WriteOnly = true)]
@@ -476,11 +476,27 @@ public string? ApiKey { get; set; }
 
 The setter inside the logic block receives the real value — cache it, hand it to your client library, or persist it normally. Three states are distinguishable through the dashboard: never set, cleared, and set-and-hidden.
 
+On a set, an incoming `"***"` sentinel is resolved back to the currently stored value — a re-submitted secret reads as *unchanged* rather than overwriting the real value with the literal `"***"`. A real string overwrites it; `null` clears it. So an operator can edit other fields of a configuration and leave a secret field still showing `"***"` untouched, without wiping it.
+
 `WriteOnly` is restricted to `string` / `string?` in v1 — the redaction sentinel is itself a string literal. Persistence works as usual; opt out with `[Persistent(Exclude = true)]` if a secret should be re-entered on every restart.
 
 ::: warning
 At-rest encryption is out of scope. The gateway's persistence store keeps the real value on disk. `WriteOnly` protects the wire path, not the local disk.
 :::
+
+### Secrets Inside a Struct
+
+`WriteOnly` also works per member on a `[StructField]`, so a secret can sit beside visible fields in a `readonly record struct` — a token next to its endpoint, for example:
+
+```csharp
+public readonly record struct ConnectionCredentials(
+    [StructField(Title = "Endpoint")]
+    string Endpoint,
+    [StructField(Title = "Access Token", WriteOnly = true)]
+    string? AccessToken);
+```
+
+Only the marked member is redacted; the others stay visible. Declare the secret member as `string?` so it can be cleared (`null` = cleared), and keep it `string` / `string?` — the same v1 restriction as the top-level attribute. The re-submit rule applies per member: an echoed `"***"` leaves that member's stored secret unchanged, so editing the visible fields never wipes the secret.
 
 ## Enum Properties
 
