@@ -16,7 +16,7 @@ Every service property and measuring point emits three independent metadata docu
 | Document | Source | Consumed By |
 |----------|--------|-------------|
 | Schema | `[ServiceProperty]`, `[ServiceMeasuringPoint]`, `[StructField]` — `Title`, `Description`, `Unit`, `Minimum`, `Maximum`, `WriteOnly`, `Kind` | Codec, validators, cloud-api, the time-series store |
-| Presentation | `[Presentation]` — `DisplayName`, `Group`, `Order`, `Importance`, `StatusIndicator`, `Decimals`, `UiHint`, `Format` | Dashboard renderer, DevHost, custom UIs |
+| Presentation | `[Presentation]` — `DisplayName`, `Group`, `Order`, `Importance`, `StatusIndicator`, `Decimals`, `UiHint`, `Format`, `VisibleWhen` | Dashboard renderer, DevHost, custom UIs |
 | Runtime | The CLR type plus `[Persistent]`, `[Timer]` | Dale runtime, persistence, scheduler |
 
 The three documents are siblings: changes to one do not implicitly change another. A new presentation hint never alters the schema; a schema rename never re-flows through presentation. This separation is what lets integrator vocabularies (kilowatts, percent, cumulative-energy) compose freely with platform building blocks (status indicators, ordering, group sections).
