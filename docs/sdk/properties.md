@@ -305,6 +305,7 @@ Structs used as service-element values must be **flat**:
 | `Decimals` | `int` | Display precision for numeric values. Unset uses sensible per-type defaults. |
 | `UiHint` | `string?` | Routing key for non-default renderers. Use a `UiHints` constant or your own. |
 | `Format` | `string?` | Format-token string for date/duration rendering. Use a `Formats` constant or a moment.js / day.js token. |
+| `VisibleWhen` | `string?` | Predicate that shows or hides the member in the UI based on sibling property values. See [Conditional Visibility](#conditional-visibility). |
 
 The attribute is **not sealed** — see [Preset Attributes](#preset-attributes).
 
@@ -379,6 +380,78 @@ public TimeSpan Uptime { get; private set; }
 ```
 
 `Format` is orthogonal to `UiHint` and `Decimals` — the three control different aspects of rendering.
+
+## Conditional Visibility
+
+`VisibleWhen` shows or hides a property or measuring point based on the live values of other properties in the same logic block. It is a **UI-only** hint: the member keeps existing everywhere else — the Dale runtime still reads and writes it, it still emits telemetry, still persists, and still travels on the wire. `VisibleWhen` only decides whether the dashboard and DevHost render its row.
+
+A boolean toggle that reveals a dependent field is the canonical case. The CT-ratio input only applies when the meter is **not** in direct-measurement mode:
+
+```csharp
+[ServiceProperty(Title = "Direct Measurement (no CT)")]
+[Presentation(Group = PropertyGroup.Configuration)]
+public bool DirectMeasurement { get; set; }
+
+[ServiceProperty(Title = "Primary Current", Unit = "A", Minimum = 1, Maximum = 5000)]
+[Presentation(Group = PropertyGroup.Configuration, VisibleWhen = "DirectMeasurement == false")]
+public double PrimaryCurrent { get; set; }
+```
+
+Toggling `DirectMeasurement` in the dashboard form hides or shows `PrimaryCurrent` immediately — evaluation is reactive against the value the form currently displays.
+
+`Importance.Hidden` still wins: it is a static, unconditional hide, and `VisibleWhen` is only evaluated for members that would otherwise render. Use `Importance.Hidden` to hide a member always, `VisibleWhen` to hide it conditionally.
+
+`VisibleWhen` cascades per field like every other presentation hint — an interface can declare it and an implementing class can override it (see [Declarative Presentation](/sdk/declarative-presentation#cascade-rules)).
+
+### Predicate Syntax
+
+A predicate is a small boolean expression — the reference on the left, a literal on the right.
+
+| Form | Example |
+|------|---------|
+| Comparison | `Mode == 'Eco'`, `Threshold >= 10`, `Mode != 'Off'` |
+| Membership | `Mode in ['Eco', 'Auto']` |
+| Boolean reference | `AdvancedMode` (the property must be `bool`) |
+| Combination | `DirectMeasurement == false && Mode == 'Manual'` |
+
+- Comparisons use `==`, `!=`, `<`, `<=`, `>`, `>=`. The relational operators (`<`, `<=`, `>`, `>=`) apply to integer properties only.
+- Enum values are quoted strings matching the member name — `Mode == 'Eco'`. Single quotes are the authoring style.
+- Combine terms with `&&`, `||`, and `!`, and group with parentheses: `!(Mode == 'Off') && AdvancedMode`.
+
+Most gates are a single comparison — you rarely need more than one operator.
+
+### What a Predicate Can Reference
+
+A reference like `DirectMeasurement` names another property in the same logic block. Referenced properties must be one of these types:
+
+- `bool`
+- `enum`
+- integer (`int`, `long`, `short`, `byte`, and their unsigned kin)
+- `string`
+
+`double` and `float` are excluded — an analog value would make visibility flap. `WriteOnly` secrets and measuring-point-only members cannot be referenced either. The **annotated** member is unrestricted: the `PrimaryCurrent` double above carries `VisibleWhen` fine; only the properties a predicate *references* are limited.
+
+### Referencing a Sibling Service
+
+Most logic blocks expose a single service, where a plain reference reaches every property. A block that exposes several services — a root service plus component services — can reach across them with a **qualified** reference, written `Service.Property`:
+
+```csharp
+[ServiceProperty(Title = "CP2 Current Limit", Unit = "A")]
+[Presentation(Group = PropertyGroup.Configuration,
+              VisibleWhen = "ChargingPoint2.EnableCharging == true")]
+public int ChargingPoint2Limit { get; set; }
+```
+
+Services are addressed by their identifier:
+
+- A **component service** is identified by the name of the property that holds it — `ChargingPoint2` above.
+- The **root service** is identified by the logic block's class name — for a block class `Charger`, a root-level property is `Charger.MaintenanceMode`.
+
+References resolve within a single logic-block instance; a predicate cannot reach across blocks or gateways.
+
+### Validation
+
+`dale build` validates every predicate, so a broken or misspelled one is caught at build time rather than surfacing in the dashboard. Preview the result with `dale dev` — the DevHost evaluates `VisibleWhen` the same way the dashboard does.
 
 ## Property Ordering
 
