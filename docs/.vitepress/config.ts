@@ -80,6 +80,7 @@ export default withMermaid(
               { text: 'Logic Blocks', link: '/sdk/logic-blocks' },
               { text: 'Properties & Measuring Points', link: '/sdk/properties' },
               { text: 'Declarative Presentation', link: '/sdk/declarative-presentation' },
+              { text: 'Instantiation Parameters & Inclusion Gates', link: '/sdk/instantiation-parameters' },
               { text: 'Hardware & External Services', link: '/sdk/services' },
               { text: 'Service Provider Protocol', link: '/sdk/service-provider-protocol' },
               { text: 'Telemetry', link: '/sdk/telemetry' },
