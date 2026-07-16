@@ -385,6 +385,8 @@ public TimeSpan Uptime { get; private set; }
 
 `VisibleWhen` shows or hides a property or measuring point based on the live values of other properties in the same logic block. It is a **UI-only** hint: the member keeps existing everywhere else — the Dale runtime still reads and writes it, it still emits telemetry, still persists, and still travels on the wire. `VisibleWhen` only decides whether the dashboard and DevHost render its row.
 
+To change which members *exist* based on a choice the operator makes at configuration time — so an omitted member vanishes from wiring, topics, and the cloud entirely — use [`[IncludedWhen]`](/sdk/instantiation-parameters), the hard-existence sibling of `VisibleWhen`.
+
 A boolean toggle that reveals a dependent field is the canonical case. The CT-ratio input only applies when the meter is **not** in direct-measurement mode:
 
 ```csharp
