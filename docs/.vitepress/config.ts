@@ -82,6 +82,7 @@ export default withMermaid(
               { text: 'Declarative Presentation', link: '/sdk/declarative-presentation' },
               { text: 'Hardware & External Services', link: '/sdk/services' },
               { text: 'Service Provider Protocol', link: '/sdk/service-provider-protocol' },
+              { text: 'Service Provider SDK', link: '/sdk/service-provider-sdk' },
               { text: 'Telemetry', link: '/sdk/telemetry' },
               { text: 'Logic Interfaces', link: '/sdk/logic-interfaces' },
               { text: 'Persistence', link: '/sdk/persistence' },

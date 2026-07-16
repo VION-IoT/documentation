@@ -165,7 +165,44 @@ Declaration payload:
 
 The `type` field must match a `[ServiceProviderContractType]` known to the Dale runtime (for example, `DigitalInput`, `DigitalOutput`, `AnalogInput`, `AnalogOutput`, `ModbusRtu`, or a custom type from a third-party Dale SDK package).
 
-A service may also declare **properties** (typed read/writable values) and **measuring points** (typed readings) alongside its contracts. Each carries a **structured type** — a `schema` (a JSON Schema 2020-12 document in the *Dale profile*: `type`, `format`, nullability, `readOnly` / `writeOnly`, unit metadata, and numeric bounds), plus optional `presentation` (UI hints) and `runtime` (e.g. persistence) siblings — not a stringified type name. Read-only-ness is expressed by `readOnly` inside the schema, not a separate boolean. This is the same model the Dale runtime emits for logic-block introspection.
+### Properties and measuring points
+
+A service may also declare **properties** (typed read/writable values) and **measuring points** (read-only telemetry) alongside its contracts. Each is an object with a required `identifier` and a required `schema`, plus optional `presentation` and `runtime` siblings:
+
+| Field | Description |
+|-------|-------------|
+| `identifier` (required) | The name used on the value's state topic and in the dashboard. Must be a valid MQTT topic segment. |
+| `schema` (required) | A JSON Schema 2020-12 document in the *Dale profile* describing the value's type, unit, bounds, and read/write mode. |
+| `presentation` | UI hints — display name, grouping, ordering. |
+| `runtime` | Dale-runtime hints such as persistence. A Dale concern; service providers normally omit it. |
+
+This is the same `{schema, presentation, runtime}` model the Dale runtime emits for logic-block introspection, so the dashboard renders provider values with the same type fidelity as logic-block values. The `schema` maps the value's type onto JSON Schema `type` / `format`:
+
+| Value type | `schema` |
+|------------|----------|
+| boolean | `{ "type": "boolean" }` |
+| integer | `{ "type": "integer", "format": "int32" }` (also `int16`, `int64`, `uint8`, …) |
+| number | `{ "type": "number", "format": "double" }` (also `float`) |
+| string | `{ "type": "string" }` |
+| timestamp | `{ "type": "string", "format": "date-time" }` |
+| GUID | `{ "type": "string", "format": "uuid" }` |
+| enum | `{ "type": "string", "enum": ["Off", "On", "Auto"] }` |
+| struct | `{ "type": "object", "properties": { … }, "required": [ … ], "additionalProperties": false }` |
+| array | `{ "type": "array", "items": { … } }` |
+| nullable `T?` | the `type` is widened to a list, e.g. `{ "type": ["string", "null"] }` |
+
+The schema carries these extra keywords:
+
+| Keyword | Meaning |
+|---------|---------|
+| `readOnly` | The value is reported by the provider and never set. Always present on measuring points; add it to properties the dashboard must not write. |
+| `writeOnly` | The value is a secret — see [Write-only properties](#write-only-properties). |
+| `x-unit` | The engineering unit, e.g. `"W"`, `"kWh"`, `"°C"`. |
+| `x-kind` | The measuring-point kind: `"measurement"` (instantaneous reading), `"total"` (cumulative, may rise or fall), or `"totalIncreasing"` (monotonic counter). |
+| `minimum` / `maximum` | Numeric bounds. |
+| `format` | An advisory string format, e.g. `"ipv4"`, `"hostname"`, `"email"`, `"uri"`. |
+
+A minimal declaration — one writable property and one measuring point:
 
 ```json
 {
@@ -190,7 +227,60 @@ A service may also declare **properties** (typed read/writable values) and **mea
 }
 ```
 
-.NET providers build these from a `ServiceSchema<T>` (the SDK's `ServiceField`s carry the schema); other languages emit the JSON directly.
+A richer declaration — a struct-typed property with a secret member, and two measuring points carrying units and kinds:
+
+```json
+{
+  "services": [
+    {
+      "identifier": "connection",
+      "description": "Upstream broker connection",
+      "properties": [
+        {
+          "identifier": "config",
+          "schema": {
+            "type": "object",
+            "title": "Config",
+            "properties": {
+              "host": { "type": "string" },
+              "port": { "type": "integer", "format": "int32", "minimum": 1, "maximum": 65535 },
+              "password": { "type": ["string", "null"], "writeOnly": true }
+            },
+            "required": ["host", "port"],
+            "additionalProperties": false
+          },
+          "presentation": { "displayName": "Connection", "group": "Upstream" }
+        }
+      ],
+      "measuringPoints": [
+        {
+          "identifier": "activePower",
+          "schema": { "type": "number", "format": "double", "readOnly": true, "x-unit": "W", "x-kind": "measurement" }
+        },
+        {
+          "identifier": "energyImported",
+          "schema": { "type": "number", "format": "double", "readOnly": true, "x-unit": "kWh", "x-kind": "totalIncreasing" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+.NET providers build these from a `ServiceSchema<T>` — the SDK's `ServiceField`s carry the typed schema and emit the JSON. See [Service Provider SDK](/sdk/service-provider-sdk). Other languages emit the JSON directly.
+
+### Write-only properties
+
+A **write-only** property is a secret — a password, token, or client certificate — that the provider accepts but must never echo back in clear text. Mark the string (a whole-value string property, or a `string` member of a struct) with `"writeOnly": true` in its schema. In v1 only `string` / `string?` positions may be write-only.
+
+Write-only changes how the value crosses the wire in both directions:
+
+- **On read (state publish):** replace every set write-only value with the redaction sentinel `"***"` before publishing. A write-only value that is unset stays `null`, so a reader can still tell an empty secret from a stored, hidden one.
+- **On set (property-set):** re-submitting the sentinel `"***"` keeps the stored value unchanged ("leave the secret as-is"); `null` clears it; any other value replaces it. The sentinel is never itself stored.
+
+This is a wire-read-path protection, not encryption at rest: a value stored on disk is not encrypted, and a literal value of exactly `"***"` cannot be distinguished from the sentinel.
+
+.NET providers get this for free — declare the field `WriteOnly` and the SDK redacts on publish and resolves on set at its state boundaries. See [Service Provider SDK](/sdk/service-provider-sdk). Other languages implement the substitution themselves.
 
 ## Health Reporting
 
@@ -228,6 +318,104 @@ Mesh diffs successive health to detect state changes, and **every change is writ
 ### Wire format
 
 Health is a **JSON** `ComponentHealthStatusPayload`, published with `Content-Type: application/json` and the `schema` user property `ComponentHealthStatusPayload`. Set the same `application/json` `Content-Type` on your [Last Will](#last-will-testament) so the broker's retained `offline` will decodes correctly. JSON keeps health reportable from any provider, including those without a FlatBuffers toolchain (Python, TwinCAT / Structured Text, bare-metal firmware).
+
+The payload wraps a single `component`:
+
+```json
+{
+  "component": {
+    "name": "hal-sim",
+    "connectionStatus": "Online",
+    "healthStatus": "Healthy",
+    "since": null,
+    "reason": null,
+    "subComponents": null
+  }
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `name` | The component's identifier — a service provider reports its own `serviceProviderIdentifier`. |
+| `connectionStatus` | `Online` / `Offline` / `Unknown` — connectivity to the local broker only. |
+| `healthStatus` | `Healthy` / `Unhealthy` / `Unknown`. |
+| `since` | The UTC timestamp the status has held since, or `null`. |
+| `reason` | A stable reason category, or `null`. |
+| `subComponents` | An optional nested list of `component` objects, or `null`. |
+
+`subComponents` lets a component report a tree of child statuses, nested to any depth — useful when one provider fronts several devices or upstreams and reports each separately:
+
+```json
+{
+  "component": {
+    "name": "modbus-gateway",
+    "connectionStatus": "Online",
+    "healthStatus": "Unhealthy",
+    "since": null,
+    "reason": "device unreachable",
+    "subComponents": [
+      { "name": "meter-1", "connectionStatus": "Online", "healthStatus": "Healthy", "since": null, "reason": null, "subComponents": null },
+      { "name": "meter-2", "connectionStatus": "Online", "healthStatus": "Unhealthy", "since": null, "reason": "device unreachable", "subComponents": null }
+    ]
+  }
+}
+```
+
+By convention — **not** enforced by the platform — a component rolls its children's health up into its own `healthStatus`: any `Unhealthy` child makes the parent `Unhealthy` (this takes precedence), otherwise any `Unknown` child makes the parent `Unknown`, and the parent is `Healthy` only when every child is. So one `Unknown` child alone yields `Unknown`; one `Unhealthy` child yields `Unhealthy`; an `Unhealthy` child alongside an `Unknown` child still yields `Unhealthy`. Subcomponents do **not** change the parent's `connectionStatus` — that stays a statement about the parent's own broker connection. This is how other components in the system behave; deriving your own `healthStatus` from your subcomponents is ultimately up to you.
+
+The retained [Last Will](#last-will-testament) carries the same shape with `connectionStatus` `Offline` and `healthStatus` `Unknown`:
+
+```json
+{
+  "component": {
+    "name": "hal-sim",
+    "connectionStatus": "Offline",
+    "healthStatus": "Unknown",
+    "since": null,
+    "reason": null,
+    "subComponents": null
+  }
+}
+```
+
+## System Control
+
+Mesh can restart a service provider and change its log level at runtime. Both are Mesh → provider commands published under the same `{installationTopic}/{serviceProviderIdentifier}/system/serviceProvider/` prefix as the [declaration](#declaration). Implementing them is recommended — it lets an operator restart a misbehaving provider and raise its log verbosity remotely — but it is not enforced. A provider that does not subscribe simply does not respond: the command is published to a topic with no subscriber and dropped, and nothing errors.
+
+### Restart
+
+A restart command tells the provider to restart. The target is the provider addressed by the topic; the command carries no payload.
+
+| Field | Value |
+|-------|-------|
+| Topic | `{installationTopic}/{serviceProviderIdentifier}/system/serviceProvider/restart` |
+| Direction | Mesh → provider |
+| Payload | empty — `RestartPayload` has no fields |
+
+On receipt, exit the process and let your supervisor (a container restart policy, systemd, etc.) bring it back; restarting in place is equally valid. The platform only requires that the provider re-runs registration and re-publishes its declaration afterward. There is no restart response — Mesh observes the provider go `offline`, then `online` again, on the [health state topic](#connection-state-online-offline).
+
+### Log level
+
+A log-level command sets the minimum severity the provider logs at, so an operator can raise verbosity on a misbehaving provider without redeploying it.
+
+| Field | Value |
+|-------|-------|
+| Topic | `{installationTopic}/{serviceProviderIdentifier}/system/serviceProvider/logLevel/set` |
+| Direction | Mesh → provider |
+| Payload | JSON: `{ "logLevel": "Debug" }` |
+| User property `schema` | `SetLogLevelPayload` |
+
+The level is one of `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical`, `None`.
+
+After applying the change, publish the new level back so the cloud reflects the provider's active level:
+
+| Field | Value |
+|-------|-------|
+| Topic | `{installationTopic}/{serviceProviderIdentifier}/system/serviceProvider/logLevel/state` |
+| Direction | provider → Mesh |
+| Payload | JSON: `{ "logLevel": "Debug" }` |
+| Retain | yes |
+| User property `schema` | `LogLevelStatePayload` |
 
 ## MQTT Message Conventions
 
@@ -360,8 +548,8 @@ Service-specific topics must not use these prefixes:
 
 | Prefix | Used by |
 |--------|---------|
-| `system/serviceProvider/` | Registration protocol |
-| `{installationTopic}/{serviceProviderIdentifier}/serviceProvider/` | Declaration |
+| `system/serviceProvider/` | Registration protocol (before the installation topic is assigned) |
+| `{installationTopic}/{serviceProviderIdentifier}/system/serviceProvider/` | Declaration, restart, and log level |
 | `{installationTopic}/{serviceProviderIdentifier}/component/` | Health reporting |
 
 ## Lifecycle Summary
