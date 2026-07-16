@@ -137,7 +137,7 @@ The SDK publishes `online` (retained) on connect and wires the Last Will that pu
 The SDK ships default handlers for the two [System Control](/sdk/service-provider-protocol#system-control) commands, on by default:
 
 - **Restart** — the default handler stops the host so the process supervisor restarts it.
-- **Log level** — the default handler updates `LogLevelManager.CurrentLevel` and republishes the `logLevel/state` message.
+- **Log level** — the default handler updates `LogLevelManager.CurrentLevel`, persists the new level so it survives a restart (see below), and republishes the `logLevel/state` message.
 
 `LogLevelManager` is a static holder for the provider's current level. Wire your logging pipeline to read it so a remote change takes effect immediately — the [Telemetry](/sdk/telemetry) export does this through its `CurrentLevelProvider`:
 
@@ -147,9 +147,9 @@ using Vion.ServiceProvider.Sdk.SystemControl;
 CurrentLevelProvider: () => LogLevelManager.CurrentLevel
 ```
 
-`LogLevelManager.InitializeFromConfig(configuration)` seeds the initial level from `Logging:LogLevel:Default`.
+`LogLevelManager.InitializeFromConfig(configuration)` seeds the initial level from `Logging:LogLevel:Default`. The SDK also persists a cloud-set level — as the enum name, in `logLevel.txt` — and `AddVionServiceProviderSdk` restores it over that default on startup, so a remote change survives a restart. Precedence: persisted file > `Logging:LogLevel:Default` > `Information`; a missing or unparseable file falls back to the config default.
 
-To replace either default, pass an override on the builder. `WithRestartCallback(handler)` and `WithLogLevelChangeCallback(handler, currentLevelProvider?)` both take a `ServiceProviderMessageHandler`; the log-level payload is a `SetLogLevelPayload` carrying the new `LogLevel`. The SDK still republishes `logLevel/state` after your handler runs.
+To replace either default, pass an override on the builder. `WithRestartCallback(handler)` and `WithLogLevelChangeCallback(handler, currentLevelProvider?)` both take a `ServiceProviderMessageHandler`; the log-level payload is a `SetLogLevelPayload` carrying the new `LogLevel`. The SDK still republishes `logLevel/state` after your handler runs. Overriding the log-level handler replaces the default's write-through, so persist the level yourself if the override should still survive a restart.
 
 ## Typed service state
 
@@ -182,7 +182,7 @@ Declaring a member `WriteOnly` in its `TypeSchema` is all a provider does; the s
 
 ## Dependency-injection registration
 
-For a hosted provider, `AddVionServiceProviderSdk` registers the client, wires the default system-control handlers from DI, and seeds `LogLevelManager` from configuration:
+For a hosted provider, `AddVionServiceProviderSdk` registers the client, wires the default system-control handlers from DI, seeds `LogLevelManager` from configuration, and restores any persisted log level over that default (see [System control](#system-control)). The persistence file defaults to `data/logLevel.txt` under the app base directory; pass `logLevelFilePath` to change it:
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;

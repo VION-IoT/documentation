@@ -45,7 +45,7 @@ builder.Services.AddVionTelemetryExport(new VionTelemetryExportOptions(
 
 Every value is supplied at the call site — the package reads no configuration keys itself, so it is not coupled to any specific key names.
 
-`CurrentLevelProvider` is a delegate, not a fixed level, so the minimum log level can change at runtime and take effect on the next log entry. `LogLevelManager` (from the service provider SDK) holds the current level, and the SDK's default `logLevel/set` handler writes to it — so wiring the provider to `LogLevelManager.CurrentLevel` makes a remote log-level change apply immediately. If you are not building on the SDK, pass a getter over wherever your application holds its level.
+`CurrentLevelProvider` is a delegate, not a fixed level, so the minimum log level can change at runtime and take effect on the next log entry. `LogLevelManager` (from the service provider SDK) holds the current level; the SDK's default `logLevel/set` handler writes to it and persists it (so the change survives a restart). Wiring the provider to `LogLevelManager.CurrentLevel` makes a remote log-level change apply immediately. If you are not building on the SDK, pass a getter over wherever your application holds its level.
 
 On the edge gateway, the OTLP collector is reachable at `http://otel:4317` — the same collector Mesh and the Dale runtime export to.
 

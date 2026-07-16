@@ -417,6 +417,8 @@ After applying the change, publish the new level back so the cloud reflects the 
 | Retain | yes |
 | User property `schema` | `LogLevelStatePayload` |
 
+Persist the applied level — for example, to a file in your data directory — and restore it on startup, so a cloud-set level survives a restart instead of reverting to your built-in or configured default. The first-party VION providers do this; it is recommended, not required by the protocol.
+
 ## MQTT Message Conventions
 
 All messages during the operational phase follow these conventions:
