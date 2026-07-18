@@ -65,7 +65,7 @@ On the edge gateway, the OTLP collector is reachable at `http://otel:4317` — t
 | `LogFilters` | `(string Category, LogLevel Level)[]?`. Per-category log-level overrides applied on top of `CurrentLevelProvider`. Defaults to `null`. |
 | `ActivitySourceNames` | `string[]?`. The `ActivitySource` names to export traces from. To collect VION's messaging spans, include `ActivitySources.Messaging.Name` from `Vion.Telemetry.Instrumentation`. Defaults to `null`. |
 | `MeterNames` | `string[]?`. Additional `Meter` names to export metrics from. A subscribed meter's instruments are exported only with a matching `MetricViews` entry. Defaults to `null`. |
-| `MetricViews` | `(string InstrumentName, MetricStreamConfiguration Configuration)[]?`. Metric views applied after the built-in runtime-metric allow-list. Defaults to `null`. |
+| `MetricViews` | `(string InstrumentName, MetricStreamConfiguration Configuration)[]?`. Metric views applied after the built-in runtime-metric allow-list. Set `CardinalityLimit` on each view — see [Exporting custom metrics](#exporting-custom-metrics). Defaults to `null`. |
 
 ## Exporting your own traces
 
@@ -101,7 +101,7 @@ using var activity = Telemetry.Source.StartActivity("ForwardMeasurement");
 
 ## Exporting custom metrics
 
-By default the package exports a fixed set of .NET runtime metrics (GC, memory, CPU) and drops every other instrument. To export your own metric, subscribe its `Meter` through `MeterNames` **and** add a matching view through `MetricViews`:
+By default the package exports a fixed set of .NET runtime metrics (GC, memory, CPU) and drops every other instrument. To export your own metric, subscribe its `Meter` through `MeterNames` **and** add a matching view through `MetricViews`. Set `CardinalityLimit` on the view to the number of tag-value combinations the instrument can emit — here `messages_forwarded` carries a `result` tag with two values (`ok`, `error`):
 
 ```csharp
 using OpenTelemetry.Metrics;
@@ -115,12 +115,22 @@ builder.Services.AddVionTelemetryExport(new VionTelemetryExportOptions(
     ConsoleLoggingEnabled: builder.Environment.IsDevelopment(),
     CollectorUri: "http://otel:4317",
     MeterNames: ["MyServiceProvider.Metrics"],
-    MetricViews: [("messages_forwarded", new MetricStreamConfiguration())]));
+    MetricViews: [("messages_forwarded", new MetricStreamConfiguration { CardinalityLimit = 2 })]));
 ```
 
 :::warning
 The built-in allow-list drops any instrument without a matching view. A meter added through `MeterNames` alone exports nothing — its instruments are silently dropped until you add the corresponding `MetricViews` entry.
 :::
+
+### Sizing the cardinality limit
+
+Sizing the limit is a memory optimization, not a hard rule: exceeding it is harmless (see below), and a view that genuinely needs a high limit should set one. The point is only to avoid reserving memory a service will never use. OpenTelemetry reserves that memory up front — `CardinalityLimit + 2` metric points per stream, allocated when the stream is created, whether or not the combinations ever occur. Without an explicit limit the default is 2000, about 141 KB per instrument on the large object heap; the ~20 instruments a service exports by default would pin 2–3 MiB that never gets touched. Size each view to its real tag domain instead:
+
+- Multiply the number of possible values of each tag key: a `result` tag (`ok`, `error`) and a `direction` tag (`inbound`, `outbound`) give a limit of 4.
+- Use `1` for an untagged instrument.
+- For an open-ended tag (identifiers, error types, topic names), pick generous headroom rather than a tight fit. You usually know a sane ceiling — more than a few hundred distinct `error.type` values, say, would already be an unusual number of exception types for one service — so try to stay under 1178, the point where the reserved array crosses onto the large object heap.
+
+Exceeding the limit drops no data and raises no error: further tag combinations merge into a single series labelled `otel.metric.overflow="true"`. Totals stay exact; only the per-label breakdown is lost. If a breakdown looks incomplete in Grafana, check for that series and raise the view's limit.
 
 ## Next steps
 
