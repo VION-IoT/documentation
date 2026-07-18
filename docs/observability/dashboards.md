@@ -26,7 +26,7 @@ The rows cover the following metrics.
 | Row | Metrics |
 |-----|---------|
 | Memory & GC | cgroup memory (current, anonymous, page cache, file-mapped, kernel), major page faults, working-set refaults, memory-limit hits and OOM kills, .NET working set, GC committed memory, GC heap size and by generation, GC collections, allocation rate, GC pause time |
-| CPU | CPU cores used (total and by service), thread pool queue length, CPU cores available |
+| CPU | CPU cores used (total and by service), thread pool queue length, lock contentions, CPU cores available |
 | Messaging | publish, consume, disconnection, and pending counts — each as a total, by service, and broken down by connection |
 | Other | exceptions (total and by service) and mesh automation actions |
 
