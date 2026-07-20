@@ -31,7 +31,7 @@ The service provider never communicates with Mesh or the Dale runtime directly �
 
 ## Registration
 
-Registration lets Mesh discover new service providers and provision credentials on the local MQTT broker. The same broker is used for both the registration exchange (unauthenticated) and operational messaging (authenticated with the provisioned credentials). A service provider runs this flow on every connect, even when it already has credentials stored. Re-registering is cheap, and it keeps the protocol self-healing: if the broker ever loses its ACL store (for example after a reset), the next reconnect re-provisions credentials without any manual recovery.
+Registration lets Mesh discover new service providers and provision credentials on the local MQTT broker. The same broker is used for both the registration exchange (authenticated with a fixed, public bootstrap user) and operational messaging (authenticated with the provisioned credentials). A service provider runs this flow on every connect, even when it already has credentials stored. Re-registering is cheap, and it keeps the protocol self-healing: if the broker ever loses its ACL store (for example after a reset), the next reconnect re-provisions credentials without any manual recovery.
 
 ### Generate a Secret
 
@@ -53,12 +53,12 @@ For .NET service providers, generate the secret with `Guid.NewGuid().ToString("N
 
 ### Subscribe to the Response
 
-Connect to the broker unauthenticated (no username or password) and subscribe to both:
+Connect to the broker with the well-known **registration bootstrap credentials** — username `registration`, password `registration` — and subscribe to both:
 
 - `system/serviceProvider/registration/accepted/{secret}`
 - `system/serviceProvider/registration/denied/{secret}`
 
-The broker rejects wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `.../accepted/+` so only the service provider that knows the secret can receive credentials.
+These credentials are fixed and public — every service provider uses them to bootstrap. The broker does not accept anonymous connections, and its ACL restricts the `registration` user to exactly the registration topics — publishing a request and subscribing to your accepted and denied responses — so the bootstrap user can read and write nothing else. The broker also rejects wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `.../accepted/+`, so only the service provider that knows the secret can receive credentials. After acceptance, you reconnect with the per-provider credentials Mesh issues (see [Operational Connection](#operational-connection)).
 
 ### Publish the Registration Request
 
@@ -566,7 +566,7 @@ sequenceDiagram
     rect rgb(50, 101, 108, 0.1)
     Note over SP,M: Registration Phase
     Note over SP: Generate + persist secret
-    SP->>B: Connect (unauthenticated)
+    SP->>B: Connect as registration/registration
     SP->>B: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
     SP->>B: Publish registration (retained, QoS 0)<br/>payload: { serviceProviderIdentifier }
     M->>B: Subscribe to system/.../request/+

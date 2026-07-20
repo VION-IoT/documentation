@@ -28,6 +28,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using Vion.Contracts.Events.MeshToCloud;
+using Vion.Contracts.Mqtt;
 using Vion.ServiceProvider.Sdk.RegistrationFlow;
 
 var connectionData = new MqttConnectionData(
@@ -35,7 +36,7 @@ var connectionData = new MqttConnectionData(
     Host: "nanomq",
     Port: 1883);
 
-var configuration = new ServiceProviderClientConfigurationBuilder(connectionData, secret)
+var configuration = new ServiceProviderClientConfigurationBuilder(connectionData, secret, RegistrationCredentials.WellKnown)
     .WithDeclaration(BuildDeclaration)
     .WithHandlers(handlers =>
     {
@@ -48,7 +49,7 @@ var client = new ServiceProviderClient(configuration, new MqttClientFactory(), l
 await client.StartAsync(stoppingToken);
 ```
 
-Two inputs are always supplied: `connectionData` (the local broker host and port, and this provider's identifier) and `secret` (the pairing secret, generated on first run and persisted — see [Registration](/sdk/service-provider-protocol#registration)). The SDK uses both only to complete registration; Mesh issues the operational broker credentials on acceptance and the SDK reconnects with those.
+Three inputs are always supplied: `connectionData` (the local broker host and port, and this provider's identifier), `secret` (the pairing secret, generated on first run and persisted — see [Registration](/sdk/service-provider-protocol#registration)), and `RegistrationCredentials.WellKnown` (from `Vion.Contracts.Mqtt`) — the fixed, public credentials the registration connection authenticates with. The SDK uses them only to complete registration; Mesh issues the operational broker credentials on acceptance and the SDK reconnects with those.
 
 `WithReconnectDelay(TimeSpan)` overrides the delay before the SDK re-runs its startup flow after the operational connection ends (default 5 seconds). `WithOnOperationalReady(...)` registers an async callback that fires once the provider is fully operational after each (re)connect — use it to re-publish state the broker may have lost while offline.
 
@@ -186,11 +187,12 @@ For a hosted provider, `AddVionServiceProviderSdk` registers the client, wires t
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
+using Vion.Contracts.Mqtt;
 using Vion.ServiceProvider.Sdk;
 
 builder.Services.AddVionServiceProviderSdk(
     builder.Configuration,
-    serviceProvider => new ServiceProviderClientConfigurationBuilder(connectionData, secret)
+    serviceProvider => new ServiceProviderClientConfigurationBuilder(connectionData, secret, RegistrationCredentials.WellKnown)
         .WithDeclaration(BuildDeclaration)
         .WithHandlers(ConfigureHandlers)
         .Build());
