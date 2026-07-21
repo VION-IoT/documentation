@@ -173,7 +173,7 @@ A service may also declare **properties** (typed read/writable values) and **mea
 |-------|-------------|
 | `identifier` (required) | The name used on the value's state topic and in the dashboard. Must be a valid MQTT topic segment. |
 | `schema` (required) | A JSON Schema 2020-12 document in the *Dale profile* describing the value's type, unit, bounds, and read/write mode. |
-| `presentation` | UI hints — display name, grouping, ordering. |
+| `presentation` | UI hints — display name, grouping, ordering, conditional visibility. See [Presentation hints](#presentation-hints). |
 | `runtime` | Dale-runtime hints such as persistence. A Dale concern; service providers normally omit it. |
 
 This is the same `{schema, presentation, runtime}` model the Dale runtime emits for logic-block introspection, so the dashboard renders provider values with the same type fidelity as logic-block values. The `schema` maps the value's type onto JSON Schema `type` / `format`:
@@ -281,6 +281,61 @@ Write-only changes how the value crosses the wire in both directions:
 This is a wire-read-path protection, not encryption at rest: a value stored on disk is not encrypted, and a literal value of exactly `"***"` cannot be distinguished from the sentinel.
 
 .NET providers get this for free — declare the field `WriteOnly` and the SDK redacts on publish and resolves on set at its state boundaries. See [Service Provider SDK](/sdk/service-provider-sdk). Other languages implement the substitution themselves.
+
+### Presentation hints
+
+The `presentation` sibling is advisory — it changes how a value is displayed, never what it is or how it is messaged. VION Cloud stores it and the dashboard renders from it, so a hand-built provider controls layout and formatting the same way a logic block does. Every key is camelCase and optional.
+
+| Key | Description |
+|-----|-------------|
+| `displayName` | Label override. Falls back to the schema `title`, then the identifier. |
+| `group` | Section key. Well-known values: `identity`, `status`, `configuration`, `metric`, `diagnostics`, `alarm`. Any other string renders as its own section with the raw key as the header. |
+| `order` | Integer sort hint within a group, ascending. Negatives are allowed. |
+| `importance` | Tile rank: `Primary`, `Secondary`, or `Hidden`. Omit it for the normal default. |
+| `decimals` | Numeric display precision. |
+| `uiHint` | Renderer routing key: `trigger`, `sparkline`, `multiline`, `json`, or `slider`. Unknown values fall back to the default renderer. |
+| `format` | Date/duration format token — a moment-compatible token, or the sentinel `relative` / `humanize`. |
+| `visibleWhen` | Conditional-visibility predicate. See [Conditional visibility](#conditional-visibility). |
+
+For enum properties, `enumLabels` maps each member name to a display label; a status indicator pairs `uiHint: "statusIndicator"` with `statusMappings`, mapping each member name to a severity (`success`, `info`, `warning`, `error`, `neutral`). Each key behaves as its logic-block counterpart — see [Properties & Measuring Points](/sdk/properties) for the full vocabulary.
+
+### Conditional visibility
+
+`visibleWhen` shows or hides a member based on the live values of other properties on the same provider. It is the mechanism logic blocks use, and the dashboard evaluates a provider's predicates exactly as it does a logic block's. The value is a predicate string — a boolean expression in the shared dialect (`==`, `!=`, `<`, `in [...]`, `&&`, `||`, `!`), documented under [Conditional Visibility](/sdk/properties#conditional-visibility).
+
+This declares a boolean toggle and a second property shown only when the toggle is off:
+
+```json
+{
+  "services": [
+    {
+      "identifier": "meter",
+      "properties": [
+        {
+          "identifier": "directMeasurement",
+          "schema": { "type": "boolean" },
+          "presentation": { "displayName": "Direct Measurement (no CT)", "group": "configuration" }
+        },
+        {
+          "identifier": "primaryCurrent",
+          "schema": { "type": "number", "format": "double", "x-unit": "A", "minimum": 1, "maximum": 5000 },
+          "presentation": {
+            "displayName": "Primary Current",
+            "group": "configuration",
+            "visibleWhen": "directMeasurement == false"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Three rules are specific to a hand-built declaration:
+
+- **References use the declared `identifier`.** A bare reference (`directMeasurement`) names a property on the same service as the annotated member; a qualified reference (`inverter.targetPower`) names a property on a sibling service of the same provider, addressed by that service's declared `identifier`. Matching is exact and case-sensitive, and resolves only against `properties`, never measuring points.
+- **Reference only boolean, integer, enum, or string properties.** The Dale SDK's build-time predicate analyzers do not run on a hand-built payload, so a reference to a number (`double` / `float`), a write-only secret, or a measuring point silently fails to resolve.
+- **Visibility is display-only and fail-open.** A hidden member still exists, publishes state, accepts writes, and records telemetry — `visibleWhen` controls only whether the dashboard renders its row. An unresolved or malformed predicate leaves the member visible.
 
 ## Health Reporting
 
