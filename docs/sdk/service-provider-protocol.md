@@ -31,77 +31,85 @@ The service provider never communicates with Mesh or the Dale runtime directly �
 
 ## Registration
 
-Registration lets Mesh discover new service providers and provision credentials on the local MQTT broker. The same broker is used for both the registration exchange (authenticated with a fixed, public bootstrap user) and operational messaging (authenticated with the provisioned credentials). A service provider runs this flow on every connect, even when it already has credentials stored. Re-registering is cheap, and it keeps the protocol self-healing: if the broker ever loses its ACL store (for example after a reset), the next reconnect re-provisions credentials without any manual recovery.
+Registration lets Mesh discover new service providers and provision credentials on the local MQTT broker. The same broker is used for both the registration exchange (authenticated with a fixed, public bootstrap user) and operational messaging (authenticated with the provisioned credentials).
+
+What you do with the issued credentials afterwards is up to you. Persisting them is the best option — a restarted provider tries them first, skips registration entirely, and needs no Mesh at all to come up. Holding them only in memory is also fine: reconnects within one process lifetime skip registration, restarts go through it. At the extreme, discarding them and registering again on every disconnect is valid too. The trade-off is coupling: every path that goes through registration needs Mesh to be online, while working held credentials need only the broker — so the more you hold, the less your provider depends on Mesh being up. The one hard rule is independent of that choice: **never republish a registration request faster than Mesh can process one — no more often than once every 15 seconds** — otherwise you may never obtain working credentials (see [Publish the Registration Request](#publish-the-registration-request)).
+
+Registration runs whenever there are no held credentials, or the held ones stop working (see [Reconnecting](#reconnecting)). That fallback is what keeps the protocol self-healing: if the broker ever loses its credential store (for example after a platform update), the operational connect is refused, and the provider registers again — no manual recovery.
 
 ### Generate a Secret
 
-On first startup, generate a random, non-guessable secret and persist it to survive restarts. The secret is used as a single MQTT topic segment — it ensures that only the service provider that generated it can receive its registration response.
+On first startup, generate a random, non-guessable secret and persist it to survive restarts. The secret is the provider's proof of identity: Mesh stores a hash of it and compares that hash on every registration, so the same provider identity always presents the same secret. It travels in the registration request payload — never in a topic.
+
+The secret must be high-entropy random. It is stored as a fast unsalted hash on the assumption that it cannot be guessed or brute-forced; a low-entropy secret breaks that assumption. A UUID v4 without hyphens — 32 lowercase hex characters (e.g., `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`) — is a good format. For .NET service providers, generate it with `Guid.NewGuid().ToString("N")` and hand it to the `ServiceProviderClientConfigurationBuilder` from the [`Vion.ServiceProvider.Sdk`](https://www.nuget.org/profiles/VION-IoT) package — the SDK runs the whole registration flow, including everything below, for you.
+
+### Generate a Registration Client ID
+
+For each registration connection, generate a **random registration client-id**. Any random, non-guessable value that is a valid MQTT topic segment works — the SDK uses a standard GUID string (`Guid.NewGuid().ToString()`). This value routes your registration: all three registration topics are keyed on it, and it **must be exactly the MQTT client-id you connect with** — the broker enforces per-client topic isolation on the connecting client-id, so a mismatch between your connection and your topics breaks the exchange.
+
+Mint a fresh value per registration connection. Never persist it, and never derive it from configuration or from the provider identity — a predictable client-id would let another provider subscribe to your credential-bearing response.
 
 ::: warning MQTT Topic Segment Constraints
-The secret, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier are all embedded directly in MQTT topics, so each **must be a valid single topic segment**:
+The registration client-id, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier are all embedded directly in MQTT topics, so each **must be a valid single topic segment**:
 - Must **not** contain `/` (topic level separator)
 - Must **not** contain `+` or `#` (MQTT wildcard characters)
 - Must **not** contain null characters
 - Must **not** be empty
 - Should be kept under 128 characters (MQTT topics have a 65535-byte UTF-8 limit, but shorter is better for broker performance)
-- Should use only ASCII alphanumeric characters to avoid encoding issues across MQTT client implementations
-
-**Recommended secret format:** A UUID v4 without hyphens — 32 lowercase hex characters (e.g., `a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6`). This is what Mesh uses internally.
-
-For .NET service providers, generate the secret with `Guid.NewGuid().ToString("N")` and hand it to the `ServiceProviderClientConfigurationBuilder` from the [`Vion.ServiceProvider.Sdk`](https://www.nuget.org/profiles/VION-IoT) package — the SDK runs the registration flow and reconnects with the Mesh-issued credentials for you.
+- Hyphens are fine — a standard GUID string works as a segment
 :::
 
 ### Subscribe to the Response
 
-Connect to the broker with the well-known **registration bootstrap credentials** — username `registration`, password `registration` — and subscribe to both:
+Connect to the broker with the well-known **registration bootstrap credentials** — username `registration`, password `registration` — using the registration client-id as the MQTT client-id, and subscribe to both:
 
-- `system/serviceProvider/registration/accepted/{secret}`
-- `system/serviceProvider/registration/denied/{secret}`
+- `system/serviceProvider/registration/accepted/{registrationClientId}`
+- `system/serviceProvider/registration/denied/{registrationClientId}`
 
-These credentials are fixed and public — every service provider uses them to bootstrap. The broker does not accept anonymous connections, and its ACL restricts the `registration` user to exactly the registration topics — publishing a request and subscribing to your accepted and denied responses — so the bootstrap user can read and write nothing else. The broker also rejects wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `.../accepted/+`, so only the service provider that knows the secret can receive credentials. After acceptance, you reconnect with the per-provider credentials Mesh issues (see [Operational Connection](#operational-connection)).
+These credentials are fixed and public — every service provider uses them to bootstrap. The broker does not accept anonymous connections, and its ACL restricts the `registration` user to exactly the registration topics — publishing a request and subscribing to your accepted and denied responses — so the bootstrap user can read and write nothing else. The broker also rejects wildcard subscriptions on `system/serviceProvider/registration/accepted/#` and `.../accepted/+`, so only the connection that minted the client-id can receive its credentials. After acceptance, you reconnect with the per-provider credentials Mesh issues (see [Operational Connection](#operational-connection)).
 
 ### Publish the Registration Request
 
-Once subscribed, publish a single registration message:
+Once subscribed, publish the registration request:
 
 | Field | Value |
 |-------|-------|
-| Topic | `system/serviceProvider/registration/request/{secret}` |
-| Payload | JSON: `{ "serviceProviderIdentifier": "hal-sim" }` |
-| QoS | 0 |
-| Retain | yes |
+| Topic | `system/serviceProvider/registration/request/{registrationClientId}` |
+| Payload | JSON: `{ "serviceProviderIdentifier": "hal-sim", "secret": "a1b2c3d4..." }` |
+| QoS | 0 or 1 — the choice is yours; the republish loop below covers a lost message either way |
+| Retain | no |
 | Content-Type | `application/json` |
 | User property `schema` | `ServiceProviderRegistrationRequestPayload` |
 
 The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier).
 
-**Publish once per connection, not repeatedly.** The retained flag keeps the request on the broker so Mesh can pick it up as soon as it subscribes — even if Mesh is offline, restarting, or not yet connected when the service provider publishes. The only time to resend the registration is when the service provider's MQTT connection drops and reconnects, at which point the full registration flow runs again.
+**Republish the request on an interval until you receive accepted.** Nothing about registration is retained in either direction, so a request published while Mesh is offline, or a response lost in transit, is recovered only by asking again — the loop is the delivery guarantee. Never request faster than a response can arrive: every accepted request issues a fresh password that invalidates the previous one, so requests that outrun the round trip destroy each answer before it can be used, indefinitely. The response normally arrives within a few seconds, so 15 seconds should be plenty — but a fixed 15 seconds has no safety margin on a degraded gateway. Either widen the interval automatically, as the SDK does (15 seconds, doubling to 30 and then 60 when consecutive answers arrive too late to use, resetting on success), or use a flat, safer 30–60 seconds. The interval is also your approval latency — dashboard decisions reach you on your next republish — which is the reason to prefer the shorter, self-widening form over a long flat one.
 
 ### Handle Acceptance
 
 A registration request is accepted in one of two ways:
 
-- **Manual accept** — a user in the cloud dashboard accepts (or denies) the pending registration.
-- **Auto-accept** — Mesh has the service provider's secret mounted alongside its own configuration (conventionally, the same `secrets.txt` file the service provider reads), and recognizes the incoming secret as a known, pre-provisioned one. When the secret matches, Mesh accepts automatically without any dashboard action. Only the VION team can set up auto-accept because it requires mounting files into the Mesh container, which customers do not have access to.
+- **Manual accept** — a user in the cloud dashboard accepts (or denies) the pending registration. The decision is **stored**, not pushed: it reaches the provider on its next republish, so approval latency is at most one republish interval.
+- **Auto-accept** — Mesh has the service provider's secret mounted alongside its own configuration (conventionally, the same secret file the service provider reads), and recognizes the incoming secret as a known, pre-provisioned one. When the secret matches, Mesh accepts automatically without any dashboard action. Only the VION team can set up auto-accept because it requires mounting files into the Mesh container, which customers do not have access to.
 
-On acceptance, Mesh provisions credentials in the broker's ACL store and **restarts the broker to apply them**. The restart disconnects every MQTT client, including the registering service provider. On reconnect, the service provider runs the registration flow again — this time, because the credentials already exist, Mesh responds immediately with the accepted payload:
+When Mesh must first provision the credentials in the broker's credential store, it **restarts the broker to apply them** and sends no response on that pass. The restart disconnects every MQTT client, including the registering service provider — reconnect and keep republishing; the next request finds the credentials in place and Mesh responds with the accepted payload:
 
 ```json
 {
   "installationTopic": "v1/test/tenant123/gateway456",
   "host": "nanomq",
   "port": 1883,
-  "clientId": "sp-hal-sim-a1b2c3",
+  "clientId": "hal-sim",
   "username": "hal-sim",
   "password": "generated-password"
 }
 ```
 
-Store these credentials, disconnect, and reconnect with them to enter the operational phase.
+Store these credentials — persisting them is recommended, so a restart reconnects without registering (the storage options are laid out under [Registration](#registration)) — then disconnect and reconnect with them to enter the operational phase.
 
 ### Handle Denial
 
-If denied, log the reason and retry after a delay.
+A denial carries a reason — log it. Denial is informational, not terminal: keep republishing the request on the same interval. If the denial was a pending decision later approved in the dashboard, a further republish receives the accepted payload; stopping on denial means never seeing that approval.
 
 ## Operational Connection
 
@@ -127,6 +135,15 @@ Configure a Last Will Testament (LWT) so the broker publishes an offline health 
 | Will Content-Type | `application/json` |
 | Will QoS | 1 |
 | Will Retain | yes |
+
+### Reconnecting
+
+Two rules govern what to do when the operational connection fails, and both follow from how Mesh issues credentials:
+
+- **A refusal means the credentials are dead — replace them, never retry them.** CONNACK `0x86` (Bad User Name or Password) or `0x87` (Not Authorized) means the credentials have been invalidated since they were issued — every accepted registration mints a fresh password and the previous one stops working, and a platform update recreates the broker's credential store empty. Discard them, including any stored copy, and register again. A refusal arriving right after an accept is also a signal that you may be **requesting faster than Mesh can process**: each answer is being invalidated by your own next request before you can use it. The SDK treats it exactly that way — when two accepts in a row produce credentials the broker then refuses, it widens its republish interval to 30 seconds, after two more to 60, and resets to 15 once a connection succeeds.
+- **Any other failure may be intermittent — retry, but not forever.** An unreachable host, a timeout, or a dropped connection says nothing about the credentials, so retrying the connection is the right first response. But the credentials also name the broker host and port *as they were when issued*, and those can change — a platform update can rename or move the broker. Retrying a stale endpoint indefinitely strands the provider, so after a bounded period of continuous failure, discard the credentials and register again: registration connects to the endpoint you are *configured* with, not the one the credentials name. Around 90 seconds is a sensible bound — comfortably longer than a broker restart, so intermittent failures never trigger it. Registering against a broker that is merely down costs nothing, since that connection cannot reach it either and the republish loop keeps retrying until it can.
+
+How much of this you implement is a spectrum, and both ends are valid. The thorough end reacts to connect results — held credentials tried first, transport failures retried, refusals and prolonged unreachability falling back to registration, the republish interval widening when answers keep arriving too late to use. That is what the SDK implements, and it gives the best availability: a provider holding working credentials reconnects even while Mesh is down or restarting. If simplicity is the goal, the other end — hold nothing and go straight to registration on every disconnect — is perfectly fine too, with one significant downside: every reconnect then requires Mesh to be online, which couples the provider to Mesh much more tightly. Anything between the two works as well; the only hard rule, whichever shape you choose, is the republish interval — never more often than once every 15 seconds.
 
 ## Declaration
 
@@ -619,19 +636,21 @@ sequenceDiagram
     participant D as Dale
 
     rect rgb(50, 101, 108, 0.1)
-    Note over SP,M: Registration Phase
-    Note over SP: Generate + persist secret
-    SP->>B: Connect as registration/registration
-    SP->>B: Subscribe to system/.../accepted/{secret}<br/>and system/.../denied/{secret}
-    SP->>B: Publish registration (retained, QoS 0)<br/>payload: { serviceProviderIdentifier }
-    M->>B: Subscribe to system/.../request/+
-    B-->>M: Deliver retained registration
-    Note over M: Auto-accept (VION-configured)<br/>or user accepts in dashboard
-    Note over M: Provision credentials<br/>+ restart broker to apply ACL
+    Note over SP,M: Registration Phase (skipped when stored credentials still work)
+    Note over SP: Generate + persist secret<br/>Mint random registration client-id C
+    SP->>B: Connect as registration/registration<br/>(MQTT client-id = C)
+    SP->>B: Subscribe to system/.../accepted/C<br/>and system/.../denied/C
+    loop Republish on an interval (15–60s) until accepted
+    SP->>B: Publish system/.../request/C (not retained)<br/>payload: { serviceProviderIdentifier, secret }
+    B-->>M: Deliver request
+    Note over M: Hash secret, resolve:<br/>auto-accept (VION-configured)<br/>or stored dashboard decision
+    Note over M: First accept: provision credentials<br/>+ restart broker (no response this pass)
     B--xSP: Broker restart disconnects SP
-    SP->>B: Reconnect + republish registration
-    M-->>B: Publish system/.../accepted/{secret}<br/>(plaintext credentials)
+    Note over SP: Reconnect, keep republishing
+    M-->>B: Publish system/.../accepted/C<br/>(credentials + installationTopic)
     B-->>SP: Receive accepted payload
+    end
+    Note over SP: Persist credentials
     SP->>B: Disconnect
     end
 
