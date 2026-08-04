@@ -1941,24 +1941,23 @@ Binds a LogicBlock property to a hardware service-provider function (HAL: IAnalo
 
 ### ServiceRelationAttribute
 
-Defines a relation to another service interface. A matching declaration (same RelationType, opposite Direction) must exist on the other service interface.
+Declares that wiring this contract between two logic blocks is a service relation of the given type — a typed edge between the two blocks' services, published as topology metadata. Declare it once, here on the contract: every block implementing either of the contract's two interfaces then takes part automatically, on whichever side it implements. Relations describe the graph; they carry no runtime behaviour and change nothing about how messages flow. Which side is which. `OutwardsInterface` names the subordinate, providing side — the start of the arrow. The contract's other interface is the inwards, aggregating side — the end of the arrow. A block may implement both sides; each is treated independently. A component must be a service to take part. The relation attaches to the service that owns the interface: the block's own service when the block class implements it, or the component's service when a property's type does. A component type with no service surface (no `ServiceInterfaceAttribute`, no `ServicePropertyAttribute` or `ServiceMeasuringPointAttribute` members) is not a service, so nothing is emitted for it — the interface still binds and wires as usual. Give the component one service property to let it take part, or implement the interface on the block class for an edge at block granularity. Both sides need the declaration. Each package resolves relations at build time against the contract assembly it was compiled against, so a block built against an older contract simply contributes nothing for that pair — a missing edge, never an error.
 
 **Properties:**
 
-- `RelationType` — The identifier of the relation. Must be the same for the inwards and outwards side of the declaration.
-- `Direction` — Side of the relation this service interface represents. (start or end of the arrow)
-- `FunctionInterfaceType` — Function interface type to match with the relation.
+- `RelationType` — Names the kind of edge this relation is. Opaque and compared verbatim, and it is what both the API and the UI key on — so treat it as a public identifier: choose it deliberately, and expect a rename to break every consumer. Must be unique among the declarations on one contract.
+- `OutwardsInterface` — Which of the contract's two interfaces is the outwards — subordinate, providing — side. Must be spelled exactly like the corresponding `BetweenInterface` or `AndInterface`; any other value is rejected.
 
 ---
 
 ### ServiceRelationDirection
 
-Specifies the direction of a service relation (inwards or outwards).
+Which side of a service relation a service sits on. `Outwards` is the side named by `OutwardsInterface`; the contract's other interface is `Inwards`.
 
 **Fields/Values:**
 
-- `Inwards` — This service is the target (end) of the relation.
-- `Outwards` — This service is the source (start) of the relation.
+- `Inwards` — This service is the target (end) of the relation — the aggregating / managing side.
+- `Outwards` — This service is the source (start) of the relation — the subordinate / providing side.
 
 ---
 
