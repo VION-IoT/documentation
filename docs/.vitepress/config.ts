@@ -91,6 +91,7 @@ export default withMermaid(
               { text: 'Scenarios', link: '/sdk/scenarios' },
               { text: 'Publishing & CI/CD', link: '/sdk/publishing' },
               { text: 'Library Visibility & Sharing', link: '/sdk/library-sharing' },
+              { text: 'Translations', link: '/sdk/translations' },
             ],
           },
         ],
