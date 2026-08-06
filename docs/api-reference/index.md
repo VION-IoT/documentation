@@ -1702,6 +1702,12 @@ Defines the directional relationship between the two sides of a contract.
 
 Display label for an enum member. Surfaces in the dashboard via `presentation.enumLabels`.
 
+> Labels are translatable in the cloud, keyed by the enum's short type name (the namespace is not part of the key) and the C# member name — renaming either orphans the translations. Every member is cataloged, labeled or not; an unlabeled member is translatable too, with its raw member name as the source string. See `docs/identifier-stability.md`.
+
+**Properties:**
+
+- `Label` — The label shown for this member. Translatable (see the remarks on this attribute).
+
 ---
 
 ### Formats
@@ -1784,11 +1790,13 @@ Multiplicity of a contract link. Consumer-side on a binding (`LogicBlockInterfac
 
 Block-level display metadata for a LogicBlock class.
 
+> Every display string this block declares is translatable in the cloud, under a key rooted in the block's full type name — namespace included. Renaming or moving the class orphans those translations. See `docs/identifier-stability.md`.
+
 **Properties:**
 
-- `Name` — Human-readable name. Falls back to the C# class name.
+- `Name` — Human-readable name. Falls back to the C# class name. Translatable in the cloud (see the remarks on this attribute).
 - `Icon` — Icon identifier. Use Remixicon names without the "ri-" prefix (e.g. "charging-pile-line", "battery-2-line"). See https://remixicon.com. Dashboard renders a default fallback icon for unknown / missing values.
-- `Groups` — Order in which the dashboard renders group sections in the full block view. Values are the same string keys as `Group` — well-known constants from `PropertyGroup` and/or integrator-supplied custom keys. Groups not listed appear last in the platform default order. When unset, defaults to [Alarm, Status, Metric, Configuration, Diagnostics, Identity, None].
+- `Groups` — Order in which the dashboard renders group sections in the full block view. Values are the same string keys as `Group` — well-known constants from `PropertyGroup` and/or integrator-supplied custom keys. Groups not listed appear last in the platform default order. When unset, defaults to [Alarm, Status, Metric, Configuration, Diagnostics, Identity, None]. A custom key is also the translation key of its section label — editing it orphans that label's translations.
 
 ---
 
@@ -1817,15 +1825,26 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 
 Marks a class as a contract container grouping messages (`CommandAttribute`, `StateUpdateAttribute`, `RequestResponseAttribute`) exchanged between two LogicBlock interfaces.
 
+> The role names below are translatable in the cloud, but not keyed on this contract: each block that binds one of these interfaces carries its own copy, keyed by that block's `LogicBlockInterfaceBindingAttribute` identifier. See `docs/identifier-stability.md`.
+
+**Properties:**
+
+- `BetweenDefaultName` — Human-readable name for the `BetweenInterface` role. Translatable per binding block (see the remarks on this attribute).
+- `AndDefaultName` — Human-readable name for the `AndInterface` role. Translatable per binding block (see the remarks on this attribute).
+
 ---
 
 ### LogicBlockInterfaceBindingAttribute
 
 Metadata for an implementation of a logic-block interface. Applies to a class (when the LB implements the interface directly) OR a property (when the property's value implements the interface, e.g. an inner ChargingPoint instance). Both cases are "metadata for an existing interface relationship". AllowMultiple = true to handle properties whose type implements multiple interfaces (each `LogicBlockInterfaceBindingAttribute` targets one interface via `ForInterface`).
 
+> `DefaultName` — and the contract's role names (`BetweenDefaultName` / `AndDefaultName`) — are translatable in the cloud, keyed by the block's full type name and this binding's `Identifier`, which defaults to a C# name. Pin `Identifier` to rename the property, interface or class without orphaning the translations. See `docs/identifier-stability.md`.
+
 **Properties:**
 
 - `ForInterface` — The interface this binding metadata applies to.
+- `Identifier` — Stable identifier for this interface binding. Defaults to `{PropertyName}_{InterfaceName}` (property-bound) or the bare interface name (class-implemented); pin it to rename without changing the identifier.
+- `DefaultName` — Human-readable name for the interface endpoint. Translatable (see the remarks on this attribute).
 - `Multiplicity` — Consumer-side link multiplicity for this interface binding. Default `ZeroOrMore` (unconstrained — preserves the pre-multiplicity behaviour). Declared only; enforced downstream.
 
 ---
@@ -1858,8 +1877,8 @@ UI-side presentation hints for a service property, measuring point, or method. R
 
 **Properties:**
 
-- `DisplayName` — Override the displayed label. Falls back to schema.title (primitives) or the C# property name. For enum-/struct-typed properties (where schema.title is identity-bearing), this is the only way to set a UI label distinct from the CLR type name.
-- `Group` — Group key. The dashboard renders all properties with the same Group key in one section. Well-known keys are constants in `PropertyGroup`; integrators may supply their own string keys (e.g. "acme.powertrain") which the dashboard renders as a generic section with the raw key as the header. Section order is set by [LogicBlock(Groups = ...)]; default order is the platform-defined order. Within-group order is by `Order`.
+- `DisplayName` — Override the displayed label. Falls back to schema.title (primitives) or the C# property name. For enum-/struct-typed properties (where schema.title is identity-bearing), this is the only way to set a UI label distinct from the CLR type name. Translatable in the cloud under the member's title key (see the remarks on `ServicePropertyAttribute`).
+- `Group` — Group key. The dashboard renders all properties with the same Group key in one section. Well-known keys are constants in `PropertyGroup`; integrators may supply their own string keys (e.g. "acme.powertrain") which the dashboard renders as a generic section with the raw key as the header. Section order is set by [LogicBlock(Groups = ...)]; default order is the platform-defined order. Within-group order is by `Order`. A custom key is also the translation key of its section label — editing it orphans that label's translations. Well-known `PropertyGroup` keys are translated by the platform itself.
 - `Order` — Sort hint within a group. Ascending; properties without an explicit value sort between explicit values, stable-by-default (base-class first, declaration order within each class). Used for finer ordering than the group level. `MinValue` means "unset" (attribute parameter types can't be nullable; `PropertyMetadataBuilder` converts the sentinel to null in the codec-side `Presentation.Order`).
 - `Importance` — Tile composition rank. Primary/Secondary surface on the auto-generated LogicBlock tile; Normal renders in detail views only; Hidden suppresses the property entirely.
 - `StatusIndicator` — Marks this property as an operational status indicator for the LogicBlock. A block can carry multiple — distinct status dimensions (e.g. operating mode + connection state + activity status). Must be enum-typed (or nullable enum). Per-member severity comes from [Severity]; per-member display labels from [EnumLabel].
@@ -1902,9 +1921,12 @@ Declare a service interface as a C# interface. Use the ServiceProperty and Servi
 
 Define a measuring point on a service interface or logic block property. The optional properties become annotations in the introspection schema document. A property MAY also carry `ServicePropertyAttribute` — the two are independent. Each publishes to its own retained MQTT stream (`…/measuring-point/state` vs `…/property/state`) and is throttled / deadbanded separately (RFC 0004); neither suppresses the other. Common for telemetry charted in the cloud that is also surfaced as live state (e.g. grid-meter power).
 
+> `Title` and `Description` are translatable in the cloud, keyed by the block's full type name plus two C# names: the owning service (the logic-block class name, or the holding property's name for a component service) and this property's name. There is no `Identifier` override — renaming any of them orphans the translations. See `docs/identifier-stability.md`.
+
 **Properties:**
 
-- `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.description`. Independent of `Title`.
+- `Title` — Display label for the measuring point. Translatable (see the remarks on this attribute).
+- `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.description`. Independent of `Title`, and separately translatable (see the remarks on this attribute).
 - `StringFormat` — Advisory JSON-Schema `format` for a `string` measuring point (e.g. `Ipv4`). Routes into `schema.format`; drives a specialized input + soft-validation in the dashboard / DevHost. Never enforced on the wire. String-only and not a type-kind format (`date-time` / `duration` / `uuid`) — see DALE033.
 - `Kind` — Semantic classification of the measuring point's time-series shape — drives default chart rendering, aggregation, and storage strategy. Routes into `schema.x-kind`. Defaults to `Measurement` (instantaneous samples).
 - `MinInterval` — Minimum spacing between two emitted values for this measuring point, as a duration string (e.g. `"250ms"`, `"1s"`, `"500us"`) — a number with an optional `us`/`ms`/`s`/`m`/`h` suffix; a bare number is milliseconds. Drives the RFC 0004 emission gate. `"0"` / `"0ms"` disables interval throttling. Defaults to `"250ms"`. Validated by analyzers DALE036 (format) / DALE037 (1&#160;ms floor).
@@ -1917,9 +1939,12 @@ Define a measuring point on a service interface or logic block property. The opt
 
 Describe a service property on a service interface or logic block property. The optional properties become annotations in the introspection schema document. A property MAY also carry `ServiceMeasuringPointAttribute` — the two are independent. Each publishes to its own retained MQTT stream (`…/property/state` vs `…/measuring-point/state`) and is throttled / deadbanded separately (RFC 0004); neither suppresses the other. Declaring both surfaces the same value as live state AND a charted time series — common for telemetry (e.g. grid-meter power).
 
+> `Title` and `Description` are translatable in the cloud, keyed by the block's full type name plus two C# names: the owning service (the logic-block class name, or the holding property's name for a component service) and this property's name. There is no `Identifier` override — renaming any of them orphans the translations. See `docs/identifier-stability.md`.
+
 **Properties:**
 
-- `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.description`. Independent of `Title`.
+- `Title` — Display label for the property. Translatable (see the remarks on this attribute).
+- `Description` — Long-form description for tooltips, search, and accessibility. Routes into `schema.description`. Independent of `Title`, and separately translatable (see the remarks on this attribute).
 - `StringFormat` — Advisory JSON-Schema `format` for a `string` value (e.g. `Ipv4`). Routes into `schema.format`; drives a specialized input + soft-validation in the dashboard / DevHost. Never enforced on the wire. String-only and not a type-kind format (`date-time` / `duration` / `uuid`) — see DALE033.
 - `WriteOnly` — Marks a writable property as a secret — clients see a redaction sentinel (`"***"`) on the publish-state channel instead of the actual value. Restricted to `string` / `string?` properties in v1. Routes into `schema.writeOnly`.
 - `ReadOnly` — Marks the property as read-only on the wire even when the C# property has a public setter. Use this when a cross-assembly helper needs to assign the value (requires the public setter) but the cloud must not be able to SetPropertyValue it back. Routes into `schema.readOnly` — same wire flag that a private setter or a `[ServiceMeasuringPoint]` would set, so the dashboard groups it with metrics.
@@ -1933,8 +1958,12 @@ Describe a service property on a service interface or logic block property. The 
 
 Binds a LogicBlock property to a hardware service-provider function (HAL: IAnalogOutput, IDigitalOutput, IModbusClient, …). The property type is the hardware contract; the attribute carries the identity / link-multiplicity metadata for the binding. Structurally the matched twin of `LogicBlockInterfaceBindingAttribute` — distinct only because the two are consumed by different binders (in-process actor link vs MQTT service-provider adapter).
 
+> `DefaultName` is translatable in the cloud, keyed by the block's full type name and this binding's `Identifier` — which defaults to the annotated property's name, so renaming that property orphans the translations unless `Identifier` is pinned. See `docs/identifier-stability.md`.
+
 **Properties:**
 
+- `Identifier` — Stable identifier for this contract binding. Defaults to the annotated property's name; pin it to rename the property without changing the identifier.
+- `DefaultName` — Human-readable name for the contract. Translatable (see the remarks on this attribute).
 - `Multiplicity` — Consumer-side link multiplicity for this contract binding. Default `ZeroOrMore` (unconstrained — preserves the pre-multiplicity behaviour). Declared only; enforced downstream.
 
 ---
@@ -2005,8 +2034,12 @@ Well-known JSON-Schema `format` values for string properties, set via `StringFor
 
 Per-field annotations for fields of a flat struct used as a service-element value. Applies to positional record-struct constructor parameters (preferred) or properties.
 
+> `Title` and `Description` are translatable in the cloud, keyed by the struct's short type name (the namespace is not part of the key) and the field's camelCase wire name — the constructor parameter's name, first letter lower-cased. Renaming either orphans the translations. See `docs/identifier-stability.md`.
+
 **Properties:**
 
+- `Title` — Display label for the field. Translatable (see the remarks on this attribute).
+- `Description` — Long-form description for the field. Separately translatable, like `Title`.
 - `StringFormat` — Advisory JSON-Schema `format` for a string field (e.g. `Ipv4`). Routes into the field's `schema.format`. String-only — see DALE033.
 - `WriteOnly` — Marks this field as a secret — clients see a redaction sentinel (`"***"`) on the publish-state channel instead of the actual value, while the struct's other fields stay visible. Restricted to `string` / `string?` fields in v1. Routes into the field's `schema.writeOnly`.
 
