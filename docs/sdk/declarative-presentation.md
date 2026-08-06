@@ -7,7 +7,7 @@ description: How the Dale SDK separates schema, presentation, and runtime metada
 
 The Dale SDK separates **what a value is** (its schema) from **how it is shown** (its presentation). Both travel together for every property, but they are declared by different attributes, cascade differently across interfaces, and are consumed by different layers. This page explains the model and the cascade rules.
 
-For the per-field reference, see [Properties & Measuring Points](/sdk/properties).
+For the per-field reference, see [Properties & Measuring Points](/sdk/properties). The display strings these attributes declare are translatable in the VION Cloud, keyed by the surrounding identifiers — see [Translations](/sdk/translations) before renaming one.
 
 ## Three Sibling Documents
 

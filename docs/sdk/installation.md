@@ -131,6 +131,7 @@ dale list
 │ Contracts  │ Button (DigitalInput), LED (DigitalOutput)      │
 │ Properties │ Mode, LedEnabled, BlinkIntervalSeconds          │
 │ Measuring  │ ButtonPressed, TotalBlinks, ButtonPressCount    │
+│ Interfaces │ IToggleable                                     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -148,15 +149,23 @@ dale list --output json
   "logicBlocks": [
     {
       "name": "HelloWorld",
+      "fullName": "MyDemo.LogicBlocks.HelloWorld",
+      "interfaces": [],
       "contracts": [],
       "services": [{
-        "properties": [{ "name": "Greeting", "type": "System.String" }],
-        "measuringPoints": [{ "name": "TimesGreeted", "type": "System.Int32" }]
+        "name": "HelloWorld",
+        "includedWhen": null,
+        "properties": [{ "name": "Greeting", "type": "string" }],
+        "measuringPoints": [{ "name": "TimesGreeted", "type": "int32" }]
       }]
     }
   ]
 }
 ```
+
+`type` is the schema type label — `string`, `int32`, `double`, `boolean`, an enum or struct name, `X[]` for arrays, with a `?` suffix when nullable — not the CLR type name. `includedWhen` carries the service's `[IncludedWhen]` predicate, or `null` when the service is ungated; see [Instantiation Parameters & Inclusion Gates](/sdk/instantiation-parameters).
+
+The `fullName` and `name` values are the introspection identifiers the VION Cloud uses as translation keys — this is the reliable way to read them before a rename. See [Translations](/sdk/translations).
 
 ### `dale scenario` — Scenario Files
 

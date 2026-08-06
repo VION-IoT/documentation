@@ -50,6 +50,8 @@ The h1 must match the frontmatter title. The opening paragraph appears before an
 - **h3** (`###`) for sub-sections within an h2 (variants, sub-commands, sub-topics)
 - **Never use h4 or deeper** — if you need h4, restructure the content
 
+A heading must describe everything under it. When a section outgrows its title — a "Limits" list that fills up with behaviors and rules — rename the section rather than stretch the word.
+
 ### Cross-References
 
 Use absolute paths with descriptive link text:
@@ -152,6 +154,15 @@ Never put core documentation content inside containers. If every reader needs th
 - **Technical but accessible**: assume C#/.NET knowledge, don't assume IoT expertise
 - **Concise**: one idea per sentence, no filler
 
+### Economy
+
+Write the shortest version that lets the reader act.
+
+- **State optionality first.** If a feature can be skipped, say so in the opening sentence and describe the do-nothing path before the feature itself.
+- **One sentence per rule.** Constraints, caveats, and behaviors belong in a list, one sentence each — not a paragraph each.
+- **Omit rationale.** Why a design was chosen belongs in the architecture repo. Document what the reader can do, how to do it, and what will bite them.
+- **Never restate a table in prose.** If a table already carries the detail, point at it ("any identifier in the table above") instead of enumerating the cases again.
+
 ### What to Avoid
 
 - Marketing language ("powerful", "seamless", "cutting-edge")
@@ -197,5 +208,6 @@ Never put core documentation content inside containers. If every reader needs th
 
 - Internal implementation details (MQTT topic structure, actor internals)
 - Unstable features not marked `[PublicApi]`
-- UI screenshots (they go stale — describe the flow instead)
+- UI screenshots and click-by-click paths (they go stale — name the surface and describe what it does)
 - Features that may be removed before public release
+- Rules that are not specific to the page's topic — document them on the page that owns them and link

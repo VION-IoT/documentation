@@ -103,6 +103,14 @@ dale pack --version 1.2.3
 
 `dale upload --version <version>` does the same when packing and uploading in one step.
 
+### Package Id Uniqueness
+
+`<PackageId>` is unique across every integrator on the platform, compared case-insensitively — the same id semantics NuGet uses. Creating a library or uploading one fails with **409 Conflict** when another integrator already holds the id, and the message deliberately does not name the owner. Use a vendor-prefixed id such as `Acme.Chargers`.
+
+Re-uploading your own library is matched case-insensitively too, so a `.nuspec` differing only in casing lands on the library it belongs to instead of colliding with it.
+
+Treat the id as fixed once the library has been uploaded. Changing it re-namespaces every translation key in the library — see [Translations](/sdk/translations).
+
 ## Uploading
 
 ### Via CLI
@@ -141,7 +149,7 @@ dale upload \
   --skip-duplicate
 ```
 
-The `--skip-duplicate` flag treats version conflicts (409) as success instead of failure — this makes CI pipelines safe to re-run without failing on already-published versions.
+The `--skip-duplicate` flag treats an *already-published version* conflict (409) as success instead of failure — this makes CI pipelines safe to re-run without failing on a version that is already up. It does not suppress the other 409: a package id registered by another integrator still fails the command. See [Package Id Uniqueness](#package-id-uniqueness).
 
 ### Cross-Environment Deployment
 
