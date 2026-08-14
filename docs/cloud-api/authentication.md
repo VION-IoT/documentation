@@ -17,7 +17,7 @@ For user-facing applications, use the **Authorization Code Flow with PKCE**:
 2. User authenticates and grants consent
 3. Exchange the authorization code for tokens
 
-```
+```text
 Authorization URL: https://auth.vion.swiss/realms/vion/protocol/openid-connect/auth
 Token URL:         https://auth.vion.swiss/realms/vion/protocol/openid-connect/token
 ```

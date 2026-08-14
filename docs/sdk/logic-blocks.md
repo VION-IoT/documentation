@@ -107,7 +107,7 @@ public class PowerPlantBlock : LogicBlockBase { /* ... */ }
 
 When `Groups` is omitted, the platform default order applies:
 
-```
+```text
 [Alarm, Status, Metric, Configuration, Diagnostics, Identity, None]
 ```
 

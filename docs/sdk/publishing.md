@@ -52,7 +52,7 @@ Check your current configuration:
 dale config show
 ```
 
-```
+```text
   Environment:  production
   Auth URL:     https://auth.vion.swiss/realms/vion
   API URL:      https://api.vion.swiss

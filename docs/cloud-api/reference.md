@@ -36,7 +36,7 @@ Scalar lets you browse all endpoints, see request/response schemas, and make liv
 
 All endpoints follow the scoped URL pattern described in [Authentication](/cloud-api/authentication#api-url-structure):
 
-```
+```text
 GET /Tenant/{tenantId}/Services
 POST /Integrator/{integratorId}/LogicBlockLibraryVersions
 ```
