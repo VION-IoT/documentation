@@ -510,7 +510,7 @@ Everything beyond registration, declaration, and health is defined by each servi
 
 All service-specific topics follow this pattern:
 
-```
+```text
 {installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/{contract-specific-path}
 ```
 
@@ -569,13 +569,13 @@ The routing segment must not be a substring of any other registered routing segm
 
 The structure after the routing segment is entirely up to the provider. It can be as granular as individual symbol addresses or as simple as a single action keyword with everything else in the payload:
 
-```
+```text
 {installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/{routing-segment}/{action...}
 ```
 
 CODESYS provider (example — one handler, granular topic addressing):
 
-```
+```text
 {installationTopic}/codesys-01/plc/cpu1/codesys/state          # Variable state from PLC
 {installationTopic}/codesys-01/plc/cpu1/codesys/set            # Write command to PLC
 {installationTopic}/codesys-01/plc/cpu1/codesys/get            # Read request
@@ -586,7 +586,7 @@ The Dale runtime subscribes to `{installationTopic}/+/+/+/codesys/#` and routes 
 
 Alternatively, a provider that prefers a flat topic structure can put addressing in the payload:
 
-```
+```text
 {installationTopic}/codesys-01/plc/cpu1/codesys/rpc    # All requests/responses on one topic
 ```
 

@@ -40,7 +40,7 @@ dale new SmartThermostat
 
 This scaffolds a complete solution:
 
-```
+```text
 SmartThermostat/
 ├── SmartThermostat/                       # Logic block library (the publishable package)
 │   ├── Thermostat.cs                      # Worked example logic block

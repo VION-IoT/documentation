@@ -35,7 +35,7 @@ dale new MyLibrary
 ```
 
 Output:
-```
+```text
 ✔ Created MyLibrary
 
     MyLibrary/MyLibrary.csproj              (logic block library)
@@ -118,7 +118,7 @@ Shows all logic blocks, contracts, properties, and measuring points.
 dale list
 ```
 
-```
+```text
   Project: MyDemo (v0.0.1)
   SDK: Vion.Dale.Sdk <version>
 
@@ -332,7 +332,7 @@ dale config set-environment custom \
 
 `dale new` creates three projects:
 
-```
+```text
 MyLibrary/
 ├── MyLibrary/                    # Logic block library (netstandard2.1)
 │   ├── MyLibrary.csproj

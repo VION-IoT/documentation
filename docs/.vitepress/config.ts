@@ -9,6 +9,17 @@ export default withMermaid(
     lastUpdated: true,
     cleanUrls: true,
 
+    // Internal substrate that lives under docs/ but is not part of the public site: the authoring
+    // style guide and the process journal / metrics / retro notes. Without this, VitePress renders
+    // every one of them as a public page — STYLE.md was live at /STYLE and listed in llms.txt —
+    // and the retro notes would publish verbatim customer names straight out of the corpus.
+    srcExclude: [
+      'STYLE.md',
+      'process-journal.md',
+      'process-metrics.md',
+      'retro/**',
+    ],
+
     // Shiki bundles neither PromQL nor LogQL; alias them to a similar query
     // language so the observability query examples highlight instead of
     // emitting a "language not loaded" build warning.

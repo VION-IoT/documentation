@@ -54,6 +54,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm run audit
+      # Style gate: the mechanically checkable subset of docs/STYLE.md. Runs before the build so a
+      # style violation fails in seconds rather than after the site compiles.
+      - run: pnpm run check
       - run: pnpm run build
 
       - uses: VION-IoT/shared-workflows/actions/docker-tags@v1
