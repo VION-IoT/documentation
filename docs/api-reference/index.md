@@ -1304,7 +1304,7 @@ Extension methods for setting up Modbus TCP services in an `IServiceCollection`.
 
 Provides non-blocking Modbus TCP client functionality for logic blocks.
 
-> The reads, writes and diagnostics are those of `IModbusClient`; this type adds what is specific to owning a socket and a request queue. The TCP connection is established lazily inside the first operation that needs one and is kept for subsequent operations. Set `IpAddress` before enabling the client; `Port` defaults to 502 and `ConnectionTimeout` to 3 seconds. Because the handshake happens inside an operation, that operation's `RoundTrip` includes it — see `Connection`, whose `LastConnectDuration` is how you separate the two. All operations are enqueued and executed one at a time: the underlying Modbus TCP library cannot run concurrent operations on one connection. The logic block is never blocked by this — results arrive through callbacks. Use for a second, independent connection and queue. The queue is created the first time the client is enabled via `IsEnabled`. `QueueCapacity` and `QueueOverflowPolicy` must be set before that and cannot be changed afterwards. `MaxQueuedAge`, in contrast, is read at dequeue and can be changed at any time. Dispose the client when it is no longer needed. Disposal closes the connection and the queue: subsequent operations are rejected with a `RequestDroppedException` whose `Reason` is `ClientDisposed`, and requests already queued or in flight are cancelled. Compared with Modbus RTU: this client owns its socket and its queue, so `QueuedRequestCount` is real, overflow is per client, and `Connection` exists. Its default operation timeout is 1 second. For the exceptions that reach an error callback, see the documentation for `IModbusTcpClientWrapper`.
+> The reads, writes and diagnostics are those of `IModbusClient`; this type adds what is specific to owning a socket and a request queue. The TCP connection is established lazily inside the first operation that needs one and is kept for subsequent operations. Set `IpAddress` before enabling the client; `Port` defaults to 502 and `ConnectionTimeout` to 3 seconds. Because the handshake happens inside an operation, that operation's `RoundTrip` includes it — see `Connection`, whose `LastConnectDuration` is how you separate the two. All operations are enqueued and executed one at a time: the underlying Modbus TCP library cannot run concurrent operations on one connection. The logic block is never blocked by this — results arrive through callbacks. Use for a second, independent connection and queue. The queue is created the first time the client is enabled via `IsEnabled`. `QueueCapacity` and `QueueOverflowPolicy` must be set before that and cannot be changed afterwards. `MaxQueuedAge`, in contrast, is read at dequeue and can be changed at any time. Dispose the client when it is no longer needed. Disposal closes the connection and the queue: subsequent operations are rejected with a `RequestDroppedException` whose `Reason` is `ClientDisposed`, and requests already queued or in flight are cancelled. Link policy. A timeout, transport error or protocol error on an established connection closes the socket, so the next operation reconnects: a peer that dropped and came back is reached again without operator action, and a stray response cannot be read as the next transaction's answer. Only failed connects drive the backoff — from the second consecutive one the client waits `ConnectBackoff` (1 second), doubling per further failure up to `ConnectBackoffMax` (30 seconds). Operations issued during that wait fail immediately with a `LinkBackoffException` and an `Outcome.BackedOff` receipt, so the queue drains instead of filling and the device is not contacted once per queued request. A successful connect, a changed `IpAddress` or `Port`, or re-enabling the client ends the wait, so a corrected address takes effect on the very next operation. Setting an address or port to the value already in force does nothing. No operation is ever retried automatically. Reads are re-polled by construction, and repeating a write after a fault is not safe to decide for the caller — a pulse would be written twice. Compared with Modbus RTU: this client owns its socket and its queue, so `QueuedRequestCount` is real, overflow is per client, and `Connection` exists. Its default operation timeout is 1 second. RTU has no link policy: there is no connection to back off from. For the exceptions that reach an error callback, see the documentation for `IModbusTcpClientWrapper`.
 
 **Properties:**
 
@@ -1314,6 +1314,8 @@ Provides non-blocking Modbus TCP client functionality for logic blocks.
 - `ConnectionTimeout` — Gets or sets the timeout for connection attempts to the Modbus TCP server.
 - `Port` — Gets or sets the port number used to connect to the Modbus TCP server.
 - `IpAddress` — Gets or sets the IP address of the Modbus TCP server.
+- `ConnectBackoff` — Gets or sets how long the client waits after the second consecutive failed connect. Default is 1 second.
+- `ConnectBackoffMax` — Gets or sets the longest the client waits between connection attempts. Default is 30 seconds.
 - `Connection` — Gets a snapshot of the socket: whether it is up, and how connection attempts have gone.
 
 **Methods:**
@@ -1336,6 +1338,28 @@ Factory for creating instances of `ILogicBlockModbusTcpClient`.
 ---
 
 ## Vion.Dale.Sdk.Modbus.Tcp.Client.Request
+
+### LinkBackoffException
+
+Thrown when a request arrives while the client is waiting out a connect backoff. The device was never contacted, so this says nothing about the link beyond the failed connects that armed the backoff.
+
+> The backoff is armed from the second consecutive failed connect and is ended by a successful connect or by a changed IP address or port. Until then every request fails this way immediately instead of paying its own connection attempt.
+
+**Properties:**
+
+- `NextAttemptAt` — Gets when the client will attempt to connect again.
+- `ConsecutiveConnectFailures` — Gets how many connection attempts have failed in a row.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `LinkBackoffException` class.
+  - `ipAddress`: The address the failed attempts targeted.
+  - `port`: The port the failed attempts targeted.
+  - `consecutiveConnectFailures`: How many connection attempts have failed in a row.
+  - `nextAttemptAt`: When the client will attempt to connect again.
+  - `untilNextAttempt`: How much of the backoff is left.
+
+---
 
 ### QueueOverflowPolicy
 
@@ -1398,7 +1422,7 @@ The state of a Modbus TCP client's socket.
 
 A point-in-time summary of one Modbus TCP client's socket: whether it is up, and how its connection attempts have gone.
 
-> Separate from the link summary because it is about the transport rather than the device: a socket can be up while every request times out, and a device can be reachable across a socket that has been re-established several times. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`. The connection is established lazily, inside the first operation that needs it, so `LastConnectDuration` is also part of that operation's `RoundTrip` — subtract it when you want the device's own response time. Counts are for the lifetime of the client instance and are never reset.
+> Separate from the link summary because it is about the transport rather than the device: a socket can be up while every request times out, and a device can be reachable across a socket that has been re-established several times. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`. The connection is established lazily, inside the first operation that needs it, so `LastConnectDuration` is also part of that operation's `RoundTrip` — subtract it when you want the device's own response time. Counts are for the lifetime of the client instance and are never reset — except `ConsecutiveConnectFailures`, which is a run rather than a total. `CurrentBackoff` and `NextAttemptAt` are filled once the client is waiting between connection attempts, and `State` is `BackingOff` while that wait is still running. Both are cleared by a successful connect or by a configuration change that supersedes the failures.
 
 **Properties:**
 
@@ -1407,7 +1431,7 @@ A point-in-time summary of one Modbus TCP client's socket: whether it is up, and
 - `LastConnectFailureAt` — When a connection attempt last failed.
 - `ConnectAttemptCount` — How many connection attempts have been made.
 - `ConnectFailureCount` — How many connection attempts have failed.
-- `ConsecutiveConnectFailures` — Failed attempts since the last successful one.
+- `ConsecutiveConnectFailures` — Failed attempts since the last successful one or the last configuration change.
 - `LastConnectDuration` — How long the last successful handshake took.
 - `CurrentBackoff` — How long the client is waiting before its next connection attempt.
 - `NextAttemptAt` — When the client will attempt to connect again.
@@ -1420,7 +1444,7 @@ A point-in-time summary of one Modbus TCP client's socket: whether it is up, and
   - `LastConnectFailureAt`: When a connection attempt last failed.
   - `ConnectAttemptCount`: How many connection attempts have been made.
   - `ConnectFailureCount`: How many connection attempts have failed.
-  - `ConsecutiveConnectFailures`: Failed attempts since the last successful one.
+  - `ConsecutiveConnectFailures`: Failed attempts since the last successful one or the last configuration change.
   - `LastConnectDuration`: How long the last successful handshake took.
   - `CurrentBackoff`: How long the client is waiting before its next connection attempt.
   - `NextAttemptAt`: When the client will attempt to connect again.
