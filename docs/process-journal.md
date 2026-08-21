@@ -128,3 +128,16 @@ the number of control types the round trip is run through.
 name in its header comment since it was written — in a public repo, and in a directory no gate
 reads. Removed. The denylist cannot catch this class, because a clone path is not a name anyone
 thought to list.
+
+2026-08-21 · review · VION-116 · Four review points on the example client, all correct, all from
+looking at the running page rather than the diff. (1) Every stage header went dark-on-dark on
+hover — 1.41:1 — because the generic `button:hover` fill out-specifies `.stage-head`'s background,
+and the only rule that rescued it covered completed stages. The header is a `<button>`; nothing in
+the diff hints at that. (2) No sign-out existed. Adding it surfaced a gap in the page's own subject
+matter: a clean MQTT DISCONNECT suppresses the will, so a polite exit left the cloud-side
+registration standing — the page demonstrated the crash path and never the graceful one. Now
+published explicitly, and documented. (3) and (4) asked what an account with no tenant membership,
+or no readable services, actually sees. Both messages existed but stated the symptom, not the cause
+or the fix, and the second could not distinguish "empty tenant" from "no permission" — which the
+API makes indistinguishable by design. Also found while adding the sign-out control: `hidden` was
+inert on it, because the element's own `display: flex` beats the attribute's UA default.

@@ -29,6 +29,8 @@ Seven things decide whether a client sees values at all. The example gets each o
 
 Your identity provider user ID is the `user.identityProviderUserId` field of `GET /Me`. Read it from there rather than typing it in — it is one half of both the subscriber ID and the last will topic.
 
+A clean MQTT `DISCONNECT` tells the broker *not* to fire the will, so a client that exits politely leaves its registration standing and the edge gateway publishing to nobody. Publish an empty message to the last will topic yourself before disconnecting; the example's **Sign out** does that, then discards the token.
+
 ## The order that matters
 
 1. Connect to the MQTT broker at `wss://ws.vion.swiss/ws`, with the last will above.

@@ -59,6 +59,9 @@
 
 * { box-sizing: border-box; }
 
+/* Any `display` a class sets would otherwise beat the hidden attribute's UA default. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   padding: 0 16px 96px;
@@ -78,6 +81,9 @@ header.page { padding: 48px 0 24px; }
 header.page h1 { font-size: var(--t-headline); font-weight: var(--w-emph); margin: 0 0 8px; letter-spacing: -0.01em; }
 header.page p { margin: 0; color: var(--fg-3); font-size: var(--t-body-sm); max-width: 60ch; }
 header.page a { color: var(--accent-bg); }
+.page-head { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.identity { display: flex; gap: 10px; align-items: center; flex: none; }
+.identity span { font-size: var(--t-caption); color: var(--fg-4); font-family: var(--mono); }
 
 /* ── Stages ──────────────────────────────────────────────────────────────────────────────── */
 .stage {
@@ -102,6 +108,10 @@ header.page a { color: var(--accent-bg); }
   color: inherit;
   text-align: left;
 }
+/* A stage header is a <button>, so it inherits the accent hover fill — which is dark, while the
+   header keeps its dark text. Reset it here and let the one hover that is meaningful, reopening a
+   completed stage, opt back in below. */
+.stage-head:hover:not(:disabled) { background: none; }
 .stage[data-state="done"] .stage-head { cursor: pointer; }
 .stage[data-state="done"] .stage-head:hover { background: var(--bg-2); }
 .stage[data-state="locked"] .stage-head { cursor: not-allowed; }
@@ -302,10 +312,18 @@ code { font-family: var(--mono); font-size: 0.92em; background: var(--bg-3); pad
 <div class="shell">
 
 <header class="page">
-  <h1>VION minimal client</h1>
-  <p>The REST + MQTT property flow, running. Work down the stages: each one shows the exact call it
-     made, so you can copy it into your own client. Nothing is stored — tokens live in this tab only.
-     <a href="/cloud-api/minimal-client">Read the walkthrough</a>.</p>
+  <div class="page-head">
+    <div>
+      <h1>VION minimal client</h1>
+      <p>The REST + MQTT property flow, running. Work down the stages: each one shows the exact call
+         it made, so you can copy it into your own client. Nothing is stored — tokens live in this
+         tab only. <a href="/cloud-api/minimal-client">Read the walkthrough</a>.</p>
+    </div>
+    <div class="identity" id="identity" hidden>
+      <span id="identityWho"></span>
+      <button class="ghost sm" id="signOut">Sign out</button>
+    </div>
+  </div>
 </header>
 
 <!-- ① Environment ────────────────────────────────────────────────────────────────────────── -->
@@ -480,6 +498,7 @@ const S = {
   authMode: 'paste',
   token: null,
   refreshToken: null,
+  idToken: null,
   expiresAt: 0,
   saClientId: null,
   saSecret: null,
@@ -606,6 +625,7 @@ $('saClientId').addEventListener('input', renderAuthWires)
 function acceptToken(json, mode) {
   S.token = json.access_token
   S.refreshToken = json.refresh_token || null
+  S.idToken = json.id_token || null
   S.expiresAt = Date.now() + (json.expires_in ? json.expires_in * 1000 : 3600000)
   S.authMode = mode
   const claims = decodeClaims(S.token)
@@ -780,10 +800,21 @@ async function loadMe() {
     '<b>user.identityProviderUserId</b>  ' + esc(oid) + '\n' +
     '<b>user.email</b>                   ' + esc(S.me.user.email || '') + '\n' +
     '<b>tenantMemberships</b>            ' + S.me.tenantMemberships.length
+  $('identity').hidden = false
+  $('identityWho').textContent = S.me.user.email || 'signed in'
+
   const list = $('tenantPick')
   list.innerHTML = ''
   if (!S.me.tenantMemberships.length) {
-    return showError('s3err', { message: 'This principal holds no tenant memberships, so there is nothing to subscribe to.' })
+    return showError('s3err', {
+      message: 'This account is authenticated, but holds no tenant memberships — so there is no'
+        + ' tenant to read services from and nothing to subscribe to. Authentication and'
+        + ' authorization are separate here: a valid token gets you this far and no further.',
+      detail: 'Fix: a tenant administrator grants this account a role in the tenant. For a service'
+        + ' account, the role goes on its service account user, not on the client.'
+        + '\n\nGET /Me returned: ' + S.me.integratorMemberships.length + ' integrator membership(s), '
+        + S.me.platformMemberships.length + ' platform membership(s), 0 tenant memberships.',
+    })
   }
   for (const t of S.me.tenantMemberships) {
     const b = document.createElement('button')
@@ -921,7 +952,25 @@ $('s4go').addEventListener('click', async () => {
     log('GET /Services…')
     const data = await getJson(api() + '/Tenant/' + S.tenantId + '/Services')
     indexServices(data)
-    if (!S.props.size) throw { message: 'This tenant returned no service properties.' }
+    // The Services response is already filtered to what this account may read, so "the tenant has
+    // nothing" and "this account may see nothing" arrive identically. Say both rather than pick one.
+    if (!S.services.length) {
+      throw {
+        message: 'This tenant returned no services. Either it has none commissioned yet, or this'
+          + ' account has no read permission on any of them — the Services endpoint returns only what'
+          + ' you are authorized to see, so the two are indistinguishable from here.',
+        detail: 'Fix: a tenant administrator grants this account read access on the projects or'
+          + ' logic block instances whose services you need. Membership in the tenant alone does not'
+          + ' carry it.',
+      }
+    }
+    if (!S.props.size) {
+      throw {
+        message: 'This tenant returned ' + S.services.length + ' service(s), but none of them'
+          + ' declares a service property, so there is nothing to subscribe to. Measuring points are'
+          + ' a separate endpoint and are not shown here.',
+      }
+    }
     S.subscriberId = newSubscriberId(S.me.user.identityProviderUserId)
     $('subIdOut').textContent = S.subscriberId
     const topics = [...S.topics.keys()]
@@ -1293,6 +1342,37 @@ $('forceRefresh').addEventListener('click', async (e) => {
     }
   } finally {
     setTimeout(() => { e.target.disabled = false }, 1500)
+  }
+})
+
+// ── Sign out ────────────────────────────────────────────────────────────────────────────────
+// Three separate things, and skipping the first is the mistake worth showing. A clean MQTT
+// DISCONNECT tells the broker *not* to fire the will, so the cloud-side registration would survive
+// a polite exit and keep the edge gateway publishing to nobody. Publish the will yourself first.
+async function teardownSubscription() {
+  if (!S.client) return
+  try {
+    if (S.client.connected) await S.client.publishAsync(lastWillTopic(), '', { qos: 1 })
+  } catch { /* the socket may already be gone; the broker fires the will in that case */ }
+  try { await S.client.endAsync(true) } catch { }
+  S.client = null
+}
+
+const endSessionUrl = () => authBase() + '/protocol/openid-connect/logout'
+
+$('signOut').addEventListener('click', async (e) => {
+  e.target.disabled = true
+  const idToken = S.idToken
+  await teardownSubscription()
+  clearTimeout(S.refreshTimer)
+  S.token = S.refreshToken = S.idToken = S.saSecret = null
+  // Everything else lives in memory, so a reload is the reset. For an interactive sign-in there is
+  // also a Keycloak session behind this tab: ending it is what makes the next sign-in ask again.
+  if (idToken) {
+    const q = new URLSearchParams({ id_token_hint: idToken, post_logout_redirect_uri: redirectUri() })
+    location.href = endSessionUrl() + '?' + q
+  } else {
+    location.reload()
   }
 })
 
