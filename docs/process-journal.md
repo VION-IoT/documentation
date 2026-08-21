@@ -93,3 +93,60 @@ commit's own rules forbid. Not an escape — nothing had shipped, and the review
 2026-08-14 · agent · retro-0 PR #19 · The review cited `scripts/check-docs.mjs:1099` and `:1168` for
 findings in a 196-line file. The substance was right and the line numbers were not; verifying them
 cost a round. Worth watching whether reported locations hold up on later runs.
+
+2026-08-21 · gate · VION-116 · `pnpm check` never read `docs/public/`: `SKIP_DIRS` excluded the
+directory and `walk()` only collected `.md`. The first hand-authored public asset in the repo — a
+1200-line HTML example client, published verbatim at the site root — was therefore the one file with
+no name denylist and no internal-detail check on it, in a public repo. Found by
+`/vion-code-review`, not by the gate. The content rules now also run over
+`docs/public/**` assets, with the scope stated in STYLE.md.
+
+2026-08-21 · review · VION-116 · `/vion-code-review` returned three blockers on the branch, all
+real, all acted on. (1) A code comment in the example client explained the broker's queue-naming and
+per-identity permission model to justify the subscriber-ID format — accurate enough to reverse
+engineer, in a public file whose own footer invites the reader to view source; cut to the
+requirement. (2) The contract table claimed to be exhaustive and was missing the QoS-0 constraint —
+a subscription at QoS 1 is refused with the identical symptom the table attributes solely to a
+malformed subscriber ID, and both pages prominently said QoS 1 for the last will, which is exactly
+the cue that leads a reader there. The reviewer flagged it as read-from-source-but-not-executed; it
+reproduced on the first try. (3) "One token covers all three surfaces" stated a Keycloak client
+configuration as a property of the token endpoint. Also fixed from the same review: a banned "the
+cloud", a replacement JS snippet carrying three undefined identifiers on the page whose unrunnable
+snippet is the reason the issue exists, and an unchecked SUBACK that would have reported success on
+a QoS-128 refusal. Not an escape — nothing had shipped.
+
+2026-08-21 · agent · VION-116 · The author's own browser pass declared the page working while every
+enum property's Set control was silently broken: `<option value="…">` was built by string
+concatenation through an escaper that did not escape quotes, and `JSON.stringify` emits them, so
+every option value was the empty string. Caught by the background security review as an
+attribute-context escaping finding, not by the functional pass — which had exercised numbers and
+booleans and generalised. A brief that asks for a round trip as the discriminator is only as good as
+the number of control types the round trip is run through.
+
+2026-08-21 · manual · — · Noticed while sweeping the branch for leaks:
+`docs/.vitepress/theme/vion-tokens.css` had carried a workstation clone path and a private repo's
+name in its header comment since it was written — in a public repo, and in a directory no gate
+reads. Removed. The denylist cannot catch this class, because a clone path is not a name anyone
+thought to list.
+
+2026-08-21 · review · VION-116 · Four review points on the example client, all correct, all from
+looking at the running page rather than the diff. (1) Every stage header went dark-on-dark on
+hover — 1.41:1 — because the generic `button:hover` fill out-specifies `.stage-head`'s background,
+and the only rule that rescued it covered completed stages. The header is a `<button>`; nothing in
+the diff hints at that. (2) No sign-out existed. Adding it surfaced a gap in the page's own subject
+matter: a clean MQTT DISCONNECT suppresses the will, so a polite exit left the cloud-side
+registration standing — the page demonstrated the crash path and never the graceful one. Now
+published explicitly, and documented. (3) and (4) asked what an account with no tenant membership,
+or no readable services, actually sees. Both messages existed but stated the symptom, not the cause
+or the fix, and the second could not distinguish "empty tenant" from "no permission" — which the
+API makes indistinguishable by design. Also found while adding the sign-out control: `hidden` was
+inert on it, because the element's own `display: flex` beats the attribute's UA default.
+
+2026-08-21 · review · VION-116 · The only link to the new runnable example 404'd when clicked. A
+markdown link to a `docs/public/` asset is silently broken: with `cleanUrls` the router intercepts
+the click, strips `.html`, and routes to a page that does not exist. Both gates passed it — the
+build's dead-link check sees a real file and never simulates the click, and the href in the built
+HTML is correct, so reading the output proves nothing. My own verification loaded the asset URL
+directly and never clicked the link from the page that links to it, which is the only way to see it.
+Reported by the user on `localhost:5173`; it would have shipped broken. Fixed with an anchor
+carrying `target`, and promoted to a gate rule with a negative test.

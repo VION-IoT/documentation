@@ -50,50 +50,63 @@ The value type must match the property type defined in the logic block (number, 
 
 ## Subscribe to Property Updates
 
-Subscribing tells the edge gateway to start publishing property values to the cloud MQTT broker. This is a two-step process:
+Subscribing tells the edge gateway to start publishing property values to the VION Cloud MQTT broker. It takes two steps, and the MQTT half comes first: VION Cloud publishes each property's current value the moment it registers your subscription, and that value is lost if your client is not listening on the topic yet.
 
-**Step 1: Subscribe via REST API**
+The snippets below are the summary. For a version of this flow you can run instead of read, see [Minimal Client](/cloud-api/minimal-client).
 
-This triggers the edge gateway to begin sending updates for the specified properties:
+**Step 1: Connect to the MQTT broker and subscribe**
 
-```bash
-curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "subscriptions": [
-      {
-        "edgeGatewayId": "<gateway-id>",
-        "serviceProviderIdentifier": "<sp-id>",
-        "serviceIdentifier": "<service-id>",
-        "propertyIdentifiers": ["Temperature", "Humidity"]
-      }
-    ]
-  }' \
-  "$API/Tenant/$TENANT_ID/Services/subscribeProperties"
-```
+Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the Services response that tells you exactly which topic to subscribe to — use that value; a topic built by hand does not match.
 
-**Step 2: Connect to the MQTT broker**
+Three details decide whether this works. The `clientId` must be the same string you send as `subscriberId` in step 2, and it must be your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore. Subscribe at QoS 0. Register the last will — it is what tears the subscription down when your client goes away, and without it the edge gateway keeps publishing after you close the tab. Get any of the three wrong and the broker refuses the subscription and closes the connection, naming nothing.
 
-To receive the updates, connect an MQTT 5.0 client to the cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the API response that tells you exactly which MQTT topic to subscribe to.
-
-Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js):
+Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `me` and `services` are the responses from the `GET /Me` and `GET /Tenant/{tenantId}/Services` calls above:
 
 ```js
 import mqtt from "mqtt";
 
-const client = mqtt.connect("wss://ws.vion.swiss:443", {
+const identityProviderUserId = me.user.identityProviderUserId;
+const suffix = Math.random().toString(36).slice(2, 8); // six alphanumeric characters
+const subscriberId = `${identityProviderUserId}_${suffix}_`;
+
+// Topics and properties both come from the Services response. Never assemble a topic by hand.
+const topics = [...new Set(services.flatMap((s) => s.properties.map((p) => p.topic)))];
+const properties = services.flatMap((s) =>
+  s.properties.map((p) => ({
+    edgeGatewayId: s.edgeGatewayId,
+    serviceProviderIdentifier: s.serviceProviderIdentifier,
+    serviceIdentifier: s.identifier,
+    propertyIdentifier: p.identifier,
+  })),
+);
+
+// Step 2, as a function, so the ordering below is explicit.
+const registerSubscription = () =>
+  fetch(`${API}/Tenant/${TENANT_ID}/Services/subscribeProperties`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ subscriberId, properties }),
+  });
+
+const client = mqtt.connect("wss://ws.vion.swiss/ws", {
+  clientId: subscriberId,
   protocolVersion: 5,
+  clean: true,
+  resubscribe: false,
   username: "",
   password: TOKEN, // JWT access token from authentication
+  will: {
+    topic: `cloud/subscriber/lastWill/${identityProviderUserId}/${subscriberId}`,
+    payload: "",
+    qos: 1,
+  },
 });
 
-// Topic from the Services API response (ServiceProperty.topic)
-const topic =
-  "v1/{env}/{tenantId}/{edgeGatewayId}/{serviceProviderIdentifier}/{serviceIdentifier}/cloud/sw/properties/state/";
-
-client.on("connect", () => {
-  client.subscribe(topic);
+// Runs on the first connect and on every reconnect, which is what you want: the last will has by
+// then removed the registration, so both have to subscribe and then register, in that order.
+client.on("connect", async () => {
+  await client.subscribeAsync(topics, { qos: 0 });
+  await registerSubscription();
 });
 
 client.on("message", (topic, message, packet) => {
@@ -104,6 +117,34 @@ client.on("message", (topic, message, packet) => {
     console.log(propertiesState);
   }
 });
+```
+
+**Step 2: Register the subscription via REST API**
+
+This is the call `registerSubscription` makes above, and it is what triggers the edge gateway to begin sending updates. `propertyIdentifier` is singular — one entry per property:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subscriberId": "<identityProviderUserId>_<six-alphanumeric>_",
+    "properties": [
+      {
+        "edgeGatewayId": "<gateway-id>",
+        "serviceProviderIdentifier": "<sp-id>",
+        "serviceIdentifier": "<service-id>",
+        "propertyIdentifier": "Temperature"
+      },
+      {
+        "edgeGatewayId": "<gateway-id>",
+        "serviceProviderIdentifier": "<sp-id>",
+        "serviceIdentifier": "<service-id>",
+        "propertyIdentifier": "Humidity"
+      }
+    ]
+  }' \
+  "$API/Tenant/$TENANT_ID/Services/subscribeProperties"
 ```
 
 ## Query Measuring Point Data

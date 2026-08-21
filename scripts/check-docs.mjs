@@ -16,8 +16,15 @@ import { join, relative, sep } from 'node:path'
 const DOCS = 'docs'
 const CONFIG = join(DOCS, '.vitepress', 'config.ts')
 
-// Directories that never carry hand-authored prose.
+// Directories that never carry hand-authored *markdown*.
 const SKIP_DIRS = new Set(['.vitepress', 'public'])
+
+// …but docs/public/ does carry hand-authored HTML, and it is published verbatim at the site root.
+// The content rules below are about what this repo exposes, not about which file extension exposes
+// it, so they run over these too. Without this the largest hand-written public asset in the repo is
+// the one file no gate reads.
+const PUBLIC_ASSETS = join(DOCS, 'public')
+const PUBLIC_ASSET_EXTS = ['.html', '.htm', '.js', '.css', '.svg']
 
 // Generated upstream by the dale repo's CI and overwritten on every SDK release (CLAUDE.md
 // § Auto-Generated Content). It is exempt because nothing in this repo can fix a violation in it —
@@ -66,6 +73,32 @@ function walk(dir, acc = []) {
   return acc
 }
 
+function walkPublicAssets(dir, acc = []) {
+  let entries
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return acc // no docs/public/ in this repo state; nothing to check
+  }
+  for (const entry of entries) {
+    const p = join(dir, entry)
+    if (statSync(p).isDirectory()) walkPublicAssets(p, acc)
+    else if (PUBLIC_ASSET_EXTS.some((ext) => entry.endsWith(ext))) acc.push(p)
+  }
+  return acc
+}
+
+// Applies every content rule regardless of `appliesToSubstrate`: a published asset is the strictest
+// case, not an exempt one.
+function checkContent(file, src, rules) {
+  const lines = src.split(/\r?\n/)
+  for (const { rule, re, detail } of rules) {
+    lines.forEach((raw, i) => {
+      for (const m of raw.matchAll(re)) report(file, i + 1, rule, `${detail} — found "${m[0]}"`)
+    })
+  }
+}
+
 const findings = []
 const report = (file, line, rule, detail) =>
   findings.push({ file: file.split(sep).join('/'), line, rule, detail })
@@ -100,8 +133,18 @@ const CONTENT_RULES = [
   },
 ]
 
+// Site-root paths of everything under docs/public/, which VitePress copies verbatim. Used by the
+// link check below.
+function publicAssetPaths() {
+  return new Set(
+    walkPublicAssets(PUBLIC_ASSETS).map(
+      (p) => '/' + relative(PUBLIC_ASSETS, p).split(sep).join('/'),
+    ),
+  )
+}
+
 // ── Structure checks ──────────────────────────────────────────────────────────────────────────
-function checkStructure(file, src) {
+function checkStructure(file, src, publicPaths) {
   const lines = src.split(/\r?\n/)
 
   // Frontmatter with title and description (CLAUDE.md § Conventions).
@@ -143,10 +186,22 @@ function checkStructure(file, src) {
     // STYLE.md § Cross-References: "Never use relative paths".
     const rel = raw.match(/\]\((\.\.?\/[^)]*)\)/)
     if (rel) report(file, n, 'relative-link', `relative link ${rel[1]} — use an absolute /path`)
+
+    // A markdown link to a docs/public/ asset is silently broken at runtime: with cleanUrls the
+    // VitePress router intercepts the click, strips `.html`, and routes to a page that does not
+    // exist. The build's dead-link check does not see it — the file is real, the route is not.
+    for (const m of raw.matchAll(/\]\((\/[^)\s]+)\)/g)) {
+      const target = m[1].replace(/[?#].*$/, '')
+      if (publicPaths.has(target)) {
+        report(file, n, 'public-asset-link', `markdown link to the public asset ${target} — the router`
+          + ` rewrites it and lands on a 404; use <a href="${target}" target="_blank" rel="noopener">`)
+      }
+    }
   })
 }
 
 const substrateGlobs = readSubstrateGlobs()
+const publicPaths = publicAssetPaths()
 const all = walk(DOCS)
 if (all.length === 0) {
   console.error(`check-docs: no markdown found under ${DOCS}/ — the walk is broken, not the docs`)
@@ -186,11 +241,15 @@ for (const file of all) {
   }
 
   checked++
-  checkStructure(file, src)
+  checkStructure(file, src, publicPaths)
 }
+
+const publicAssets = walkPublicAssets(PUBLIC_ASSETS)
+for (const file of publicAssets) checkContent(file, readFileSync(file, 'utf8'), CONTENT_RULES)
 
 console.log(
   `check-docs: ${checked} published pages checked`
+  + ` · ${publicAssets.length} public asset(s) content-checked (${DOCS}/public/)`
   + ` · ${generated} generated (${DOCS}/${GENERATED}/) exempt`
   + ` · ${substrate} internal substrate (srcExclude) exempt`,
 )
