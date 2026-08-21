@@ -133,8 +133,18 @@ const CONTENT_RULES = [
   },
 ]
 
+// Site-root paths of everything under docs/public/, which VitePress copies verbatim. Used by the
+// link check below.
+function publicAssetPaths() {
+  return new Set(
+    walkPublicAssets(PUBLIC_ASSETS).map(
+      (p) => '/' + relative(PUBLIC_ASSETS, p).split(sep).join('/'),
+    ),
+  )
+}
+
 // ── Structure checks ──────────────────────────────────────────────────────────────────────────
-function checkStructure(file, src) {
+function checkStructure(file, src, publicPaths) {
   const lines = src.split(/\r?\n/)
 
   // Frontmatter with title and description (CLAUDE.md § Conventions).
@@ -176,10 +186,22 @@ function checkStructure(file, src) {
     // STYLE.md § Cross-References: "Never use relative paths".
     const rel = raw.match(/\]\((\.\.?\/[^)]*)\)/)
     if (rel) report(file, n, 'relative-link', `relative link ${rel[1]} — use an absolute /path`)
+
+    // A markdown link to a docs/public/ asset is silently broken at runtime: with cleanUrls the
+    // VitePress router intercepts the click, strips `.html`, and routes to a page that does not
+    // exist. The build's dead-link check does not see it — the file is real, the route is not.
+    for (const m of raw.matchAll(/\]\((\/[^)\s]+)\)/g)) {
+      const target = m[1].replace(/[?#].*$/, '')
+      if (publicPaths.has(target)) {
+        report(file, n, 'public-asset-link', `markdown link to the public asset ${target} — the router`
+          + ` rewrites it and lands on a 404; use <a href="${target}" target="_blank" rel="noopener">`)
+      }
+    }
   })
 }
 
 const substrateGlobs = readSubstrateGlobs()
+const publicPaths = publicAssetPaths()
 const all = walk(DOCS)
 if (all.length === 0) {
   console.error(`check-docs: no markdown found under ${DOCS}/ — the walk is broken, not the docs`)
@@ -219,7 +241,7 @@ for (const file of all) {
   }
 
   checked++
-  checkStructure(file, src)
+  checkStructure(file, src, publicPaths)
 }
 
 const publicAssets = walkPublicAssets(PUBLIC_ASSETS)

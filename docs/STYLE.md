@@ -82,6 +82,17 @@ See [Testing](/sdk/testing) for unit testing with the TestKit.
 
 Never use relative paths (`../`), never use bare URLs in prose.
 
+**Linking to a file under `docs/public/`** — a runnable example, a downloadable asset — is the one
+case markdown link syntax gets wrong. The site router intercepts the click, strips `.html`, and
+navigates to a route that does not exist, so the link 404s even though the file is there. The build's
+dead-link check does not see it. Write an anchor instead, which the router leaves alone:
+
+```html
+<a href="/vion-minimal-client.html" target="_blank" rel="noopener">open the minimal client</a>
+```
+
+*(Gated by `pnpm run check`.)*
+
 ## Code Examples
 
 ### Placement

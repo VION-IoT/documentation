@@ -141,3 +141,12 @@ or no readable services, actually sees. Both messages existed but stated the sym
 or the fix, and the second could not distinguish "empty tenant" from "no permission" — which the
 API makes indistinguishable by design. Also found while adding the sign-out control: `hidden` was
 inert on it, because the element's own `display: flex` beats the attribute's UA default.
+
+2026-08-21 · review · VION-116 · The only link to the new runnable example 404'd when clicked. A
+markdown link to a `docs/public/` asset is silently broken: with `cleanUrls` the router intercepts
+the click, strips `.html`, and routes to a page that does not exist. Both gates passed it — the
+build's dead-link check sees a real file and never simulates the click, and the href in the built
+HTML is correct, so reading the output proves nothing. My own verification loaded the asset URL
+directly and never clicked the link from the page that links to it, which is the only way to see it.
+Reported by the user on `localhost:5173`; it would have shipped broken. Fixed with an anchor
+carrying `target`, and promoted to a gate rule with a negative test.

@@ -9,7 +9,7 @@ Live service property values arrive over MQTT; the Cloud API only registers your
 
 ## Run the example
 
-The example is one HTML file with no build step, no framework and no bundler — view its source to see everything it does: [open the minimal client](/vion-minimal-client.html).
+The example is one HTML file with no build step, no framework and no bundler — view its source to see everything it does: <a href="/vion-minimal-client.html" target="_blank" rel="noopener">open the minimal client</a>. It opens in a new tab, so this page stays beside it.
 
 It works down five stages, each printing the exact call it made — method, URL, and either the request body or the MQTT connect options — so you can copy that call into your own client. Nothing is stored: tokens live in the browser tab and are gone on reload.
 
