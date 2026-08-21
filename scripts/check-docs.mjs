@@ -16,8 +16,15 @@ import { join, relative, sep } from 'node:path'
 const DOCS = 'docs'
 const CONFIG = join(DOCS, '.vitepress', 'config.ts')
 
-// Directories that never carry hand-authored prose.
+// Directories that never carry hand-authored *markdown*.
 const SKIP_DIRS = new Set(['.vitepress', 'public'])
+
+// …but docs/public/ does carry hand-authored HTML, and it is published verbatim at the site root.
+// The content rules below are about what this repo exposes, not about which file extension exposes
+// it, so they run over these too. Without this the largest hand-written public asset in the repo is
+// the one file no gate reads.
+const PUBLIC_ASSETS = join(DOCS, 'public')
+const PUBLIC_ASSET_EXTS = ['.html', '.htm', '.js', '.css', '.svg']
 
 // Generated upstream by the dale repo's CI and overwritten on every SDK release (CLAUDE.md
 // § Auto-Generated Content). It is exempt because nothing in this repo can fix a violation in it —
@@ -64,6 +71,32 @@ function walk(dir, acc = []) {
     }
   }
   return acc
+}
+
+function walkPublicAssets(dir, acc = []) {
+  let entries
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return acc // no docs/public/ in this repo state; nothing to check
+  }
+  for (const entry of entries) {
+    const p = join(dir, entry)
+    if (statSync(p).isDirectory()) walkPublicAssets(p, acc)
+    else if (PUBLIC_ASSET_EXTS.some((ext) => entry.endsWith(ext))) acc.push(p)
+  }
+  return acc
+}
+
+// Applies every content rule regardless of `appliesToSubstrate`: a published asset is the strictest
+// case, not an exempt one.
+function checkContent(file, src, rules) {
+  const lines = src.split(/\r?\n/)
+  for (const { rule, re, detail } of rules) {
+    lines.forEach((raw, i) => {
+      for (const m of raw.matchAll(re)) report(file, i + 1, rule, `${detail} — found "${m[0]}"`)
+    })
+  }
 }
 
 const findings = []
@@ -189,8 +222,12 @@ for (const file of all) {
   checkStructure(file, src)
 }
 
+const publicAssets = walkPublicAssets(PUBLIC_ASSETS)
+for (const file of publicAssets) checkContent(file, readFileSync(file, 'utf8'), CONTENT_RULES)
+
 console.log(
   `check-docs: ${checked} published pages checked`
+  + ` · ${publicAssets.length} public asset(s) content-checked (${DOCS}/public/)`
   + ` · ${generated} generated (${DOCS}/${GENERATED}/) exempt`
   + ` · ${substrate} internal substrate (srcExclude) exempt`,
 )

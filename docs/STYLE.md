@@ -4,6 +4,9 @@ This guide defines the conventions for all VION documentation. It serves both hu
 
 Part of this guide is machine-enforced: `pnpm run check` decides frontmatter, heading depth, fence
 language tags, relative links, and the banned-content patterns, and it runs in CI before the build.
+The page rules apply to markdown; the banned-content patterns also run over hand-authored assets
+under `docs/public/`, which VitePress copies to the site root verbatim. A published file is public
+whether or not it is a page.
 The rest needs judgment and is checked by [`/vion-code-review`](../.claude/commands/vion-code-review.md)
 before a PR opens. Rules that keep costing review rounds move down that ladder — gate first, review
 check second, prose last.
@@ -285,6 +288,9 @@ properties, measuring points do not need to appear in it.
   that enforces it, and describe the behaviour, not the document that specified it. *(Gated by
   `pnpm run check`.)*
 - **Internal implementation details** — MQTT topic plumbing, actor internals, how a validator works.
+  The exception is the Cloud API integration contract: a client cannot be written without the
+  property state topic, the last will topic and the subscriber ID format, so those pages state them.
+  State the requirement there, never the mechanism that enforces it.
 - **How the UI renders.** The SDK docs describe what the author declares; the dashboard decides how
   it looks, and it changes without notice. No badge layouts, no overflow behaviour, no "the first
   three then +N". The reader sees the rendering the moment they test. The same rule retires UI

@@ -1,7 +1,7 @@
 /*
  * VION Design Tokens
- * Extracted from dashboard2/src/css/tokens.scss
- * Source of truth: C:/_gh/dashboard2/src/css/tokens.scss
+ * The primitive colour ramps and type settings of the VION design system, mirrored here so the
+ * docs site matches the product. Values only — kept in step by hand.
  */
 
 @font-face {

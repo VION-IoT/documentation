@@ -413,7 +413,7 @@ code { font-family: var(--mono); font-size: 0.92em; background: var(--bg-3); pad
   </button>
   <div class="stage-body">
     <p>Four steps, in this order. The MQTT SUBSCRIBE has to be acknowledged <em>before</em> the REST
-       call, because the cloud publishes each property's current value the moment it registers the
+       call, because VION Cloud publishes each property's current value the moment it registers the
        subscription — and a push to a topic you are not listening on yet is lost.</p>
     <p class="wire-label">The calls this makes</p>
     <pre class="wire" id="s4wire"></pre>
@@ -505,8 +505,17 @@ const broker = () => 'wss://ws.' + S.baseDomain + '/ws'
 const redirectUri = () => location.origin + location.pathname
 
 const $ = (id) => document.getElementById(id)
-const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+// Escapes for both element and attribute context. Values here come off the wire — a service name
+// or a property title is whatever the tenant put there.
+const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ESCAPES[c])
 const propKey = (g, sp, sv, p) => g + '|' + sp + '|' + sv + '|' + p
+function option(value, label) {
+  const o = document.createElement('option')
+  o.value = value
+  o.textContent = label
+  return o
+}
 
 // ── Stage plumbing ──────────────────────────────────────────────────────────────────────────
 function setStage(id, state, summary) {
@@ -792,10 +801,9 @@ function pickTenant(t) {
 }
 
 // ── Stage 4 · Connect & subscribe ───────────────────────────────────────────────────────────
-// The subscriber id is not free-form. The broker names a subscription's queue after the MQTT
-// client id, and a client may only own queues matching its own identity — so the id has to be
-// <identityProviderUserId>_<6 alphanumeric characters>_ and the MQTT client id has to be that
-// same string. Anything else connects and is then refused at SUBSCRIBE.
+// The subscriber id is not free-form: it has to be <identityProviderUserId>_<6 alphanumeric>_,
+// and the MQTT client id has to be that same string. Anything else connects and is then refused
+// at SUBSCRIBE, which closes the connection.
 function newSubscriberId(oid) {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
   const r = crypto.getRandomValues(new Uint8Array(6))
@@ -817,11 +825,13 @@ function subscribeBody() {
   }
 }
 
+const tenantSegment = () => (S.tenantId ? esc(S.tenantId) : '&lt;tenantId&gt;')
+
 function renderS4Wire(counts) {
   const n = counts || {}
   $('s4wire').innerHTML =
     '<i># 1. the topics — never built by hand, always properties[].topic</i>\n' +
-    '<b>GET</b> ' + esc(api()) + '/Tenant/' + esc(S.tenantId) + '/Services\n\n' +
+    '<b>GET</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/Services\n\n' +
     '<i># 2. MQTT 5 CONNECT</i>\n' +
     '<b>url</b>              ' + esc(broker()) + '\n' +
     '<b>clientId</b>         ' + (S.subscriberId ? esc(S.subscriberId) : '&lt;identityProviderUserId&gt;_&lt;6 chars&gt;_') + '\n' +
@@ -833,10 +843,10 @@ function renderS4Wire(counts) {
       ? esc(lastWillTopic())
       : 'cloud/subscriber/lastWill/&lt;identityProviderUserId&gt;/&lt;subscriberId&gt;') + '\n' +
     '<b>will.qos</b>         1\n\n' +
-    '<i># 3. SUBSCRIBE — and wait for the SUBACK before step 4</i>\n' +
-    '<b>SUBSCRIBE</b> ' + (n.topics !== undefined ? n.topics + ' topic(s)' : '&lt;one per service&gt;') + '\n\n' +
-    '<i># 4. only now register with the cloud</i>\n' +
-    '<b>POST</b> ' + esc(api()) + '/Tenant/' + esc(S.tenantId) + '/Services/subscribeProperties\n' +
+    '<i># 3. SUBSCRIBE at qos 0 — and wait for the SUBACK before step 4</i>\n' +
+    '<b>SUBSCRIBE</b> ' + (n.topics !== undefined ? n.topics + ' topic(s)' : '&lt;one per service&gt;') + ' <b>qos</b> 0\n\n' +
+    '<i># 4. only now register with VION Cloud</i>\n' +
+    '<b>POST</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/Services/subscribeProperties\n' +
     esc(JSON.stringify({
       subscriberId: S.subscriberId || '<identityProviderUserId>_<6 chars>_',
       properties: [{
@@ -964,7 +974,26 @@ function connectAndSubscribe(topics) {
     client.on('connect', async () => {
       try {
         setLink('subscribing')
-        await client.subscribeAsync(topics)
+        try {
+          // QoS 0, explicitly: a subscription at QoS 1 is refused the same way a malformed
+          // subscriber id is, and mqtt.js's default would hide which of the two you relied on.
+          const granted = await client.subscribeAsync(topics, { qos: 0 })
+          // A compliant broker can also refuse one filter in the SUBACK rather than dropping the
+          // socket. Unchecked, that reads as success and the page sits empty with a green dot.
+          const refused = (granted || []).filter((g) => g.qos === 128).map((g) => g.topic)
+          if (refused.length) {
+            throw { named: true, message: 'The broker refused ' + refused.length + ' of ' + topics.length + ' topics.', detail: refused.join('\n') }
+          }
+        } catch (e) {
+          if (e && e.named) throw e
+          // Otherwise the broker dropped the socket instead of naming a filter, so the message
+          // carries no topic at all. Say what it means rather than repeating "connection closed".
+          throw {
+            message: 'The broker refused the subscription and closed the connection ('
+              + (e && e.message ? e.message : 'no detail') + '). One topic this principal may not read'
+              + ' takes the whole subscription down with it.',
+          }
+        }
         log('SUBACK for ' + topics.length + ' topics')
         setLink('subscribed')
         const n = await restRegister()
@@ -972,7 +1001,9 @@ function connectAndSubscribe(topics) {
         if (!settledFirst) { settledFirst = true; resolve() }
       } catch (e) {
         if (!settledFirst) { settledFirst = true; reject(e) }
-        else showError('s5err', e)
+        // After the first connect, stage 4 is collapsed but still the place this belongs; stage 5's
+        // slot is only visible once stage 5 exists.
+        else showError($('s5').dataset.state === 'locked' ? 's4err' : 's5err', e)
       }
     })
   })
@@ -1019,8 +1050,8 @@ function formatValue(p) {
 
 function renderLive() {
   const sel = $('filterGw')
-  sel.innerHTML = '<option value="">All edge gateways</option>' +
-    [...S.gateways.values()].map((g) => '<option value="' + esc(g.id) + '">' + esc(g.name) + '</option>').join('')
+  sel.replaceChildren(option('', 'All edge gateways'))
+  for (const g of S.gateways.values()) sel.appendChild(option(g.id, g.name))
   paintLive()
 }
 $('filterText').addEventListener('input', paintLive)
@@ -1107,12 +1138,15 @@ function setControl(p) {
   const t = Array.isArray(p.schema.type) ? p.schema.type[0] : p.schema.type
   let input
   if (p.schema.enum) {
+    // Built as elements, not markup: an enum value is JSON, and JSON.stringify emits the quotes
+    // that would end the attribute early if this were concatenated into an <option value="…">.
     input = document.createElement('select')
-    input.innerHTML = p.schema.enum.map((v) =>
-      '<option value="' + esc(JSON.stringify(v)) + '">' + esc((p.presentation.enumLabels || {})[v] ?? v) + '</option>').join('')
+    const labels = p.presentation.enumLabels || {}
+    for (const v of p.schema.enum) input.appendChild(option(JSON.stringify(v), labels[v] ?? v))
   } else if (t === 'boolean') {
     input = document.createElement('select')
-    input.innerHTML = '<option value="true">true</option><option value="false">false</option>'
+    input.appendChild(option('true', 'true'))
+    input.appendChild(option('false', 'false'))
   } else if (t === 'number' || t === 'integer') {
     input = document.createElement('input')
     input.type = 'number'
@@ -1213,6 +1247,9 @@ function paintValue(p, rowEl) {
     b.className = ''
     const unit = p.value === null || typeof p.value === 'object' ? '' : (p.schema['x-unit'] || '')
     b.textContent = unit ? text + ' ' + unit : text
+    // The rendering honours the property's declared decimals, so it can round. Keep the value that
+    // actually arrived reachable — it is the thing a round trip is checked against.
+    b.title = JSON.stringify(p.value)
     s.textContent = p.updatedAt ? p.updatedAt.toLocaleTimeString() : ''
     if (!rowEl) {
       b.classList.add('flash')
@@ -1236,8 +1273,9 @@ function toggleDetail(el, p) {
 }
 
 // ── Force refresh & reconnect ───────────────────────────────────────────────────────────────
-// Both halves of decision "token lifetime is an hour" made observable in seconds: refresh the
-// access token, then drop the socket so mqtt.js reconnects and transformWsUrl presents the new one.
+// An access token lives an hour, so neither half of the refresh story is observable by waiting.
+// This makes both observable in seconds: refresh the access token, then drop the socket so mqtt.js
+// reconnects and transformWsUrl presents the new one.
 $('forceRefresh').addEventListener('click', async (e) => {
   clearError('s5err')
   e.target.disabled = true

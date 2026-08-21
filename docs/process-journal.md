@@ -93,3 +93,38 @@ commit's own rules forbid. Not an escape — nothing had shipped, and the review
 2026-08-14 · agent · retro-0 PR #19 · The review cited `scripts/check-docs.mjs:1099` and `:1168` for
 findings in a 196-line file. The substance was right and the line numbers were not; verifying them
 cost a round. Worth watching whether reported locations hold up on later runs.
+
+2026-08-21 · gate · VION-116 · `pnpm check` never read `docs/public/`: `SKIP_DIRS` excluded the
+directory and `walk()` only collected `.md`. The first hand-authored public asset in the repo — a
+1200-line HTML example client, published verbatim at the site root — was therefore the one file with
+no name denylist and no internal-detail check on it, in a public repo. Found by
+`/vion-code-review`, not by the gate. The content rules now also run over
+`docs/public/**` assets, with the scope stated in STYLE.md.
+
+2026-08-21 · review · VION-116 · `/vion-code-review` returned three blockers on the branch, all
+real, all acted on. (1) A code comment in the example client explained the broker's queue-naming and
+per-identity permission model to justify the subscriber-ID format — accurate enough to reverse
+engineer, in a public file whose own footer invites the reader to view source; cut to the
+requirement. (2) The contract table claimed to be exhaustive and was missing the QoS-0 constraint —
+a subscription at QoS 1 is refused with the identical symptom the table attributes solely to a
+malformed subscriber ID, and both pages prominently said QoS 1 for the last will, which is exactly
+the cue that leads a reader there. The reviewer flagged it as read-from-source-but-not-executed; it
+reproduced on the first try. (3) "One token covers all three surfaces" stated a Keycloak client
+configuration as a property of the token endpoint. Also fixed from the same review: a banned "the
+cloud", a replacement JS snippet carrying three undefined identifiers on the page whose unrunnable
+snippet is the reason the issue exists, and an unchecked SUBACK that would have reported success on
+a QoS-128 refusal. Not an escape — nothing had shipped.
+
+2026-08-21 · agent · VION-116 · The author's own browser pass declared the page working while every
+enum property's Set control was silently broken: `<option value="…">` was built by string
+concatenation through an escaper that did not escape quotes, and `JSON.stringify` emits them, so
+every option value was the empty string. Caught by the background security review as an
+attribute-context escaping finding, not by the functional pass — which had exercised numbers and
+booleans and generalised. A brief that asks for a round trip as the discriminator is only as good as
+the number of control types the round trip is run through.
+
+2026-08-21 · manual · — · Noticed while sweeping the branch for leaks:
+`docs/.vitepress/theme/vion-tokens.css` had carried a workstation clone path and a private repo's
+name in its header comment since it was written — in a public repo, and in a directory no gate
+reads. Removed. The denylist cannot catch this class, because a clone path is not a name anyone
+thought to list.
