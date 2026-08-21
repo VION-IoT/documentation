@@ -56,7 +56,14 @@ export default withMermaid(
         {
           text: 'More',
           items: [
-            { text: 'Cloud API', link: '/cloud-api/authentication' },
+            {
+              text: 'Cloud API',
+              items: [
+                { text: 'Authentication', link: '/cloud-api/authentication' },
+                { text: 'Integration Examples', link: '/cloud-api/examples' },
+                { text: 'Minimal Client', link: '/cloud-api/minimal-client' },
+              ],
+            },
             { text: 'Observability', link: '/observability/overview' },
             { text: 'AI-Assisted Development', link: '/agentic/' },
             { text: 'Dashboard', link: 'https://dashboard.vion.swiss/' },
@@ -144,6 +151,7 @@ export default withMermaid(
             items: [
               { text: 'Authentication', link: '/cloud-api/authentication' },
               { text: 'Integration Examples', link: '/cloud-api/examples' },
+              { text: 'Minimal Client', link: '/cloud-api/minimal-client' },
               { text: 'API Reference', link: '/cloud-api/reference' },
             ],
           },

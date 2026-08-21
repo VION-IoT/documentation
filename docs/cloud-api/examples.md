@@ -50,50 +50,42 @@ The value type must match the property type defined in the logic block (number, 
 
 ## Subscribe to Property Updates
 
-Subscribing tells the edge gateway to start publishing property values to the cloud MQTT broker. This is a two-step process:
+Subscribing tells the edge gateway to start publishing property values to the cloud MQTT broker. It takes two steps, and the MQTT half comes first: the cloud publishes each property's current value the moment it registers your subscription, and that value is lost if your client is not listening on the topic yet.
 
-**Step 1: Subscribe via REST API**
+The snippets below are the summary. For a version of this flow you can run instead of read, see [Minimal Client](/cloud-api/minimal-client).
 
-This triggers the edge gateway to begin sending updates for the specified properties:
+**Step 1: Connect to the MQTT broker and subscribe**
 
-```bash
-curl -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "subscriptions": [
-      {
-        "edgeGatewayId": "<gateway-id>",
-        "serviceProviderIdentifier": "<sp-id>",
-        "serviceIdentifier": "<service-id>",
-        "propertyIdentifiers": ["Temperature", "Humidity"]
-      }
-    ]
-  }' \
-  "$API/Tenant/$TENANT_ID/Services/subscribeProperties"
-```
+Connect an MQTT 5.0 client to the cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the Services response that tells you exactly which topic to subscribe to — use that value; a topic built by hand does not match.
 
-**Step 2: Connect to the MQTT broker**
-
-To receive the updates, connect an MQTT 5.0 client to the cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the API response that tells you exactly which MQTT topic to subscribe to.
+Two connect options decide whether this works. The `clientId` must be the same string you send as `subscriberId` in step 2, and it must be your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore; any other value connects and then has its subscription refused. The last will is what tears the subscription down when your client goes away — without it the edge gateway keeps publishing after you close the tab.
 
 Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js):
 
 ```js
 import mqtt from "mqtt";
 
-const client = mqtt.connect("wss://ws.vion.swiss:443", {
+// identityProviderUserId comes from GET /Me. The same string is the subscriberId in step 2.
+const subscriberId = `${identityProviderUserId}_${randomSixAlphanumeric}_`;
+
+const client = mqtt.connect("wss://ws.vion.swiss/ws", {
+  clientId: subscriberId,
   protocolVersion: 5,
   username: "",
   password: TOKEN, // JWT access token from authentication
+  will: {
+    topic: `cloud/subscriber/lastWill/${identityProviderUserId}/${subscriberId}`,
+    payload: "",
+    qos: 1,
+  },
 });
 
-// Topic from the Services API response (ServiceProperty.topic)
-const topic =
-  "v1/{env}/{tenantId}/{edgeGatewayId}/{serviceProviderIdentifier}/{serviceIdentifier}/cloud/sw/properties/state/";
+// From the Services API response (ServiceProperty.topic) — never assembled by hand.
+const topic = property.topic;
 
 client.on("connect", () => {
-  client.subscribe(topic);
+  // Step 2 runs in the callback, once the broker has acknowledged the subscription.
+  client.subscribe(topic, registerSubscription);
 });
 
 client.on("message", (topic, message, packet) => {
@@ -104,6 +96,34 @@ client.on("message", (topic, message, packet) => {
     console.log(propertiesState);
   }
 });
+```
+
+**Step 2: Register the subscription via REST API**
+
+This triggers the edge gateway to begin sending updates for the specified properties. `propertyIdentifier` is singular — one entry per property:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subscriberId": "<identityProviderUserId>_<six-alphanumeric>_",
+    "properties": [
+      {
+        "edgeGatewayId": "<gateway-id>",
+        "serviceProviderIdentifier": "<sp-id>",
+        "serviceIdentifier": "<service-id>",
+        "propertyIdentifier": "Temperature"
+      },
+      {
+        "edgeGatewayId": "<gateway-id>",
+        "serviceProviderIdentifier": "<sp-id>",
+        "serviceIdentifier": "<service-id>",
+        "propertyIdentifier": "Humidity"
+      }
+    ]
+  }' \
+  "$API/Tenant/$TENANT_ID/Services/subscribeProperties"
 ```
 
 ## Query Measuring Point Data
