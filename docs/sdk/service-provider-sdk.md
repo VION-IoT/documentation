@@ -33,7 +33,7 @@ using Vion.ServiceProvider.Sdk.RegistrationFlow;
 
 var connectionData = new MqttConnectionData(
     ServiceProviderIdentifier: "hal-sim",
-    Host: "nanomq",
+    Host: "flashmq",
     Port: 1883);
 
 var configuration = new ServiceProviderClientConfigurationBuilder(connectionData, secret, RegistrationCredentials.WellKnown)
