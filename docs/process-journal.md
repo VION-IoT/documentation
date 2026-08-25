@@ -150,3 +150,13 @@ HTML is correct, so reading the output proves nothing. My own verification loade
 directly and never clicked the link from the page that links to it, which is the only way to see it.
 Reported by the user on `localhost:5173`; it would have shipped broken. Fixed with an anchor
 carrying `target`, and promoted to a gate rule with a negative test.
+
+2026-08-25 · review · flashmq-replaces-nanomq · Five findings on the FlashMQ protocol update, all
+taken. The blocker was self-inflicted and invisible from the edited line: adding the strict
+`[A-Za-z0-9_-]` 1–64 rule at the identifier paragraph left the warning box forty lines above still
+telling the reader `serviceProviderIdentifier` may run to 128 characters with only MQTT wildcards
+excluded. The other four were STYLE.md rules the change simply did not apply: migration history ("no broker restart is involved" — the reader never saw the restart),
+mechanism the reader cannot act on (the broker's reload cycle as the reason Mesh verifies), rationale
+that belongs in the architecture repo (why the charset excludes what it excludes), and a five-clause
+run-on where three list items were the shape. Written from an architecture-repo session, so
+`/vion-code-review` was not available in-session and ran afterwards against the open PR.
