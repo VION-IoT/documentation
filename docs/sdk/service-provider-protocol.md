@@ -50,13 +50,15 @@ For each registration connection, generate a **random registration client-id**. 
 Mint a fresh value per registration connection. Never persist it, and never derive it from configuration or from the provider identity — a predictable client-id would let another provider subscribe to your credential-bearing response.
 
 ::: warning MQTT Topic Segment Constraints
-The registration client-id, serviceProviderIdentifier, serviceIdentifier, and contractIdentifier are all embedded directly in MQTT topics, so each **must be a valid single topic segment**:
+The registration client-id, serviceIdentifier, and contractIdentifier are all embedded directly in MQTT topics, so each **must be a valid single topic segment**:
 - Must **not** contain `/` (topic level separator)
 - Must **not** contain `+` or `#` (MQTT wildcard characters)
 - Must **not** contain null characters
 - Must **not** be empty
 - Should be kept under 128 characters (MQTT topics have a 65535-byte UTF-8 limit, but shorter is better for broker performance)
 - Hyphens are fine — a standard GUID string works as a segment
+
+The `serviceProviderIdentifier` is embedded in topics too, but carries a stricter rule of its own — see [Publish the Registration Request](#publish-the-registration-request).
 :::
 
 ### Subscribe to the Response
@@ -66,7 +68,7 @@ Connect to the broker with the well-known **registration bootstrap credentials**
 - `system/serviceProvider/registration/accepted/{registrationClientId}`
 - `system/serviceProvider/registration/denied/{registrationClientId}`
 
-These credentials are fixed and public — every service provider uses them to bootstrap. The broker does not accept anonymous connections, and its ACL restricts the `registration` user to exactly the registration topics — publishing a request and subscribing to your accepted and denied responses — so the bootstrap user can read and write nothing else. The broker's registration ACL rules expand to the connecting client-id and are enforced per delivered message, so a subscription to another connection's response topic — wildcard or literal — delivers nothing: only the connection that minted the client-id can receive its credentials. After acceptance, you reconnect with the per-provider credentials Mesh issues (see [Operational Connection](#operational-connection)).
+These credentials are fixed and public — every service provider uses them to bootstrap. The broker does not accept anonymous connections, and its ACL restricts the `registration` user to exactly the registration topics — publishing a request and subscribing to your accepted and denied responses — so the bootstrap user can read and write nothing else. Only the connection that minted the client-id can receive its credentials. After acceptance, you reconnect with the per-provider credentials Mesh issues (see [Operational Connection](#operational-connection)).
 
 ### Publish the Registration Request
 
@@ -81,7 +83,13 @@ Once subscribed, publish the registration request:
 | Content-Type | `application/json` |
 | User property `schema` | `ServiceProviderRegistrationRequestPayload` |
 
-The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`). It must be unique within the gateway (not globally unique — different gateways may have providers with the same identifier), and it must match `[A-Za-z0-9_-]`, 1–64 characters — every excluded character is a separator or wildcard somewhere in the pipeline (MQTT topic levels and wildcards, filesystem paths, the broker auth files' own delimiters). The names `mesh` and `registration` are reserved and refused case-insensitively, as the platform's own broker identities. A request with an invalid identifier is denied with `Invalid service provider identifier`.
+The `serviceProviderIdentifier` is a human-readable identifier for this provider instance (for example, `hal-sim`, `codesys-bridge-01`).
+
+- It must match `[A-Za-z0-9_-]`, 1–64 characters.
+- It must be unique within the gateway — not globally unique, so different gateways may have providers with the same identifier.
+- `mesh` and `registration` are reserved, case-insensitively.
+
+A request with an invalid identifier is denied with `Invalid service provider identifier`.
 
 **Republish the request on an interval until you receive accepted.** Nothing about registration is retained in either direction, so a request published while Mesh is offline, or a response lost in transit, is recovered only by asking again — the loop is the delivery guarantee. Never request faster than a response can arrive: every accepted request issues a fresh password that invalidates the previous one, so requests that outrun the round trip destroy each answer before it can be used, indefinitely. Mesh processes **every** request it receives — there is no server-side deduplication or coalescing, which is what makes the fresh-password rule hold without exception — so pacing is entirely the provider's responsibility. The work behind a response — resolving the request and applying newly provisioned credentials on the broker — takes roughly 0.5–3 seconds on a healthy gateway, so the 15-second interval is that round trip with a wide safety margin, not a measured limit. Still, a fixed 15 seconds leaves no headroom on a badly degraded gateway: either widen the interval automatically, as the SDK does (15 seconds, doubling to 30 and then 60 when consecutive answers arrive too late to use, resetting on success), or use a flat, safer 30–60 seconds. The interval is also your approval latency — dashboard decisions reach you on your next republish — which is the reason to prefer the shorter, self-widening form over a long flat one.
 
@@ -92,7 +100,7 @@ A registration request is accepted in one of two ways:
 - **Manual accept** — a user in the cloud dashboard accepts (or denies) the pending registration. The decision is **stored**, not pushed: it reaches the provider on its next republish, so approval latency is at most one republish interval.
 - **Auto-accept** — Mesh has the service provider's secret mounted alongside its own configuration (conventionally, the same secret file the service provider reads), and recognizes the incoming secret as a known, pre-provisioned one. When the secret matches, Mesh accepts automatically without any dashboard action. Only the VION team can set up auto-accept because it requires mounting files into the Mesh container, which customers do not have access to.
 
-Mesh mints a fresh password for every accepted request and writes it to the broker's credential store. Because the broker applies credential changes on its own reload cycle rather than instantly, Mesh then connects with the new credentials itself and publishes the accepted payload only once they work — so the credentials you receive were live at the moment they were sent, and no broker restart is involved:
+Mesh mints a fresh password for every accepted request and confirms it works on the broker before answering, so the credentials you receive were live when they were sent:
 
 ```json
 {
