@@ -33,6 +33,18 @@ Extension methods to simulate analog output changes in tests.
 
 ---
 
+### IAnalogOutputProviderExtensions
+
+Extension methods to simulate analog output commands arriving at a provider in tests.
+
+**Methods:**
+
+- `RaiseSetReceived(IAnalogOutputProvider, double)` — Raise the SetReceived event on an `IAnalogOutputProvider` for tests.
+  - `analogOutputProvider`: The analog output provider instance to raise the event on.
+  - `value`: The commanded analog output value.
+
+---
+
 ### LogicBlockTestContextExtensions
 
 Extension methods to verify analog output messages in test contexts.
@@ -45,6 +57,18 @@ Extension methods to verify analog output messages in test contexts.
   - `value`: The expected value, or null to skip value verification.
   - `tolerance`: The tolerance for comparing the expected value.
   - `times`: The expected number of times the output was set, or null for once.
+- `VerifyAnalogOutputConfirmed<T>(LogicBlockTestContext<T>, IAnalogOutputProvider, double?, double, Times?)` — Assert that the specified analog output provider confirmed the given value.
+  - `testContext`: The test context for the logic block.
+  - `analogOutputProvider`: The analog output provider to verify, or null to verify any.
+  - `value`: The expected value, or null to skip value verification.
+  - `tolerance`: The tolerance for comparing the expected value.
+  - `times`: The expected number of confirmations, or null for once.
+- `VerifyAnalogInputDriven<T>(LogicBlockTestContext<T>, IAnalogInputProvider, double?, double, Times?)` — Assert that the specified analog input provider drove the given value.
+  - `testContext`: The test context for the logic block.
+  - `analogInputProvider`: The analog input provider to verify, or null to verify any.
+  - `value`: The expected value, or null to skip value verification.
+  - `tolerance`: The tolerance for comparing the expected value.
+  - `times`: The expected number of drives, or null for once.
 
 ---
 
@@ -53,6 +77,19 @@ Extension methods to verify analog output messages in test contexts.
 ### IAnalogInput
 
 Represents an analog input that can be used to communicate with hardware.
+
+---
+
+### IAnalogInputProvider
+
+The provider side of an analog input: a simulator binds it to drive the value a `IAnalogInput` observes.
+
+> Development and bench surface only. It stands in for the hardware an analog input would read, so a configuration binding it is refused by the production runtime — bind it from simulator blocks, never from a block meant to run on a device. Call whenever the simulated signal changes; the direction is one-way, so there is nothing to receive back.
+
+**Methods:**
+
+- `Drive(double)` — Drives the value the analog input observes.
+  - `value`: The value the simulated signal now carries.
 
 ---
 
@@ -66,6 +103,19 @@ Represents an analog output that can be used to communicate with hardware.
 
 - `Set(double)` — Sets the analog output to the specified value.
   - `value`: The value to set the analog output to.
+
+---
+
+### IAnalogOutputProvider
+
+The provider side of an analog output: a simulator binds it to receive what a `IAnalogOutput` commanded and to confirm back the value it applied.
+
+> Development and bench surface only. It stands in for the hardware an analog output would drive, so a configuration binding it is refused by the production runtime — bind it from simulator blocks, never from a block meant to run on a device. Handle to model the equipment's reaction, then call with the value it actually took; ignoring a command is a legitimate model of hardware that did not take it up.
+
+**Methods:**
+
+- `Confirm(double)` — Confirms the value the simulated hardware applied.
+  - `value`: The value that was applied.
 
 ---
 
@@ -95,6 +145,18 @@ Extension methods to simulate digital output changes in tests.
 
 ---
 
+### IDigitalOutputProviderExtensions
+
+Extension methods to simulate digital output commands arriving at a provider in tests.
+
+**Methods:**
+
+- `RaiseSetReceived(IDigitalOutputProvider, bool)` — Raise the SetReceived event on an `IDigitalOutputProvider` for tests.
+  - `digitalOutputProvider`: The digital output provider instance to raise the event on.
+  - `value`: The commanded digital output value.
+
+---
+
 ### LogicBlockTestContextExtensions
 
 Extension methods to verify digital output messages in test contexts.
@@ -106,6 +168,16 @@ Extension methods to verify digital output messages in test contexts.
   - `digitalOutput`: The digital output to verify, or null to verify any digital output.
   - `value`: The expected value, or null to skip value verification.
   - `times`: The expected number of times the output was set, or null for once.
+- `VerifyDigitalOutputConfirmed<T>(LogicBlockTestContext<T>, IDigitalOutputProvider, bool?, Times?)` — Assert that the specified digital output provider confirmed the given value.
+  - `testContext`: The test context for the logic block.
+  - `digitalOutputProvider`: The digital output provider to verify, or null to verify any.
+  - `value`: The expected value, or null to skip value verification.
+  - `times`: The expected number of confirmations, or null for once.
+- `VerifyDigitalInputDriven<T>(LogicBlockTestContext<T>, IDigitalInputProvider, bool?, Times?)` — Assert that the specified digital input provider drove the given value.
+  - `testContext`: The test context for the logic block.
+  - `digitalInputProvider`: The digital input provider to verify, or null to verify any.
+  - `value`: The expected value, or null to skip value verification.
+  - `times`: The expected number of drives, or null for once.
 
 ---
 
@@ -114,6 +186,19 @@ Extension methods to verify digital output messages in test contexts.
 ### IDigitalInput
 
 Represents a digital input that can be used to communicate with hardware.
+
+---
+
+### IDigitalInputProvider
+
+The provider side of a digital input: a simulator binds it to drive the value a `IDigitalInput` observes.
+
+> Development and bench surface only. It stands in for the hardware a digital input would read, so a configuration binding it is refused by the production runtime — bind it from simulator blocks, never from a block meant to run on a device. Call whenever the simulated signal changes; the direction is one-way, so there is nothing to receive back.
+
+**Methods:**
+
+- `Drive(bool)` — Drives the value the digital input observes.
+  - `value`: The value the simulated signal now carries.
 
 ---
 
@@ -127,6 +212,19 @@ Represents a digital output that can be used to communicate with hardware.
 
 - `Set(bool)` — Sets the digital output to the specified value.
   - `value`: The value to set the digital output to.
+
+---
+
+### IDigitalOutputProvider
+
+The provider side of a digital output: a simulator binds it to receive what a `IDigitalOutput` commanded and to confirm back the value it applied.
+
+> Development and bench surface only. It stands in for the hardware a digital output would drive, so a configuration binding it is refused by the production runtime — bind it from simulator blocks, never from a block meant to run on a device. Handle to model the equipment's reaction, then call with the value it actually took; ignoring a command is a legitimate model of hardware that did not take it up.
+
+**Methods:**
+
+- `Confirm(bool)` — Confirms the value the simulated hardware applied.
+  - `value`: The value that was applied.
 
 ---
 
