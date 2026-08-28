@@ -16,7 +16,7 @@ The protocol has two layers:
 
 ```mermaid
 graph LR
-  SP["Service Provider<br/>(any technology)"] <-->|MQTT| B["MQTT Broker<br/>(FlashMQ)"]
+  SP["Service Provider<br/>(any technology)"] <-->|MQTT| B["MQTT Broker"]
   B <-->|registration<br/>+ health| M["Mesh"]
   B <-->|contract messaging| D["Dale Runtime"]
   D --> LB["Logic Blocks"]
@@ -27,7 +27,7 @@ The service provider never communicates with Mesh or the Dale runtime directly â
 ## Prerequisites
 
 - MQTT 5.0 client library
-- Access to the local MQTT broker (default: `flashmq:1883` on the local network)
+- Access to the local MQTT broker (default: `broker:1883` on the local network)
 
 ## Registration
 
@@ -105,7 +105,7 @@ Mesh mints a fresh password for every accepted request and confirms it works on 
 ```json
 {
   "installationTopic": "v1/test/tenant123/gateway456",
-  "host": "flashmq",
+  "host": "broker",
   "port": 1883,
   "clientId": "hal-sim",
   "username": "hal-sim",
@@ -639,7 +639,7 @@ Service-specific topics must not use these prefixes:
 ```mermaid
 sequenceDiagram
     participant SP as Service Provider
-    participant B as MQTT Broker<br/>(FlashMQ)
+    participant B as MQTT Broker
     participant M as Mesh
     participant D as Dale
 
