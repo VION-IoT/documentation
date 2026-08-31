@@ -55,24 +55,34 @@ Extension methods to verify analog output messages in test contexts.
   - `testContext`: The test context for the logic block.
   - `analogOutput`: The analog output to verify, or null to verify any analog output.
   - `value`: The expected value, or null to skip value verification.
-  - `tolerance`: The tolerance for comparing the expected value.
+  - `tolerance`: The inclusive tolerance for the value comparison; the default of 0 means exact equality.
   - `times`: The expected number of times the output was set, or null for once.
 - `VerifyAnalogOutputConfirmed<T>(LogicBlockTestContext<T>, IAnalogOutputProvider, double?, double, Times?)` — Assert that the specified analog output provider confirmed the given value.
   - `testContext`: The test context for the logic block.
   - `analogOutputProvider`: The analog output provider to verify, or null to verify any.
   - `value`: The expected value, or null to skip value verification.
-  - `tolerance`: The tolerance for comparing the expected value.
+  - `tolerance`: The inclusive tolerance for the value comparison; the default of 0 means exact equality.
   - `times`: The expected number of confirmations, or null for once.
 - `VerifyAnalogInputDriven<T>(LogicBlockTestContext<T>, IAnalogInputProvider, double?, double, Times?)` — Assert that the specified analog input provider drove the given value.
   - `testContext`: The test context for the logic block.
   - `analogInputProvider`: The analog input provider to verify, or null to verify any.
   - `value`: The expected value, or null to skip value verification.
-  - `tolerance`: The tolerance for comparing the expected value.
+  - `tolerance`: The inclusive tolerance for the value comparison; the default of 0 means exact equality.
   - `times`: The expected number of drives, or null for once.
 
 ---
 
 ## Vion.Dale.Sdk.AnalogIo.Input
+
+### AnalogInputChanged
+
+Message from the `AnalogInputHandler` to a LogicBlock IO to notify about an analog input change.
+
+**Methods:**
+
+- *Constructor* — Message from the `AnalogInputHandler` to a LogicBlock IO to notify about an analog input change.
+
+---
 
 ### IAnalogInput
 
@@ -95,6 +105,16 @@ The provider side of an analog input: a simulator binds it to drive the value a 
 
 ## Vion.Dale.Sdk.AnalogIo.Output
 
+### AnalogOutputChanged
+
+Message from the `AnalogOutputHandler` to a LogicBlock IO to notify about an analog output change
+
+**Methods:**
+
+- *Constructor* — Message from the `AnalogOutputHandler` to a LogicBlock IO to notify about an analog output change
+
+---
+
 ### IAnalogOutput
 
 Represents an analog output that can be used to communicate with hardware.
@@ -116,6 +136,16 @@ The provider side of an analog output: a simulator binds it to receive what a `I
 
 - `Confirm(double)` — Confirms the value the simulated hardware applied.
   - `value`: The value that was applied.
+
+---
+
+### SetAnalogOutput
+
+Message from a LogicBlock IO to the `AnalogOutputHandler` to set an analog output
+
+**Methods:**
+
+- *Constructor* — Message from a LogicBlock IO to the `AnalogOutputHandler` to set an analog output
 
 ---
 
@@ -183,6 +213,16 @@ Extension methods to verify digital output messages in test contexts.
 
 ## Vion.Dale.Sdk.DigitalIo.Input
 
+### DigitalInputChanged
+
+Message from the `DigitalInputHandler` to a LogicBlock IO to notify about a digital input change.
+
+**Methods:**
+
+- *Constructor* — Message from the `DigitalInputHandler` to a LogicBlock IO to notify about a digital input change.
+
+---
+
 ### IDigitalInput
 
 Represents a digital input that can be used to communicate with hardware.
@@ -203,6 +243,16 @@ The provider side of a digital input: a simulator binds it to drive the value a 
 ---
 
 ## Vion.Dale.Sdk.DigitalIo.Output
+
+### DigitalOutputChanged
+
+Message from the `DigitalOutputHandler` to a LogicBlock IO to notify about a digital output change
+
+**Methods:**
+
+- *Constructor* — Message from the `DigitalOutputHandler` to a LogicBlock IO to notify about a digital output change
+
+---
 
 ### IDigitalOutput
 
@@ -225,6 +275,16 @@ The provider side of a digital output: a simulator binds it to receive what a `I
 
 - `Confirm(bool)` — Confirms the value the simulated hardware applied.
   - `value`: The value that was applied.
+
+---
+
+### SetDigitalOutput
+
+Message from a LogicBlock IO to the `DigitalOutputHandler` to set a digital output
+
+**Methods:**
+
+- *Constructor* — Message from a LogicBlock IO to the `DigitalOutputHandler` to set a digital output
 
 ---
 
