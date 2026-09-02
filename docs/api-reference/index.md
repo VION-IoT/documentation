@@ -1675,6 +1675,7 @@ Extension methods to verify log output on ILogger mocks.
 **Methods:**
 
 - `VerifyLogContains(Mock<ILogger>, string, LogLevel, Times)` — Verifies that a log entry containing the specified string was logged at the specified log level the expected number of times.
+- `VerifyLogContains<T>(Mock<ILogger<T>>, string, LogLevel, Times)` — Verifies that a log entry containing the specified string was logged at the specified log level the expected number of times.
 
 ---
 
