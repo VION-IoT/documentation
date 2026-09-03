@@ -1816,7 +1816,7 @@ Defines the directional relationship between the two sides of a contract.
 
 Display label for an enum member. Surfaces in the dashboard via `presentation.enumLabels`.
 
-> Labels are translatable in the cloud, keyed by the enum's short type name (the namespace is not part of the key) and the C# member name — renaming either orphans the translations. Every member is cataloged, labeled or not; an unlabeled member is translatable too, with its raw member name as the source string. See `docs/identifier-stability.md`.
+> Labels are translatable in the cloud, keyed by the enum's short type name (the namespace is not part of the key) and the C# member name — renaming either orphans the translations. Every member is cataloged, labeled or not; an unlabeled member is translatable too, with its raw member name as the source string. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -1904,7 +1904,7 @@ Multiplicity of a contract link. Consumer-side on a binding (`LogicBlockInterfac
 
 Block-level display metadata for a LogicBlock class.
 
-> Every display string this block declares is translatable in the cloud, under a key rooted in the block's full type name — namespace included. Renaming or moving the class orphans those translations. See `docs/identifier-stability.md`.
+> Every display string this block declares is translatable in the cloud, under a key rooted in the block's full type name — namespace included. Renaming or moving the class orphans those translations. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -1943,7 +1943,7 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 
 Marks a class as a contract container grouping messages (`CommandAttribute`, `StateUpdateAttribute`, `RequestResponseAttribute`) exchanged between two LogicBlock interfaces.
 
-> The role names below are translatable in the cloud, but not keyed on this contract: each block that binds one of these interfaces carries its own copy, keyed by that block's `LogicBlockInterfaceBindingAttribute` identifier. See `docs/identifier-stability.md`.
+> The role names below are translatable in the cloud, but not keyed on this contract: each block that binds one of these interfaces carries its own copy, keyed by that block's `LogicBlockInterfaceBindingAttribute` identifier. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -1956,7 +1956,7 @@ Marks a class as a contract container grouping messages (`CommandAttribute`, `St
 
 Metadata for an implementation of a logic-block interface. Applies to a class (when the LB implements the interface directly) OR a property (when the property's value implements the interface, e.g. an inner ChargingPoint instance). Both cases are "metadata for an existing interface relationship". AllowMultiple = true to handle properties whose type implements multiple interfaces (each `LogicBlockInterfaceBindingAttribute` targets one interface via `ForInterface`).
 
-> `DefaultName` — and the contract's role names (`BetweenDefaultName` / `AndDefaultName`) — are translatable in the cloud, keyed by the block's full type name and this binding's `Identifier`, which defaults to a C# name. Pin `Identifier` to rename the property, interface or class without orphaning the translations. See `docs/identifier-stability.md`.
+> `DefaultName` — and the contract's role names (`BetweenDefaultName` / `AndDefaultName`) — are translatable in the cloud, keyed by the block's full type name and this binding's `Identifier`, which defaults to a C# name. Pin `Identifier` to rename the property, interface or class without orphaning the translations. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -1991,7 +1991,9 @@ Controls persistence behavior for properties. - On writable service properties: 
 
 ### PresentationAttribute
 
-UI-side presentation hints for a service property, measuring point, or method. Routes into the per-property `presentation` sibling document. Open for preset inheritance — integrators subclass to ship their own domain vocabulary.
+UI-side presentation hints for a service property or a measuring point. Routes into the per-property `presentation` sibling document. Open for preset inheritance — integrators subclass to ship their own domain vocabulary.
+
+> Properties only. Nothing reads this attribute off a method: the introspection builds the presentation document from a member's `PropertyInfo`, and every diagnostic that judges a hint against its member's type is registered on properties — so a declaration on a method compiled, emitted nothing and warned about nothing.
 
 **Properties:**
 
@@ -2039,7 +2041,7 @@ Declare a service interface as a C# interface. Use the ServiceProperty and Servi
 
 Define a measuring point on a service interface or logic block property. The optional properties become annotations in the introspection schema document. A property MAY also carry `ServicePropertyAttribute` — the two are independent. Each publishes to its own retained MQTT stream (`…/measuring-point/state` vs `…/property/state`) and is throttled / deadbanded separately; neither suppresses the other. Common for telemetry charted in the cloud that is also surfaced as live state (e.g. grid-meter power).
 
-> `Title` and `Description` are translatable in the cloud, keyed by the block's full type name plus two C# names: the owning service (the logic-block class name, or the holding property's name for a component service) and this property's name. There is no `Identifier` override — renaming any of them orphans the translations. See `docs/identifier-stability.md`.
+> `Title` and `Description` are translatable in the cloud, keyed by the block's full type name plus two C# names: the owning service (the logic-block class name, or the holding property's name for a component service) and this property's name. There is no `Identifier` override — renaming any of them orphans the translations. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -2057,7 +2059,7 @@ Define a measuring point on a service interface or logic block property. The opt
 
 Describe a service property on a service interface or logic block property. The optional properties become annotations in the introspection schema document. A property MAY also carry `ServiceMeasuringPointAttribute` — the two are independent. Each publishes to its own retained MQTT stream (`…/property/state` vs `…/measuring-point/state`) and is throttled / deadbanded separately; neither suppresses the other. Declaring both surfaces the same value as live state AND a charted time series — common for telemetry (e.g. grid-meter power).
 
-> `Title` and `Description` are translatable in the cloud, keyed by the block's full type name plus two C# names: the owning service (the logic-block class name, or the holding property's name for a component service) and this property's name. There is no `Identifier` override — renaming any of them orphans the translations. See `docs/identifier-stability.md`.
+> `Title` and `Description` are translatable in the cloud, keyed by the block's full type name plus two C# names: the owning service (the logic-block class name, or the holding property's name for a component service) and this property's name. There is no `Identifier` override — renaming any of them orphans the translations. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -2076,7 +2078,7 @@ Describe a service property on a service interface or logic block property. The 
 
 Binds a LogicBlock property to a hardware service-provider function (HAL: IAnalogOutput, IDigitalOutput, IModbusClient, …). The property type is the hardware contract; the attribute carries the identity / link-multiplicity metadata for the binding. Structurally the matched twin of `LogicBlockInterfaceBindingAttribute` — distinct only because the two are consumed by different binders (in-process actor link vs MQTT service-provider adapter).
 
-> `DefaultName` is translatable in the cloud, keyed by the block's full type name and this binding's `Identifier` — which defaults to the annotated property's name, so renaming that property orphans the translations unless `Identifier` is pinned. See `docs/identifier-stability.md`.
+> `DefaultName` is translatable in the cloud, keyed by the block's full type name and this binding's `Identifier` — which defaults to the annotated property's name, so renaming that property orphans the translations unless `Identifier` is pinned. See `docs/specs/introspection.md`.
 
 **Properties:**
 
@@ -2150,9 +2152,9 @@ Well-known JSON-Schema `format` values for string properties, set via `StringFor
 
 ### StructFieldAttribute
 
-Per-field annotations for fields of a flat struct used as a service-element value. Applies to positional record-struct constructor parameters (preferred) or properties.
+Per-field annotations for a field of a flat struct used as a service-element value — a positional record-struct constructor parameter.
 
-> `Title` and `Description` are translatable in the cloud, keyed by the struct's short type name (the namespace is not part of the key) and the field's camelCase wire name — the constructor parameter's name, first letter lower-cased. Renaming either orphans the translations. See `docs/identifier-stability.md`.
+> Constructor parameters only. Both readers of this attribute walk the struct's positional constructor, and no diagnostic registers on a property, so a declaration on the generated property compiled, emitted nothing and warned about nothing. `Title` and `Description` are translatable in the cloud, keyed by the struct's short type name (the namespace is not part of the key) and the field's camelCase wire name — the constructor parameter's name, first letter lower-cased. Renaming either orphans the translations. See `docs/specs/introspection.md`.
 
 **Properties:**
 
