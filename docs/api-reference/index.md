@@ -1846,11 +1846,13 @@ Well-known values for `Format`. Two reserved sentinels (`Relative`, `Humanize`) 
 
 ### IConfigureServices
 
-Plugin assemblies must contain an implementation of this interface. The host calls it at startup do add plugin logic blocks and services to DI
+Plugin assemblies must contain an implementation of this interface. The host calls it at startup to add plugin logic blocks and services to DI.
+
+> Register each logic block by its own concrete type — that registration is what makes the block discoverable; its lifetime is not consulted, because a block is constructed for its actor rather than resolved, so every actor gets its own instance whatever lifetime is declared. The lifetime that does matter is that of the services a block injects: each block resolves them from a scope of its own that is disposed when its actor stops, so a transient or scoped registration yields one instance per block and reclaims it, while a singleton is shared by every block and outlives all of them.
 
 **Methods:**
 
-- `ConfigureServices(IServiceCollection)` — Register all logic blocks and services to usable with dependency injection. Logic blocks should be registered as transient. Services that are injected into logic blocks should usually be registered as transient as well.
+- `ConfigureServices(IServiceCollection)` — Registers this plugin's logic blocks and the services they inject.
 
 ---
 
@@ -1918,6 +1920,8 @@ Block-level display metadata for a LogicBlock class.
 
 Base class for all logic blocks. Provides actor lifecycle, service binding, persistence, and timer support.
 
+> A logic block is constructed for its actor and its dependencies are resolved from a scope of that actor's own, which is disposed when the actor terminates. The block itself is not: implementing `IDisposable` on a block gives it a method nothing calls, because disposing the block would have to run inside the same terminal step the runtime's stop grace period is measured against. is a block's only release hook.
+
 **Methods:**
 
 - `Ready` — Called once after the block has been configured (attribute-driven bindings are in place) and is ready to run, but BEFORE the runtime has restored persisted `ServicePropertyAttribute` values, registered per-contract sender instances, or fired . The right place to attach event handlers to contract / interface elements and to do other block-local one-time setup that doesn't depend on SDK runtime state.
@@ -1927,6 +1931,9 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 - `BoundInterfaceIdentifiers` — The interface endpoints this instance bound, by identifier. The block announces its bound services in `BindLogicBlockServices`, but nothing on the wire carries the bound interface set — so a test that needs it has this seam rather than reflection (`testing-conventions.md` section 7). Internal, so the published surface does not move.
 - `RecordingConfigurationFailures(Action)` — Runs one part of the configuration phase, recording why it failed before letting the failure out. Both arms go through here because the phase can finish on either: when LinkRuntimeActors arrives after the configuration message, the announcement and `Ready()` are deferred to it, so a block that refuses to become ready fails from that arm and would otherwise be refused a retry with no reason.
 - `CompleteConfiguration` — The tail of the configuration phase: announce the bound services and tell the block it is ready. Runs inline when the runtime actors are already linked, and from the LinkRuntimeActors arm when they are not.
+- `ApplyLinkedInterfaces(Dictionary<InterfaceId, Dictionary<InterfaceId, IActorReference>>)` — Points each bound interface at the actors it was linked to. A mapping may target an interface gated out by `[IncludedWhen]` on this block, so it was never bound and is absent — skip and warn rather than fail the handler on a missing key, which would take the whole block down.
+- `RequireActorContext(string)` — Refuses a dispatcher call made before the block has received its first message, when there is no actor to schedule onto. Without it the caller gets a bare null-reference exception that the middleware swallows, naming neither the block nor what to do about it.
+- `BoundedDelay(TimeSpan, string)` — The delay a scheduled action is actually armed with. A negative span is the caller asking for something already due, which is what a zero delay means — the same treatment the emission gate's flush gives a deadline in the past. A span longer than a real clock can wait is refused, because arming it throws from inside the actor's handler, where the middleware swallows it and the action is lost with no trace: the bound is the one a scenario's durations already carry. The refusal names the dispatcher member the same way does — the parameter name alone tells a block author nothing about which of its own calls to edit.
 - `ApplyConfiguration(InitializeLogicBlock, IActorContext)` — The configuration phase, in the order the runtime depends on: parameter values applied, the declarative binders run against them, emission gates built, contract mappings resolved, persistence initialised, and the block told it is ready. Extracted so the caller can record why it failed, since a failure spends the instance and a retry has to be told what to fix.
 - `ApplyInstantiationParameters(List<InstantiationParameterValue>)` — Applies the operator-chosen `[InstantiationParameter]` values from the config payload onto this block's CLR properties by reflection, before runs the Live-mode binders that read them to resolve inclusion gates. The decode schema is built from each property's `PropertyInfo` via (binder / `PropertyMetadataBuilder` output does not exist pre-bind), then decoded with . Fail-closed: an unknown identifier or a decode failure throws, failing block initialization (sync-status `Failed`) rather than resolving gates against a wrong or default value.
 - `BuildThrottlers` — constructs one `Throttler` per bound service property and per bound measuring point from its declarative emission attributes, into the matching stream collection (`_servicePropertyThrottlers` / `_measuringPointThrottlers`) keyed by (ServiceIdentifier, member name). A dual-annotated member thus gets one gate per stream, so the two streams don't cross-suppress. The attribute (an `IThrottleConfigured`) is read off the binding's root source `PropertyInfo`; the value type comes from `TargetPropertyType`.
@@ -1936,6 +1943,10 @@ Base class for all logic blocks. Provides actor lifecycle, service binding, pers
 - `OnEmissionFlushDue` — flushes every throttler whose hold deadline has elapsed, emitting its pending value, then reschedules a single wakeup for the earliest still-pending deadline (if any).
 - `DrainThrottlers` — on stop, emit each throttled member's exact current value if it differs from the throttler's last-emitted value — bypassing throttle and deadband — so the final retained state is exact. Reads the current value straight from the binding getter.
 - `InvokeActionMessage.#ctor(Action)` — Represents a message that contains an action to be executed in the context of the actor. This is not serializable, therefore only usable locally, usually within one actor
+
+**Fields/Values:**
+
+- `MaxScheduledDelay` — The longest delay a scheduled action can be armed with — the bound a real clock can wait, the same one a scenario's durations carry (`AC-SCEN-003.2`), measured rather than recalled. Repeated here rather than shared because the SDK cannot reference the development host that declares it.
 
 ---
 
