@@ -376,7 +376,7 @@ Extension methods for setting up logic block HTTP client services in an `IServic
 
 The Modbus operations and link diagnostics every Dale Modbus client offers, whatever the transport.
 
-> Every read and write is non-blocking: the call returns immediately and the result arrives later on the logic block's own thread, through the dispatcher passed with the call. Pass `this` from inside a logic block. Both callbacks carry a `ModbusReceipt` — when the response was observed, how long it took on the wire, how long it waited before that, and how it ended. The instants are taken before the callback is handed to the block's mailbox, so they measure the transaction and not the block's own backlog. Ignore it with a discard where you do not need it: `(values, _) =&gt; Power = values[0]`. `Link` is the same information accumulated per client: the current verdict on the device, the last contact, and counts and latencies per outcome. It is a snapshot struct, readable at any time and publishable as a single `[ServiceProperty]`. Local outcomes — a full or backed-up queue, a bad unit id — are counted there but never move `Link.State`, so a congested client is distinguishable from a broken device. `MaxQueuedAge` bounds how stale a request may be when its turn finally comes. Past that age a request completes immediately with `Outcome.Expired` and the device is never contacted, so a queue that built up during an outage drains in microseconds instead of replaying minutes of dead work. It defaults to 30 seconds; set it to `null` to let every queued request through however old it is. `DefaultOperationTimeout` covers the wire only — from dispatch to the complete response. The wait before dispatch is `MaxQueuedAge`'s business, and both appear separately on the receipt as `RoundTrip` and `QueuedWait`. What differs between the transports is inherent and is stated on each client type: Modbus TCP owns one socket and one request queue per client, so it also reports a connection summary and a queue depth, and defaults to a 1 second operation timeout. Modbus RTU goes through one runtime-wide handler shared by every binding, so its overflow limit and its 1 second expiry sweep are shared with other blocks, its queue depth is reported as zero, and it defaults to a 5 second operation timeout.
+> Every read and write is non-blocking: the call returns immediately and the result arrives later on the logic block's own thread, through the dispatcher passed with the call. Pass `this` from inside a logic block. Both callbacks carry a `ModbusReceipt` — when the response was observed, how long it took on the wire, how long it waited before that, and how it ended. The instants are taken before the callback is handed to the block's mailbox, so they measure the transaction and not the block's own backlog. Ignore it with a discard where you do not need it: `(values, _) =&gt; Power = values[0]`. `Link` is the same information accumulated per client: the current verdict on the device, the last contact, and counts and latencies per outcome. It is a snapshot struct, readable at any time and publishable as a single `[ServiceProperty]`. A locally decided outcome — a full or backed-up queue, a bad unit id — never moves `Link.State`, so a congested client is distinguishable from a broken device. Which of them carry a lifetime counter is stated on `ModbusLinkSummary`. `MaxQueuedAge` bounds how stale a request may be when its turn finally comes. Past that age a request completes immediately with `Outcome.Expired` and the device is never contacted, so a queue that built up during an outage drains in microseconds instead of replaying minutes of dead work. It defaults to 30 seconds; set it to `null` to let every queued request through however old it is. `DefaultOperationTimeout` covers the wire only — from dispatch to the complete response. The wait before dispatch is `MaxQueuedAge`'s business, and both appear separately on the receipt as `RoundTrip` and `QueuedWait`. What differs between the transports is inherent and is stated on each client type: Modbus TCP owns one socket and one request queue per client, so it also reports a connection summary and a queue depth, and defaults to a 1 second operation timeout. Modbus RTU goes through one runtime-wide handler shared by every binding, so its overflow limit and its 1 second expiry sweep are shared with other blocks, its queue depth is reported as zero, and it defaults to a 5 second operation timeout.
 
 **Properties:**
 
@@ -795,7 +795,7 @@ The client's verdict on the link to its device, derived from the last transactio
 
 A point-in-time summary of one Modbus client's link to its device: the current verdict, when the device was last heard from, and lifetime counts and latencies per outcome.
 
-> Read it whenever you want it — every read returns a consistent snapshot, taken without blocking the transaction that is updating it. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`, and every field carries a title and a description so it reads without a projection. `State` moves only on outcomes that reached the wire: `Success` and `DeviceError` set `Online`; `Timeout`, `TransportError` and `ProtocolError` set `Faulted`. Locally decided outcomes — `Expired`, `Dropped`, `BackedOff`, `Invalid`, `Cancelled` — leave it alone: a full queue or a bad unit id is not evidence about the device. They are still counted, and still set `LastFailureAt` / `LastFailureOutcome`. `State` does not decay with time. A client that is polled once an hour and answered an hour ago is still `Online` here, because only the caller knows its own poll cadence. Build a freshness rule from `LastContactAt`, or from the monotonic stamp on the receipt of the value you care about. Counts and extremes are for the lifetime of the client instance and are never reset.
+> Read it whenever you want it — every read returns a consistent snapshot, taken without blocking the transaction that is updating it. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`, and every field carries a title and a description so it reads without a projection. `State` moves only on outcomes that reached the wire: `Success` and `DeviceError` set `Online`; `Timeout`, `TransportError` and `ProtocolError` set `Faulted`. Locally decided outcomes — `Expired`, `Dropped`, `BackedOff`, `Invalid`, `Cancelled` — leave it alone: a full queue or a bad unit id is not evidence about the device. Every outcome sets `LastFailureAt` / `LastFailureOutcome`, but only eight of the ten carry a lifetime counter: the five that reached the wire, plus `BackedOffCount`, `ExpiredCount` and `DroppedCount`. `Invalid` and `Cancelled` have none — read them off `LastFailureOutcome`, or count them in the block from the receipt. `State` does not decay with time. A client that is polled once an hour and answered an hour ago is still `Online` here, because only the caller knows its own poll cadence. Build a freshness rule from `LastContactAt`, or from the monotonic stamp on the receipt of the value you care about. Counts and extremes are for the lifetime of the client instance and are never reset.
 
 **Properties:**
 
@@ -846,7 +846,7 @@ A point-in-time summary of one Modbus client's link to its device: the current v
 
 How a single Modbus read or write ended.
 
-> The first five values are link verdicts: the request reached the wire (or should have), so the outcome says something about the device and the connection to it. The remaining values are decided locally — the request never reached the device — and therefore say nothing about link health. This split is what lets a block distinguish a backed-up local queue from a broken device or network: only the link verdicts move `State`.
+> The first five values are link verdicts: the request reached the wire (or should have), so the outcome says something about the device and the connection to it. The remaining values are decided locally — the request never reached the device — and therefore say nothing about link health. This split is what lets a block distinguish a backed-up local queue from a broken device or network: only the link verdicts move `State`. Every outcome is reported on the receipt and as `LastFailureOutcome`; `Invalid` and `Cancelled` are the two the summary keeps no lifetime counter for.
 
 **Fields/Values:**
 
@@ -1124,6 +1124,41 @@ The declared register-map extents of a Modbus server, per area.
   - `area`: The register area the range refers to.
   - `startingAddress`: The first address of the range.
   - `quantity`: The number of registers or bits in the range. Must be at least 1 to be coverable.
+
+---
+
+## Vion.Dale.Sdk.Modbus.Core.Validation
+
+### ModbusProtocolLimits
+
+The most a single Modbus request can carry, per function code. These are limits of the protocol's data unit, not of any device: no standard function code has a field wide enough to answer more.
+
+> A client refuses a read or write past its limit before the request reaches the wire, with an `InvalidCountException` and an `Outcome.Invalid` receipt. Split a larger span into several requests; the addresses stay contiguous, so the block sees one value either way.
+
+**Fields/Values:**
+
+- `MaxRegistersPerRead` — Registers a single read of holding or input registers can return (function codes 3 and 4).
+- `MaxRegistersPerWrite` — Registers a single write of multiple holding registers can carry (function code 16).
+- `MaxBitsPerRead` — Bits a single read of coils or discrete inputs can return (function codes 1 and 2).
+- `MaxBitsPerWrite` — Bits a single write of multiple coils can carry (function code 15).
+
+---
+
+### ModbusTimeoutLimits
+
+The range a Modbus timeout may be configured in, and the one guard both transports apply to it.
+
+> The upper bound is the framework timer's, not a protocol limit: a longer duration is refused by the cancellation source every operation arms, and refusing it where the value is accepted is what keeps a mistyped duration from being reported later as a transport fault that closes the socket. Sharing the guard is deliberate — the two transports drifted apart the last time each carried its own.
+
+**Methods:**
+
+- `Validate(TimeSpan, string)` — Refuses a timeout outside `(0, `MaxTimeout`]`.
+  - `timeout`: The duration to check.
+  - `subject`: The property or parameter the duration was given for, named in the exception.
+
+**Fields/Values:**
+
+- `MaxTimeout` — The longest a connect timeout, an operation timeout or a per-call timeout may be — just under 25 days. A value at the bound is accepted; it is the largest delay a cancellation source carries on every runtime a plugin built against this SDK can be loaded into.
 
 ---
 
@@ -1469,7 +1504,7 @@ Provides non-blocking Modbus TCP client functionality for logic blocks.
 - `QueueCapacity` — Gets or sets the maximum number of requests that can be queued. Default is 256.
 - `QueueOverflowPolicy` — Gets or sets the policy for handling new requests when the queue is full. Default is `DropOldest`.
 - `QueuedRequestCount` — Gets the current number of requests queued for execution.
-- `ConnectionTimeout` — Gets or sets the timeout for connection attempts to the Modbus TCP server.
+- `ConnectionTimeout` — Gets or sets the timeout for connection attempts to the Modbus TCP server. Default is 3 seconds.
 - `Port` — Gets or sets the port number used to connect to the Modbus TCP server.
 - `IpAddress` — Gets or sets the IP address of the Modbus TCP server.
 - `ConnectBackoff` — Gets or sets how long the client waits after the second consecutive failed connect. Default is 1 second.
