@@ -69,6 +69,8 @@ Extension methods to verify analog output messages in test contexts.
   - `value`: The expected value, or null to skip value verification.
   - `tolerance`: The inclusive tolerance for the value comparison; the default of 0 means exact equality.
   - `times`: The expected number of drives, or null for once.
+- `Matches(double, double?, double)` — Bit equality first, then the tolerance band. The difference comparison alone is false for a non-number against itself and for either infinity against itself at every tolerance, and the value contract admits all three unaltered in both directions — so a block that legitimately writes one has to be assertable. A signed zero matches an unsigned one either way.
+- `EnsureUsableTolerance(double)` — A tolerance is a width, so it is a number of at least zero. A non-number or a negative one makes the band empty and rejects even an exact value, which no caller can mean; an infinite tolerance is a legal width that admits every finite value.
 
 ---
 
@@ -1269,8 +1271,8 @@ In-memory fake for `IModbusTcpClientProxy`. Stores register / coil contents in r
 - `ReadHistory` — Ordered log of every read the SUT issued through the proxy layer.
 - `WriteHistory` — Ordered log of every write the SUT issued through the proxy layer.
 - `Clock` — The virtual clock `ResponseDelay` and `ConnectDelay` advance. Set it to the same `FakeTimeProvider` the harness and the test context use.
-- `ResponseDelay` — Virtual time every read and write consumes before answering. Default is zero. Makes the receipt's `RoundTrip` and the link summary's round-trip extremes assertable; requires `Clock`.
-- `ConnectDelay` — Virtual time every connection attempt consumes. Default is zero. Makes `Connection.LastConnectDuration` assertable; requires `Clock`.
+- `ResponseDelay` — Virtual time every read and write consumes before answering. Default is zero. Makes the receipt's `RoundTrip` and the link summary's round-trip extremes assertable; a delay greater than zero requires `Clock`.
+- `ConnectDelay` — Virtual time every connection attempt consumes. Default is zero. Makes `Connection.LastConnectDuration` assertable; a delay greater than zero requires `Clock`.
 - `IsConnected` — True after `ConnectAsync` has been called and before `Disconnect`. The real wrapper calls `ConnectAsync` lazily on the first operation if disconnected.
 
 **Methods:**
@@ -1464,11 +1466,11 @@ Drop-in `IRequestQueue` that runs each request synchronously on the calling thre
 
 ### WriteEvent
 
-A single write operation observed by the fake proxy. `Bytes` is the raw wire-format payload (MSB-first per register).
+A single write operation observed by the fake proxy. `Bytes` is the register payload in wire order, MSB-first per register — except for a multiple-coil write, which is recorded as one byte per coil (`0x01` / `0x00`) rather than the wire's bit packing, because one byte per coil is what makes an expected-bytes argument legible. A single-coil write records the wire's own `0xFF` / `0x00`. The read direction is not affected: a coil read answers the wire's bit packing.
 
 **Methods:**
 
-- *Constructor* — A single write operation observed by the fake proxy. `Bytes` is the raw wire-format payload (MSB-first per register).
+- *Constructor* — A single write operation observed by the fake proxy. `Bytes` is the register payload in wire order, MSB-first per register — except for a multiple-coil write, which is recorded as one byte per coil (`0x01` / `0x00`) rather than the wire's bit packing, because one byte per coil is what makes an expected-bytes argument legible. A single-coil write records the wire's own `0xFF` / `0x00`. The read direction is not affected: a coil read answers the wire's bit packing.
 
 ---
 
@@ -1735,7 +1737,7 @@ Test-friendly minimal actor context that records messages sent by the logic bloc
 
 - `TimeProvider` — The virtual clock backing this test context. Inject as `TimeProvider` into your logic block to make its `UtcNow` reads deterministic.
 - `VirtualNow` — Current virtual time. Shorthand for `TimeProvider.GetUtcNow().UtcDateTime`.
-- `BuiltServiceProvider` — The service provider the block was initialized with. Set by the builder after `BuildServiceProvider` completes so tests can assert which registrations the builder applied (e.g. `EmissionPolicyForceMarker` when `WithEmissionPolicy(FromAttributes)` was called).
+- `BuiltServiceProvider` — The service provider the block was initialized with. Set by the builder after it has composed the container, so a test can assert which registrations the builder applied — the clock the block will resolve, or a service the test added through `LogicBlockTestContextBuilder{TLogicBlock}.WithServices`: var ctx = block.CreateTestContext().WithServices(s =&gt; s.AddSingleton(myService)).Build(); Assert.AreSame(myService, ctx.BuiltServiceProvider!.GetService&lt;IMyService&gt;());
 
 **Methods:**
 
@@ -1746,6 +1748,11 @@ Test-friendly minimal actor context that records messages sent by the logic bloc
 - `VerifyServicePropertyEmitted<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert on the emitted service-property values — the messages that survived the emission policy. Same shape and underlying stream as (it reads the recorded `ServicePropertyValueChanged` messages), but its name documents intent: under `FromAttributes` a held assignment is not an emission until its throttle interval elapses (drive that with ), and a sub-threshold assignment never emits at all. With the policy off it behaves identically to . testContext.VerifyServicePropertyEmitted(lb => lb.Power, value => Assert.AreEqual(3.5, value));
 - `VerifyServiceMeasuringPointChanged<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert that a service measuring point change was recorded for the specified property. testContext.VerifyServiceMeasuringPointChanged(lb => lb.Temperature, value => Assert.AreEqual(22.5, value));
 - `VerifyServiceMeasuringPointEmitted<T>(Expression<Func<T, T>>, Action<T>, Times?)` — Assert on the emitted service-measuring-point values — the measuring-point analogue of . Reads the post-policy `ServiceMeasuringPointValueChanged` stream, so under `FromAttributes` a held assignment is not an emission until its throttle interval elapses (drive that with ). With the policy off it behaves identically to . testContext.VerifyServiceMeasuringPointEmitted(lb => lb.Frequency, value => Assert.AreEqual(50.0, value));
+- `VerifyContractMessageSent<T>(string, string, Func<T, bool>, Times?)` — Assert that a contract message of was recorded, optionally filtered by contract identifier and by a predicate over the message.
+  - `messageKind`: A label naming this verification in its failure message. It filters nothing — the filters are , and — so any text a reader will recognise in a failure will do.
+  - `contractIdentifier`: The contract to filter by, or `null` for any.
+  - `verifyMessage`: A predicate the message must satisfy, or `null` for any.
+  - `times`: The expected number of matches, or `null` for exactly once.
 - `GetContractMessages<T>(string)` — Returns all recorded contract messages of the specified data type, optionally filtered by contract identifier. Useful for TestKit extensions that need to extract pending requests for response simulation.
 - `ClearRecordedMessages` — Clear recorded messages, e.g. if the test arranging phase triggers messages, that should be ignored.
 - `AdvanceTime(TimeSpan)` — Advance the virtual clock by and dispatch every queued action whose deadline has elapsed, in deadline order. The clock is set to each action's deadline immediately before that action runs, so an action's own `UtcNow` read sees the time it was scheduled for (not the post-advance target). Actions queued during dispatch with a deadline still ≤ the target time fire in the same call (cascading); actions whose deadline lies beyond the target stay pending for a later `AdvanceTime`. The clock only ever moves forward: an action queued from a background thread can carry a deadline this call has already passed, and it runs at the current virtual time rather than rewinding the clock.
@@ -1792,6 +1799,7 @@ Static helper methods to create logic block instances with mocked dependencies f
 - `CreateLoggerMock` — Creates a mock ILogger for logic blocks.
 - `Create<T>` — Creates a logic block instance with a default logger mock. The logic block must have a constructor that accepts `ILogger`. var block = LogicBlockTestHelper.Create&lt;MyBlock&gt;();
 - `CreateWithLogger<T>` — Creates a logic block instance and returns both the instance and the logger mock, for tests that need to verify log output. var (block, loggerMock) = LogicBlockTestHelper.CreateWithLogger&lt;MyBlock&gt;();
+- `Construct<T>(Mock<ILogger>)` — The one construction path both entry points take. Reflection's own refusals name the type and nothing else — "Constructor on type 'X' not found." is true of an abstract type, of a block taking a different constructor, and of nothing a caller can act on — so each shape is recognised before the call and told what it needs.
 
 ---
 
@@ -1805,6 +1813,7 @@ Extension methods for simulating timer ticks in unit tests. Uses reflection to a
 - `FireTimer<T>(T, Expression<Action<T>>)` — Fires a timer callback using a method selector expression for type-safety. The method must be accessible from the test. block.FireTimer((MyBlock lb) => lb.OnTimer());
 - `GetTimerInterval(LogicBlockBase, string)` — Returns the configured interval for the specified timer.
 - `GetTimerInterval<T>(T, Expression<Action<T>>)` — Returns the configured interval for the specified timer using a method selector expression. var interval = block.GetTimerInterval((MyBlock lb) => lb.OnTimer());
+- `RequireTimer(Dictionary<string, ValueTuple<TimeSpan, Action>>, string)` — The one refusal both queries give. Naming the registered identifiers is most of the message's value — the mistake behind an unknown identifier is almost always a typo or a renamed method, and the answer is in the list — so neither query may give the short form.
 
 ---
 
@@ -1823,6 +1832,10 @@ Exception thrown when a TestKit verification assertion fails.
 ### TimesExtensions
 
 Extension methods to validate Moq Times constraints against actual invocation counts.
+
+**Methods:**
+
+- `AssertCount(Times, int, string)` — Throws a `TestKitVerificationException` unless satisfies . Every occurrence-count form Moq expresses is honoured, because the check is Moq's own `Times.Validate` rather than a reading of the constraint's rendered text.
 
 ---
 
