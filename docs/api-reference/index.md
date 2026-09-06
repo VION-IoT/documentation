@@ -292,6 +292,23 @@ Message from a LogicBlock IO to the `DigitalOutputHandler` to set a digital outp
 
 ## Vion.Dale.Sdk.Http
 
+### ContentNullAfterDeserializationException
+
+Thrown when a response body was well-formed JSON that deserialized to null — the literal `null` document — rather than to the type a member asked for.
+
+> It is distinct from the `JsonException` a body that is absent, truncated or not JSON at all produces, and it is the only way to tell "the server answered null" from "the server answered rubbish" without matching on message text.
+
+**Properties:**
+
+- `Type` — Gets the type the response body could not be deserialized into.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `ContentNullAfterDeserializationException` class.
+  - `type`: The type the response body could not be deserialized into.
+
+---
+
 ### ILogicBlockHttpClient
 
 Provides non-blocking HTTP client functionality for logic blocks.
@@ -302,61 +319,61 @@ Provides non-blocking HTTP client functionality for logic blocks.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the GET request to.
   - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `PostJson<T, T2>(IActorDispatcher, string, T, Action<T2>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the POST request to.
   - `body`: The object to serialize as the JSON request body.
   - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `PostJson<T>(IActorDispatcher, string, T, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body. The callback is invoked on success without a response body.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the POST request to.
   - `body`: The object to serialize as the JSON request body.
   - `successCallback`: Callback invoked when the request succeeds.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `PutJson<T, T2>(IActorDispatcher, string, T, Action<T2>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block). Errors are always logged, regardless of whether an error callback is specified.
   - `url`: The URL to send the PUT request to.
   - `body`: The object to serialize as the JSON request body.
   - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `PutJson<T>(IActorDispatcher, string, T, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body. The callback is invoked on success without a response body.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the PUT request to.
   - `body`: The object to serialize as the JSON request body.
   - `successCallback`: Callback invoked when the request succeeds.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `DeleteJson<T>(IActorDispatcher, string, Action<T>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the DELETE request to.
   - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `Delete(IActorDispatcher, string, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request. The callback is invoked on success without a response body.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the DELETE request to.
   - `successCallback`: Callback invoked when the request succeeds.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 - `SendRequest(IActorDispatcher, HttpRequestMessage, Action<HttpResponseMessage>, Action<Exception>, TimeSpan?)` — Performs a non-blocking HTTP request and passes the `HttpResponseMessage` to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
-  - `request`: The `HttpRequestMessage` to send.
-  - `successCallback`: Callback invoked with the `HttpResponseMessage` on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. Usually an `HttpRequestException` or `TimeoutException`. Errors are always logged, regardless of whether an error callback is specified.
-  - `timeout`: Request-specific timeout that overrides the `HttpClient`'s default timeout.
+  - `request`: The `HttpRequestMessage` to send. It stays yours: this member does not dispose it, and its method, URI, headers and content are the ones sent — no URL or header parameter of this member applies, and no content type is set for you.
+  - `successCallback`: Callback invoked with the `HttpResponseMessage` on success. The response is yours to read and to dispose: unlike the members that carry a response type, this one disposes nothing, and the callback may be reached while the body is still arriving, because the response is handed over as soon as its headers are in.
+  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when the `timeout` above elapsed, `TaskCanceledException` when the `HttpClient`'s own timeout did, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Its expiry arrives as a `TimeoutException`, where the client's own arrives as a `TaskCanceledException`.
 
 ---
 
@@ -369,6 +386,11 @@ Extension methods for setting up logic block HTTP client services in an `IServic
 - `AddDaleHttpSdk(IServiceCollection, Action<HttpClient>)` — Adds HTTP services to the specified `IServiceCollection`.
   - `serviceCollection`: The `IServiceCollection` to add services to.
   - `configureClient`: Action to configure additional settings and/or override defaults.
+
+**Fields/Values:**
+
+- `DefaultTimeout` — The bound every request inherits when no caller sets one of its own.
+- `HttpClientDefaultTimeout` — The timeout an `HttpClient` starts life with. Ours is applied only while the client still carries it, so a value an earlier registration's `configureClient` chose is not overwritten by a later registration; the platform announces this number in its documentation and nowhere a caller can read it.
 
 ---
 
