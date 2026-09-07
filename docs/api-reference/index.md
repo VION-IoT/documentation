@@ -394,6 +394,19 @@ Extension methods for setting up logic block HTTP client services in an `IServic
 
 ---
 
+## Vion.Dale.Sdk.Modbus.Core
+
+### ServiceCollectionExtensions
+
+Extension methods for setting up Modbus core services in an `IServiceCollection`.
+
+**Methods:**
+
+- `AddDaleModbusCoreSdk(IServiceCollection)` — Adds Modbus core services to the specified `IServiceCollection`.
+  - `serviceCollection`: The `IServiceCollection` to add services to.
+
+---
+
 ## Vion.Dale.Sdk.Modbus.Core.Client
 
 ### IModbusClient
@@ -764,6 +777,46 @@ Specifies the byte order for multibyte values.
 
 ---
 
+### IModbusDataConverter
+
+Provides data conversion operations for Modbus register and coil data.
+
+**Methods:**
+
+- `ConvertCountToQuantity(uint, int)` — Converts a count of values to the number of registers required.
+  - `count`: The number of values.
+  - `bytesPerCount`: The number of bytes per value.
+- `SwapBytes(Memory<byte>, ByteOrder)` — Swaps bytes according to the specified byte order if it differs from the system's endianness.
+  - `bytes`: The byte array to swap.
+  - `byteOrder`: The byte order of the data. For reads, this is the order the data is currently in. For writes, this is the target order to convert to.
+- `SwapWords(Memory<byte>, WordOrder32)` — Swaps 16-bit words within 32-bit values according to the specified word order if it differs from the system's endianness.
+  - `bytes`: The byte array containing 32-bit values.
+  - `wordOrder`: The word order of the data. For reads, this is the order the data is currently in. For writes, this is the target order to convert to.
+- `SwapWords(Memory<byte>, WordOrder64)` — Swaps 16-bit words within 64-bit values according to the specified word order.
+  - `bytes`: The byte array containing 64-bit values.
+  - `wordOrder`: The word order of the data. For reads, this is the order the data is currently in. For writes, this is the target order to convert to.
+- `ConvertBytesToString(Memory<byte>, TextEncoding)` — Converts a byte array to a string using the specified text encoding.
+  - `bytes`: The byte array to convert.
+  - `textEncoding`: The text encoding to use.
+- `ConvertStringToBytes(string, TextEncoding)` — Converts a string to a byte array using the specified text encoding.
+  - `value`: The string to convert.
+  - `textEncoding`: The text encoding to use.
+- `ConvertBitsToBools(Memory<byte>, ushort)` — Converts packed bits into a boolean array, unpacking values starting from the least significant bit.
+  - `bytes`: The byte array containing packed boolean values.
+  - `quantity`: The number of boolean values to extract.
+- `CastToBytes<T>(T[])` — Casts an array of unmanaged values to a byte array.
+  - `values`: The values to cast.
+- `CastFromBytes<T>(Memory<byte>)` — Casts a byte array to an array of unmanaged values.
+  - `bytes`: The byte array to cast.
+- `GetBytes(short)` — Converts a signed 16-bit integer to a byte array.
+  - `value`: The value to convert.
+- `GetBytes(ushort)` — Converts an unsigned 16-bit integer to a byte array.
+  - `value`: The value to convert.
+- `ToByte(bool)` — Converts a boolean value to a byte representation.
+  - `value`: The boolean value to convert.
+
+---
+
 ### TextEncoding
 
 Specifies the text encoding format for string conversion.
@@ -914,6 +967,43 @@ The per-transaction facts of one Modbus read or write, handed to the success and
 
 ## Vion.Dale.Sdk.Modbus.Core.Exceptions
 
+### InvalidBitQuantityException
+
+Exception thrown when the requested quantity of bits exceeds the available bits in the byte array.
+
+> This occurs when fewer coils or discrete inputs are returned by the Modbus device than were requested.
+
+**Properties:**
+
+- `RequestedQuantity` — Gets the requested quantity of bits.
+- `AvailableBits` — Gets the available number of bits.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `InvalidBitQuantityException` class.
+  - `requestedQuantity`: The requested quantity of bits.
+  - `availableBits`: The available number of bits in the byte array.
+
+---
+
+### InvalidCountException
+
+Exception thrown when a count value is invalid for a Modbus operation.
+
+> This occurs when the requested count of values results in a register quantity that is 0 or exceeds the maximum of 65535 registers. For example, requesting 17000 64-bit values requires 68000 registers.
+
+**Properties:**
+
+- `Count` — Gets the invalid count value.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `InvalidCountException` class.
+  - `count`: The invalid count value.
+  - `message`: The error message.
+
+---
+
 ### InvalidServerAddressException
 
 Thrown when a server-side register or bit access lies outside the declared extent of its area.
@@ -925,6 +1015,21 @@ Thrown when a server-side register or bit access lies outside the declared exten
   - `startingAddress`: The first address of the attempted access.
   - `quantity`: The number of registers or bits of the attempted access.
   - `extent`: The declared extent of the area (addresses 0 to extent - 1 are served).
+
+---
+
+### InvalidUnitIdentifierException
+
+Exception thrown when an invalid unit identifier is provided.
+
+**Properties:**
+
+- `UnitIdentifier` — Gets the invalid unit identifier that caused the exception.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `InvalidUnitIdentifierException` class.
+  - `unitIdentifier`: The invalid unit identifier.
 
 ---
 
@@ -966,6 +1071,39 @@ Specifies the Modbus exception type.
 
 ---
 
+### ModbusResponseAlignmentException
+
+Represents an exception thrown when a Modbus response does not have the correct byte alignment for the requested data type.
+
+> This occurs when the number of bytes received does not match the expected amount for the requested registers. For example, reading 2 registers expects 4 bytes; if 5 bytes are returned, this exception is thrown.
+
+**Properties:**
+
+- `UnitIdentifier` — Gets the unit identifier (slave address) from which the response was received.
+- `StartingAddress` — Gets the starting address of the read operation.
+- `ByteCount` — Gets the number of bytes received in the response.
+- `BytesPerValue` — Gets the number of bytes per value that was expected.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `ModbusResponseAlignmentException` class.
+  - `unitIdentifier`: The unit identifier (slave address).
+  - `startingAddress`: The starting address of the read operation.
+  - `byteCount`: The number of bytes received.
+  - `bytesPerValue`: The expected number of bytes per value.
+
+---
+
+### OperationTimeoutException
+
+Exception thrown when a Modbus read or write operation does not complete within the specified timeout period.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `OperationTimeoutException` class.
+
+---
+
 ### RequestExpiredException
 
 Thrown when a request waited longer than `MaxQueuedAge` before its turn came, so it was completed without contacting the device. This says nothing about the link — it means the client could not keep up with the rate requests were issued at, or was held up earlier by a fault.
@@ -982,6 +1120,66 @@ Thrown when a request waited longer than `MaxQueuedAge` before its turn came, so
   - `requestName`: The name of the request that expired.
   - `queuedWait`: How long the request had been waiting.
   - `maxQueuedAge`: The maximum queued age that was in force.
+
+---
+
+### UnsupportedByteOrderException
+
+Exception thrown when an unsupported byte order value is specified.
+
+**Properties:**
+
+- `ByteOrder` — Gets the unsupported byte order value.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `UnsupportedByteOrderException` class.
+  - `byteOrder`: The unsupported byte order value.
+
+---
+
+### UnsupportedTextEncodingException
+
+Exception thrown when an unsupported text encoding value is specified.
+
+**Properties:**
+
+- `TextEncoding` — Gets the unsupported text encoding value.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `UnsupportedTextEncodingException` class.
+  - `textEncoding`: The unsupported text encoding value.
+
+---
+
+### UnsupportedWordOrder32Exception
+
+Exception thrown when an unsupported 32-bit word order value is specified.
+
+**Properties:**
+
+- `WordOrder` — Gets the unsupported 32-bit word order value.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `UnsupportedWordOrder32Exception` class.
+  - `wordOrder`: The unsupported 32-bit word order value.
+
+---
+
+### UnsupportedWordOrder64Exception
+
+Exception thrown when an unsupported 64-bit word order value is specified.
+
+**Properties:**
+
+- `WordOrder` — Gets the unsupported 64-bit word order value.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `UnsupportedWordOrder64Exception` class.
+  - `wordOrder`: The unsupported 64-bit word order value.
 
 ---
 
@@ -1257,11 +1455,47 @@ Helpers for constructing Modbus response byte arrays in big-endian (MSB-first) o
 
 ## Vion.Dale.Sdk.Modbus.Rtu
 
+### DependencyInjection
+
+Registers the Modbus RTU factory and its Modbus Core dependencies with the Dale runtime's service container. Discovered by the runtime via reflection at plugin load time. A development host has no plugin loader, so construct one and call it: this package ships no `AddDaleModbusRtuSdk` extension, and nothing else registers the RTU request factory.
+
+**Methods:**
+
+- `ConfigureServices(IServiceCollection)` — *(no description)*
+
+---
+
 ### IModbusRtu
 
 Provides Modbus RTU read and write operations.
 
 > The reads, writes and diagnostics are those of `IModbusClient`. Declare the binding as `IModbusRtu` — that is the type the runtime binds to a service provider contract — and then use it through `IModbusClient` wherever the code should work for either transport. Every instance shares one `ModbusRtuHandler` with every other Modbus RTU binding in the runtime. Requests from all of them are published in the order the handler receives them, and they share one pending-request limit of `MaxPendingRequests`: an outcome of `Dropped` here may have been caused by another logic block. Expiry is checked by a sweep that runs about once a second, so a timed-out operation can complete up to a second after its timeout. Compared with Modbus TCP: there is no socket to report on, so there is no connection summary; the queue is the shared handler's rather than this client's, so `Link.QueueDepth` is always zero; and the default operation timeout is 5 seconds rather than 1. Like TCP, the timeout covers the wire only — it starts when the handler publishes the request, and the hop before that is what `MaxQueuedAge` bounds and what the receipt reports as `QueuedWait`. The following exceptions may reach the error callback of any operation: `InvalidUnitIdentifierException` (unit identifier below 0 or above 255), `PendingRequestsLimitReachedException` (the shared pending-request limit was reached), `ServiceProviderContractMappingNotFoundException` (the binding is not mapped to a service provider contract), `RequestExpiredException` (the request aged past `MaxQueuedAge` before it was published), `OperationTimeoutException` (the device did not answer in time) and `ModbusException` (the device returned an error). Operation-specific ones are `InvalidBitQuantityException` (fewer coils or discrete inputs returned than requested), `InvalidCountException` (the resulting register quantity exceeds 65535) and `ModbusResponseAlignmentException` (the byte count does not match the registers requested).
+
+---
+
+### PendingRequestsLimitReachedException
+
+The exception that is thrown when the pending requests limit has been reached.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `PendingRequestsLimitReachedException` class.
+  - `maxPendingRequests`: The maximum number of pending requests allowed.
+
+---
+
+### ServiceProviderContractMappingNotFoundException
+
+The exception that is thrown when no service provider contract mapping is found for a contract.
+
+**Properties:**
+
+- `LogicBlockContractId` — Gets the LogicBlockContractId for which no mapping was found.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `ServiceProviderContractMappingNotFoundException` class.
+  - `logicBlockContractId`: The contract ID for which no mapping was found.
 
 ---
 
@@ -1705,6 +1939,29 @@ Factory for creating instances of `ILogicBlockModbusTcpServer`.
 **Methods:**
 
 - `Create` — Creates a new instance of `ILogicBlockModbusTcpServer`.
+
+---
+
+## Vion.Dale.Sdk.Modbus.Tcp.Client.Implementation
+
+### ConnectionTimeoutException
+
+Exception thrown when a connection attempt does not complete within the specified timeout period.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `ConnectionTimeoutException` class with the specified timeout duration.
+  - `seconds`: The connection timeout limit in seconds that was exceeded.
+
+---
+
+### IpAddressNotSetException
+
+Exception thrown when attempting to connect without setting an IP address.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `IpAddressNotSetException` class.
 
 ---
 
