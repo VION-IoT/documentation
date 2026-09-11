@@ -2605,6 +2605,7 @@ A parsed MQTT message for service provider handlers. Provides pre-extracted rout
 - `CorrelationId` — The correlation ID from the MQTT message headers. `Empty` if no correlation data was present or the format was not recognized.
 - `Topic` — The full MQTT topic of the received message.
 - `ResponseTopic` — The MQTT 5.0 response topic, if present. Used in request-response patterns.
+- `Schema` — The payload type's schema name as the publisher labelled it, or `null` when unlabelled.
 - `RawPayload` — The raw payload bytes for custom deserialization.
 
 **Methods:**
