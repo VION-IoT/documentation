@@ -20,3 +20,8 @@ YYYY-MM-DD · <where> · <topic or —> · <what happened, one line> [ (second a
 ## Entries
 
 <!-- retro-0 marker -->
+
+2026-09-13 · brief · journal rotation · The brief expected two journal windows around the acted-on marker; the marker sat directly under `## Entries` with 0 entries above and 10 below, and the phrase "acted-on marker" also matched a header prose line. The human chose one archive for the 10 and no file for the empty window.
+2026-09-13 · gate · claude plugin list · After `claude plugin install vion-git@vion --scope project` and the same for vion-improve, `claude plugin list` printed each plugin four times, all at project scope and enabled; the brief anticipated twice. (self)
+2026-09-13 · decision · repository settings · Squash merges switched to PR_TITLE / PR_BODY with merge commits and rebase merges off; the previous values kept for rollback were COMMIT_OR_PR_TITLE / COMMIT_MESSAGES with merge commits and rebase merges on.
+2026-09-13 · brief · CLAUDE.md · The brief asked § Process Substrate to keep its public-repo warning; the section carried none, the warning lived in § Repo Scope, so a one-line pointer to it was added. (self)
