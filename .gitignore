@@ -7,6 +7,7 @@ temp/
 # they are repo behaviour rather than settings (decision 0113 — rationale in retro-0 D4).
 .claude/*
 !.claude/commands/
+!.claude/settings.json
 
 # Planning artifacts live in architecture/specs/ (decision 0011 rule 2). The rest of docs/ is
 # tracked, including the process substrate.
