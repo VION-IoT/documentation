@@ -7,7 +7,7 @@ language tags, relative links, and the banned-content patterns, and it runs in C
 The page rules apply to markdown; the banned-content patterns also run over hand-authored assets
 under `docs/public/`, which VitePress copies to the site root verbatim. A published file is public
 whether or not it is a page.
-The rest needs judgment and is checked by [`/vion-code-review`](../.claude/commands/vion-code-review.md)
+The rest needs judgment and is checked by `/vion-git:review`
 before a PR opens. Rules that keep costing review rounds move down that ladder — gate first, review
 check second, prose last.
 

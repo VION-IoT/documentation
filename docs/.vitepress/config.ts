@@ -10,13 +10,15 @@ export default withMermaid(
     cleanUrls: true,
 
     // Internal substrate that lives under docs/ but is not part of the public site: the authoring
-    // style guide and the process journal / metrics / retro notes. Without this, VitePress renders
-    // every one of them as a public page — STYLE.md was live at /STYLE and listed in llms.txt —
-    // and the retro notes would publish verbatim customer names straight out of the corpus.
+    // style guide, the review checks, change docs, and the process journal / retro notes. Without
+    // this, VitePress renders every one of them as a public page — STYLE.md was live at /STYLE and
+    // listed in llms.txt — and the retro notes would publish verbatim customer names straight out of
+    // the corpus.
     srcExclude: [
       'STYLE.md',
+      'review-checks.md',
+      'changes/**',
       'process-journal.md',
-      'process-metrics.md',
       'retro/**',
     ],
 
