@@ -188,4 +188,3 @@ Only `test` and `production` environments exist — `staging` is no longer a nam
 - Examples use invented names only — never a customer's type, never a real product
 - All pages must have frontmatter with `title` and `description`
 - `pnpm check` and `pnpm build` must pass — style gate and dead links
-- Work on a branch and open a PR; do not commit to `main` and do not merge without being asked
