@@ -26,6 +26,69 @@ product names, credentials, or internal infrastructure detail — in **any** fil
 Describe the thing instead; a rule reads fine without the name. `pnpm check` carries a denylist for
 the known cases and applies it to the substrate too.
 
+## Working agreement
+
+### Lanes
+
+At the start of a task, answer two questions out loud: is the change local? is a design point open?
+
+- **Fix-sized** — local, nothing open: branch, commit, review, pull request. No document. A change
+  that turns out not to be local stops and says so, and becomes feature-sized.
+- **Feature-sized** — a change doc first, in `docs/changes/`. Ratified before code when a question
+  in it is open. Archived in the pull request that lands it.
+
+### STOPs
+
+- A STOP is named up front — by the brief, by an open question in the change doc, or by the lane
+  answer — and there is no other. With none named, the human review is on the pull request.
+- A STOP is a `partial` REPORT with a question in it.
+- A decision nobody named is surfaced, not taken. A hedge in a brief is a STOP when it fails.
+- Scope does not widen on its own: a design or naming question is answered with options and changes
+  nothing until the human chooses; work nobody asked for is proposed, not produced.
+- A question from the human is a question, not an instruction.
+- Anything committed after a `done` REPORT needs a new REPORT.
+- A request that breaks a convention of this repo is pushed back on before complying, naming the
+  convention.
+- Verification only a human can do is not a STOP: it is written as "not run, routes to a human" under
+  the pull request's Verification.
+
+### Communication
+
+- Say what was run, not that it worked.
+- A count is pasted with the command that produced it.
+- Expand an initialism the first time it is used.
+- Promise no notification that cannot be subscribed to.
+- A finding cites the line, or says it is inferred.
+
+### Never
+
+- Push to or commit on the default branch.
+- Force-push.
+- Delete a remote branch.
+- Merge a pull request.
+- Write to Jira without saying so first.
+- Paste a secret into chat.
+
+## Skills in this repo
+
+`.claude/settings.json` enables `vion-git` and `vion-improve` from the `vion` marketplace in the
+sibling `../architecture` checkout.
+
+| moment | skill |
+|---|---|
+| starting work on a change | `/vion-git:branch` |
+| a unit of work lands — a task, an acceptance criterion, a fixed review finding | `/vion-git:commit` |
+| the branch is ready for a pull request | `/vion-improve:codify`, then `/vion-git:pr` |
+| codify reports the journal's live window past 40 entries | `/vion-improve:retro` |
+
+### Pre-PR obligations
+
+In this order:
+
+1. `pnpm check`
+2. `pnpm build`
+3. `/vion-improve:codify`
+
 ## Commands
 
 ```bash
@@ -63,32 +126,25 @@ added to that list — `pnpm check` fails if the list goes missing entirely.
 
 ## Pre-PR Review
 
-**Before opening a PR, run `/vion-code-review`** ([`.claude/commands/vion-code-review.md`](.claude/commands/vion-code-review.md)).
-It reviews the change against `STYLE.md` and the findings taxonomy mined from this repo's own
+**Before opening a PR, run `/vion-git:review`.** It reviews the change against `STYLE.md` and
+[`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from this repo's own
 history — verbosity, unverified SDK claims, leaked internal or customer material.
-
-Dispatch it as a **fresh-context read-only subagent**, not inline: an author reviewing their own
-change finds little, and the skill assumes a non-author reviewer. Hand it the brief or spec as its
-statement of intent; without one it reviews conventions only and will say so.
 
 This is the repo's definition of done, and `/fix` and `/implement` briefs from the architecture repo
 condition theirs on it.
 
 ## Process Substrate
 
-The improvement loop, tracked here per architecture decision 0113:
+The improvement loop, tracked here per architecture decision 0113. All of it is public
+(§ Repo Scope).
 
-- [`docs/process-journal.md`](docs/process-journal.md) — friction log. **Append a `review` line in
-  the commit that carries the fix** whenever the user corrects produced work, and mark "(second ask)"
-  when they had to say it twice.
-- [`docs/process-metrics.md`](docs/process-metrics.md) — one row per retro round.
-- [`docs/retro/`](docs/retro/) — dated retro notes. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)
+- [`docs/process-journal.md`](docs/process-journal.md) — friction log, in the grammar its header
+  states.
+- [`docs/review-checks.md`](docs/review-checks.md) — the checks `/vion-git:review` runs.
+- [`docs/changes/`](docs/changes/) — change docs for feature-sized work, shaped by `_template.md`.
+- [`docs/retro/`](docs/retro/) — dated retro notes and archived journal windows. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)
   mined the transcript corpus that produced the review taxonomy; that corpus has since aged out, so
   the journal is now the only capture.
-
-The loop: journal as it happens → a retro round reads the backlog → each recurrence is promoted down
-the enforcement ladder, **CI gate > `/vion-code-review` check > `STYLE.md` prose**. A trap that keeps
-costing rounds is a tooling bug, not a documentation gap.
 
 ## Auto-Generated Content
 
