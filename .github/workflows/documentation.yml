@@ -85,6 +85,15 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  journal-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: VION-IoT/shared-workflows/actions/journal-lint@v1
+
   deploy-test:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-docker
