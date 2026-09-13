@@ -3,8 +3,9 @@ docs/.vitepress/cache/
 docs/.vitepress/dist/
 temp/
 
-# Harness state is never tracked; repo-scoped slash commands under .claude/commands/ are, because
-# they are repo behaviour rather than settings (decision 0113 — rationale in retro-0 D4).
+# Harness state is not tracked. Repo-scoped slash commands under .claude/commands/ are, because they
+# are repo behaviour (decision 0113 — rationale in retro-0 D4), and so is .claude/settings.json,
+# because it enables the repo's plugins.
 .claude/*
 !.claude/commands/
 !.claude/settings.json
