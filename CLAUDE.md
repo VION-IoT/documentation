@@ -126,9 +126,9 @@ added to that list — `pnpm check` fails if the list goes missing entirely.
 
 ## Pre-PR Review
 
-**Before opening a PR, run `/vion-git:review`.** It reviews the change against `STYLE.md` and
-[`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from this repo's own
-history — verbosity, unverified SDK claims, leaked internal or customer material.
+**`/vion-git:pr` runs `/vion-git:review` before a PR opens.** It reviews the change against
+`STYLE.md` and [`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from
+this repo's own history — verbosity, unverified SDK claims, leaked internal or customer material.
 
 This is the repo's definition of done, and `/fix` and `/implement` briefs from the architecture repo
 condition theirs on it.
