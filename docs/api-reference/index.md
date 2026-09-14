@@ -290,6 +290,100 @@ Message from a LogicBlock IO to the `DigitalOutputHandler` to set a digital outp
 
 ---
 
+## Vion.Dale.Sdk.Http.TestKit
+
+### FakeHttpHarness
+
+Drives a block's HTTP calls against answers the test scripts: the SDK's real registration, client, serializer and error mapping run, and only the innermost message handler is replaced, so every request is recorded and held until the test answers it. Nothing opens a socket. var harness = new FakeHttpHarness(ctx.TimeProvider); var sut = new MyBlock(harness.Client, logger); // built through the TestKit context builder sut.Poll(); Assert.AreEqual("http://device/status", harness.Requests[0].Uri.ToString()); harness.Respond(HttpStatusCode.NotFound); ctx.FlushPendingActions(); // the block's error callback runs
+
+> Requests are answered oldest first, and an answer returns only once the SDK has handed the block's callback to the block's dispatcher, so the next drive of the block's context runs it. A per-request timeout is measured on the harness's clock: pass the context's clock and advancing it expires a held request exactly as the SDK would. Without a clock the harness uses a virtual one nothing advances, so a held request never times out on its own. Replacing the innermost handler takes what the platform's handler does with it: a redirect is not followed (a scripted 3xx reaches the block as a non-success status), no cookie is kept, no body is decompressed, and a `Content-Length` is not checked against its body. The client's own timeout is not applied to a held request.
+
+**Properties:**
+
+- `Client` — The fully wired client to inject into the block under test.
+- `Requests` — Every request the block issued, oldest first, answered or not.
+- `PendingCount` — How many requests are waiting for an answer.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `FakeHttpHarness` class on a virtual clock nothing advances.
+- *Constructor* — Initializes a new instance of the `FakeHttpHarness` class measuring per-request timeouts on .
+  - `timeProvider`: The clock a per-request timeout elapses on — normally the test context's.
+- `Dispose` — Disposes the composed services. A request still outstanding is abandoned: its callbacks never run.
+- `Respond(string)` — Answers the oldest outstanding request with status 200 and as its `application/json` body.
+  - `json`: The response body.
+- `Respond(HttpStatusCode, string, string)` — Answers the oldest outstanding request with and an optional body.
+  - `statusCode`: The response status.
+  - `body`: The response body, or `null` for an empty one.
+  - `contentType`: The content type of .
+- `Fail(Exception)` — Fails the oldest outstanding request with , the way a transport failure arrives.
+  - `exception`: The exception the transport raised, delivered to the block unchanged.
+
+---
+
+### FakeHttpRequest
+
+A request a block issued through a `FakeHttpHarness`, as the SDK composed it for the wire.
+
+**Properties:**
+
+- `Method` — Gets the request method.
+- `Uri` — Gets the absolute request URI.
+- `Headers` — Gets the request and content headers as sent, by case-insensitive name, including the ones the SDK adds itself; a header with several values carries them joined by `", "`.
+- `Body` — Gets the request body as UTF-8 text, or `null` when the request carried no content.
+- `ContentType` — Gets the content type of the body, or `null` when there is none.
+- `Timeout` — Gets the per-request timeout the block passed, or `null` when it passed none.
+
+---
+
+### FakeHttpServerClient
+
+Sends requests to a `FakeHttpServerHarness`'s server and returns its answers, as a client on the network would see them.
+
+**Methods:**
+
+- `Send(HttpMethod, string, string, IReadOnlyDictionary<string, string>)` — Sends one request and returns the server's answer.
+  - `method`: The request method.
+  - `pathAndQuery`: The request target: a path starting with `/`, optionally followed by a query.
+  - `body`: The request body as UTF-8 text, or `null` for none.
+  - `headers`: The request headers, or `null` for none.
+
+---
+
+### FakeHttpServerHarness
+
+Hosts the SDK's real HTTP server over an in-memory transport, so the route table, the request log and the configuration rules under test are the SDK's own — no socket, no free port. using var harness = new FakeHttpServerHarness(); var sut = new MySimulatorBlock(harness.ServerFactory, logger); sut.Tick(); // enables the server and publishes its documents var response = harness.Client.Send(HttpMethod.Get, "/api/status.json"); Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+> The client view carries a request straight to the server, so what the socket transport decides on its own — the framing, a `HEAD` response's missing body, the size caps, a malformed request, closing the connection, the read bound, the connection limit, a response cut short — is not exercised through it: every request it sends is answered and recorded. The server's own lifecycle is: a disposed server refuses to be enabled here exactly as on a gateway.
+
+**Properties:**
+
+- `Server` — The fully wired server to inject into the block under test, or hand out through `ServerFactory`.
+- `ServerFactory` — A factory handing out `Server`, for a block that creates its server from a factory.
+- `Client` — The client-side view that sends requests to `Server`.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `FakeHttpServerHarness` class on a virtual clock nothing advances.
+- *Constructor* — Initializes a new instance of the `FakeHttpServerHarness` class stamping requests from .
+  - `timeProvider`: The clock each request's arrival is stamped from — normally the test context's.
+- `Dispose` — *(no description)*
+
+---
+
+### FakeHttpServerResponse
+
+An answer a `FakeHttpServerHarness`'s server gave.
+
+**Properties:**
+
+- `StatusCode` — Gets the response status.
+- `ContentType` — Gets the content type of the body, or `null` when none was set.
+- `Headers` — Gets the headers the server added itself, such as the `Allow` of a 405, by case-insensitive name.
+- `Body` — Gets the response body as UTF-8 text.
+
+---
+
 ## Vion.Dale.Sdk.Http
 
 ### ContentNullAfterDeserializationException
@@ -379,7 +473,7 @@ Provides non-blocking HTTP client functionality for logic blocks.
 
 ### ServiceCollectionExtensions
 
-Extension methods for setting up logic block HTTP client services in an `IServiceCollection`.
+Extension methods for setting up logic block HTTP client and server services in an `IServiceCollection`.
 
 **Methods:**
 
@@ -391,6 +485,104 @@ Extension methods for setting up logic block HTTP client services in an `IServic
 
 - `DefaultTimeout` — The bound every request inherits when no caller sets one of its own.
 - `HttpClientDefaultTimeout` — The timeout an `HttpClient` starts life with. Ours is applied only while the client still carries it, so a value an earlier registration's `configureClient` chose is not overwritten by a later registration; the platform announces this number in its documentation and nowhere a caller can read it.
+
+---
+
+## Vion.Dale.Sdk.Http.Server
+
+### HttpServerRequest
+
+A request a hosted HTTP server answered, as the client sent it.
+
+**Properties:**
+
+- `Method` — Gets the request method, as the client spelled it.
+- `Path` — Gets the request path, without the query string.
+- `Query` — Gets the query string without its leading `?`, or an empty string when there is none.
+- `Headers` — Gets the request headers by case-insensitive name; a header sent more than once carries its values joined by `", "`.
+- `Body` — Gets the request body.
+- `ReceivedAt` — Gets when the request arrived, on the clock the server was composed with.
+
+---
+
+### HttpServerResponse
+
+A response a hosted HTTP server sends: a status, an optional content type and a body.
+
+**Properties:**
+
+- `StatusCode` — Gets the status code sent.
+- `ContentType` — Gets the `Content-Type` sent with the body, or `null` for none.
+- `Body` — Gets the body sent.
+- `Headers` — The headers the server adds itself, such as the `Allow` of a 405. Never set by a block.
+
+**Methods:**
+
+- *Constructor* — Initializes a new instance of the `HttpServerResponse` class.
+  - `statusCode`: The status code of a final response, from 200 to 599.
+  - `contentType`: The `Content-Type` of the body, or `null` for none: printable ASCII and tabs only, since it is written into the response's header block as given.
+  - `body`: The body; copied, so later changes to the array are not sent.
+- `Json(string, HttpStatusCode)` — Creates a response carrying as UTF-8 with the `application/json` content type.
+  - `json`: The JSON document to send.
+  - `statusCode`: The status code; 200 by default.
+- `NotFound` — The empty 404 the server sends for a path nothing is published on.
+- `MethodNotAllowed(IEnumerable<string>)` — The empty 405 the server sends for a path published only under other methods, naming those methods.
+- `Refusal(HttpStatusCode)` — A refusal the transport answers itself, before a request reaches the route table.
+
+---
+
+### IHttpServerSnapshot
+
+The view of a hosted HTTP server a `Sync` callback receives: the responses it serves and the requests it has answered. Valid only while that callback runs.
+
+**Properties:**
+
+- `DroppedRequestCount` — Gets how many answered requests were dropped, oldest first, because more arrived than the server keeps between two calls to .
+
+**Methods:**
+
+- `SetResponse(HttpMethod, string, HttpServerResponse)` — Serves for on , replacing any response already set for that pair. The path starts with `/`, carries no query, and matches case-sensitively.
+  - `method`: The request method to answer.
+  - `path`: The request path to answer, without a query string.
+  - `response`: The response to send.
+- `RemoveResponse(HttpMethod, string)` — Stops serving on .
+  - `method`: The request method.
+  - `path`: The request path.
+- `ClearResponses` — Stops serving every response, so every request answers 404.
+- `TakeReceivedRequests` — Returns the requests answered since the last call, oldest first, and resets `DroppedRequestCount`.
+
+---
+
+### ILogicBlockHttpServer
+
+Hosts an HTTP server for a logic block: clients elsewhere on the network request paths, and the server answers each from the responses the block has published.
+
+> Plain HTTP only. The server speaks unencrypted HTTP/1.1 and authenticates nobody: anything that can reach the port can read every response and send any request. Bind a trusted interface, or serve nothing a network peer must not see. The server is configured via properties and gated by `IsEnabled`: configure while disabled, then enable. It listens on loopback (`127.0.0.1`) on port 8080 unless told otherwise, so nothing off the machine reaches it until the block sets `ListenAddress` to an interface, or to `0.0.0.0` for all of them. The block publishes responses inside , keyed by method and path, and takes the requests the server has answered there too. Requests are answered on background threads from what the block last published; no event or callback is ever delivered to the block from those threads, so a block reacts to a request on its own cadence. A path with no response answers 404, and a path published only under other methods answers 405. Each connection carries one request and is closed after its response. A request body needs a `Content-Length`; a chunked body, an oversized request, a malformed one or a client that does not finish its request in time is refused by the server itself and never reaches the block.
+
+**Properties:**
+
+- `IsEnabled` — Gets or sets whether the server is enabled. Setting `true` binds the listener and throws, leaving the server disabled, when the port cannot be bound. Must not be set from inside a `Sync` callback.
+- `ListenAddress` — Gets or sets the local IP address the server listens on. Default is `"127.0.0.1"` (loopback); `"0.0.0.0"` listens on all interfaces. Changeable only while disabled.
+- `Port` — Gets or sets the local port the server listens on, from 1 to 65535. Default is 8080; changeable only while disabled.
+- `IsListening` — Gets a value indicating whether the server is currently listening for connections.
+- `LastRequestAt` — Gets when the most recent request arrived, or `null` when none has.
+
+**Methods:**
+
+- `Sync(Action<IHttpServerSnapshot>)` — Executes with exclusive access to the published responses and the answered requests.
+  - `access`: The callback receiving the snapshot. It runs on the caller's thread while requests wait for it to return; keep it short, and do not use the snapshot after it returns.
+- `Sync<T>(Func<IHttpServerSnapshot, T>)` — Executes with exclusive access to the published responses and the answered requests, and returns its result.
+  - `access`: The callback receiving the snapshot; see .
+
+---
+
+### ILogicBlockHttpServerFactory
+
+Factory for creating instances of `ILogicBlockHttpServer`.
+
+**Methods:**
+
+- `Create` — Creates a new, disabled `ILogicBlockHttpServer`. Each instance hosts one server on its own port.
 
 ---
 
