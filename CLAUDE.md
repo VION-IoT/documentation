@@ -137,8 +137,8 @@ condition theirs on it.
 The improvement loop, tracked here per architecture decision 0113. All of it is public
 (§ Repo Scope).
 
-- [`docs/process-journal.md`](docs/process-journal.md) — friction log, in the grammar its header
-  states.
+- [`docs/process-journal/`](docs/process-journal/) — friction log, one fragment per branch, in the
+  grammar its [`README.md`](docs/process-journal/README.md) states.
 - [`docs/review-checks.md`](docs/review-checks.md) — the checks `/vion-git:review` runs.
 - [`docs/changes/`](docs/changes/) — change docs for feature-sized work, shaped by `_template.md`.
 - [`docs/retro/`](docs/retro/) — dated retro notes and archived journal windows. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)

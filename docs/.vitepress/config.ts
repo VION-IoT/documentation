@@ -18,7 +18,7 @@ export default withMermaid(
       'STYLE.md',
       'review-checks.md',
       'changes/**',
-      'process-journal.md',
+      'process-journal/**',
       'retro/**',
     ],
 
