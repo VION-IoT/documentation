@@ -81,6 +81,27 @@ Led.Set(true);
 HeaterOutput.Set(0.75); // 75% power
 ```
 
+## Digital I/O on the IPCBox-CM5-A
+
+The service provider that drives this I/O is not deployable yet: it reaches a gateway as a Mender update, and [Supported Devices](/edge-gateway/supported-devices) marks the board's image as coming soon.
+
+The IPCBox-CM5-A exposes two isolated digital inputs and two isolated digital outputs on screw terminals, all under one service named `dio`. Bind them from a logic block the same way as any other I/O contract; the contract identifiers match the labels printed on the case, so an installer reading `out1` in the dashboard is reading the terminal in front of them.
+
+| Contract | Interface | `true` means |
+|----------|-----------|--------------|
+| `in1`, `in2` | `IDigitalInput` | voltage is present at the terminal |
+| `out1`, `out2` | `IDigitalOutput` | the terminal is conducting and the load is energised |
+
+A block written against these contracts behaves the same here as on a Raspberry Pi.
+
+What a wiring plan needs:
+
+- Inputs tolerate up to 36 V and read as active above 2 V.
+- An input is isolated and needs a complete circuit — the supply's positive to the input terminal and its negative to the digital-input common. A probe touched to one terminal is not enough.
+- Outputs are rated 150 V and 500 mA.
+- Outputs are high-impedance at power-on, and logical off leaves the load de-energised.
+- Input changes are debounced over a 50 ms trailing window, so a contract reports where the line settled rather than the first edge of a bounce.
+
 ## Modbus RTU Example
 
 The `Vion.Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. Declare it with `[ServiceProviderContractBinding]`, the Dale runtime injects an implementation, and use it to read and write Modbus registers directly.

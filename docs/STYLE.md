@@ -320,3 +320,7 @@ properties, measuring points do not need to appear in it.
 Never link to something unavailable and never write an instruction the reader cannot follow. Mark
 the row "coming soon", or leave the thing out entirely and recommend what does work today. A page
 that promises a download that 404s costs more trust than an omission.
+
+A name is a promise too. Do not print the identifier of a component, artifact or release that has
+not shipped, even where nothing links to it — the reader will quote it back, and it can still change
+before it exists. Describe what the thing does and mark it as coming.
