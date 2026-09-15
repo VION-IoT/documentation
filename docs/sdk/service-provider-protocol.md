@@ -508,7 +508,7 @@ All messages during the operational phase follow these conventions:
 | Protocol version | MQTT 5.0 required |
 | User property `schema` | Payload type name (e.g., `DiStatePayload`, `SetDoPayload`) |
 | User property `published_at` | ISO 8601 UTC timestamp |
-| Content-Type | `application/json` or `application/octet-stream` |
+| Content-Type | `application/x-flatbuffers`, `application/json`, or `application/octet-stream` |
 
 ## Service-Specific Messaging
 
@@ -536,7 +536,7 @@ This structure enables simple broker ACL rules — a provider can be restricted 
 
 ### Built-in Contract Type Topics
 
-The built-in contract types (DigitalIo, AnalogIo, ModbusRtu) use fixed action paths that correspond to the `Topics` constants defined in the `Shared.Contracts` package:
+The built-in contract types (DigitalIo, AnalogIo, ModbusRtu) use fixed action paths that correspond to the `Topics` constants defined in the `Vion.Contracts` package:
 
 DigitalIo provider:
 
@@ -624,12 +624,13 @@ Every built-in contract type — DigitalIo, AnalogIo and ModbusRtu — carries J
 | `hw/ao` | `AoStatePayload`, `SetAoPayload` |
 | `hw/modbus` | `GetModbusPayload`, `GetModbusResponsePayload`, `SetModbusPayload`, `SetModbusResponsePayload` |
 
-The `schema` label is load-bearing in both directions: a message whose label is missing, or that names a record other than the one its topic carries, is dropped rather than decoded. An analog value is a finite JSON number — a payload carrying `NaN` or an infinity is refused when written and undecodable when read.
+On the DigitalIo and AnalogIo state and set messages the `schema` label is load-bearing in both directions: a message whose label is missing, or that names a record other than the one its topic carries, is dropped rather than decoded. An analog value is a finite JSON number — a payload carrying `NaN` or an infinity is refused when written and undecodable when read.
 
 A custom service provider chooses its own format, which the `Content-Type` property distinguishes:
 
 | Content-Type | Description |
 |-------------|-------------|
+| `application/x-flatbuffers` | FlatBuffers binary format |
 | `application/json` | JSON — easiest to implement across technologies |
 | `application/octet-stream` | Custom binary format |
 

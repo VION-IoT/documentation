@@ -21,7 +21,7 @@ The board does not start, or it boots but never shows a device identifier.
 
 The box looks dead after power-on: nothing blinks and nothing answers on the network.
 
-**Cause:** the kernel waits for the module's eMMC to enumerate, which puts the first boot at about two and a half minutes. The enclosure does not wire the Compute Module's activity LED, so nothing indicates progress while it happens.
+**Cause:** the kernel waits for the module's eMMC to enumerate, which puts every boot of this board at about two and a half minutes. The enclosure does not wire the Compute Module's activity LED, so nothing indicates progress while it happens.
 
 **Solution:** wait. This is normal on this board — give it five minutes before concluding anything. If it is still silent after that, confirm the USB-C cable is disconnected: left connected, the module stays in USB device mode instead of booting.
 

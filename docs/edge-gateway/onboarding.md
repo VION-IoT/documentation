@@ -52,7 +52,9 @@ Write the image to the SD card or eMMC with [balenaEtcher](https://etcher.balena
 
 ### Boards with on-module eMMC
 
-The IPCBox-CM5-A has no card to remove: its Compute Module 5 carries the eMMC soldered on, so you put the module into USB device mode and write it over the cable. Install [rpiboot](https://github.com/raspberrypi/usbboot) on your computer first, and disconnect every other USB storage device so there is only one disk you could write to by mistake.
+The IPCBox-CM5-A image is not published yet — [Supported Devices](/edge-gateway/supported-devices) marks it coming soon. The board has no card to remove: its Compute Module 5 carries the eMMC soldered on, so you put the module into USB device mode and write it over the cable.
+
+Install [rpiboot](https://github.com/raspberrypi/usbboot) on your computer first, and disconnect every other USB storage device so there is only one disk you could write to by mistake.
 
 1. Power the enclosure off, hold its **BOOT** button, apply power, connect a data-capable USB-C cable to your computer, and release **BOOT** once the power indicator lights.
 2. Run `sudo rpiboot`. It exposes the eMMC to your computer as an ordinary USB disk.
@@ -66,9 +68,9 @@ A microSD card in the enclosure's slot is ignored on a module with eMMC — leav
 
 Insert the SD card or eMMC into the board and apply power; a module with on-module eMMC needs only power, with the USB-C cable disconnected. The first boot runs auto-commissioning: it starts Docker, registers the Mender client, and enrolls a device certificate with Step CA. These tools are baked into the image, so nothing is installed over the network at this stage.
 
-The IPCBox-CM5-A takes about two and a half minutes to reach this point and lights no activity LED while it works.
+Allow about two and a half minutes on the IPCBox-CM5-A, which gives no sign of progress while it boots.
 
-On the IPCBox-CM5-A nothing pre-writes the per-device settings onto the boot partition, so the device falls through to the interactive commissioning wizard. Log in over SSH to reach it:
+Reach the commissioning prompt on the IPCBox-CM5-A over SSH:
 
 ```bash
 ssh root@<device-ip>    # password: vion
