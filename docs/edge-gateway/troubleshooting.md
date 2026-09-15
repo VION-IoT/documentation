@@ -17,6 +17,14 @@ The board does not start, or it boots but never shows a device identifier.
 
 **Solution:** confirm you flashed the correct image for your board from [Supported Devices](/edge-gateway/supported-devices), and that the SD card or eMMC is 16 GB or larger. Reflash the image, then power-cycle the board. If you flashed with a raw writer, verify the write completed without errors.
 
+### The IPCBox shows no activity LED and takes over two minutes to boot
+
+The box looks dead after power-on: nothing blinks and nothing answers on the network.
+
+**Cause:** the kernel waits for the module's eMMC to enumerate, which puts the first boot at about two and a half minutes. The enclosure does not wire the Compute Module's activity LED, so nothing indicates progress while it happens.
+
+**Solution:** wait. This is normal on this board — give it five minutes before concluding anything. If it is still silent after that, confirm the USB-C cable is disconnected: left connected, the module stays in USB device mode instead of booting.
+
 ### Identifier not appearing yet
 
 The board is powered and online, but the device identifier has not shown up.
@@ -37,9 +45,9 @@ The board was onboarded before and you need to register it again, or commissioni
 
 A Raspberry Pi board does not join the WiFi network after flashing.
 
-**Cause:** WiFi is available only on Raspberry Pi boards, and the regulatory domain (country) must match the network. NanoPi and Beckhoff CX boards are Ethernet-only and have no WiFi.
+**Cause:** WiFi is available only on the boards whose row lists it on [Supported Devices](/edge-gateway/supported-devices), and the regulatory domain (country) must match the network.
 
-**Solution:** set the WiFi SSID, passphrase, and country during the device's first-login commissioning prompt (see [onboarding](/edge-gateway/onboarding)). Make sure the country matches the band your access point uses. If the board is not a Raspberry Pi, connect it by Ethernet instead.
+**Solution:** set the WiFi SSID, passphrase, and country during the device's first-login commissioning prompt (see [onboarding](/edge-gateway/onboarding)). Make sure the country matches the band your access point uses. If the board's row does not list WiFi, connect it by Ethernet instead.
 
 ## Dashboard Deployment Issues
 
