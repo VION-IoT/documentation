@@ -71,8 +71,7 @@ At the start of a task, answer two questions out loud: is the change local? is a
 
 ## Skills in this repo
 
-`.claude/settings.json` enables `vion-git` and `vion-improve` from the `vion` marketplace in the
-sibling `../architecture` checkout.
+Naming `/vion-git:` and `/vion-improve:` skills below opts this repo into both plugins.
 
 | moment | skill |
 |---|---|
