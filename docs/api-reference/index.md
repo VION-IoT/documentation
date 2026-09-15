@@ -69,7 +69,7 @@ Extension methods to verify analog output messages in test contexts.
   - `value`: The expected value, or null to skip value verification.
   - `tolerance`: The inclusive tolerance for the value comparison; the default of 0 means exact equality.
   - `times`: The expected number of drives, or null for once.
-- `Matches(double, double?, double)` — Bit equality first, then the tolerance band. The difference comparison alone is false for a non-number against itself and for either infinity against itself at every tolerance, and the value contract admits all three unaltered in both directions — so a block that legitimately writes one has to be assertable. A signed zero matches an unsigned one either way.
+- `Matches(double, double?, double)` — Bit equality first, then the tolerance band. The difference comparison alone is false for a non-number against itself and for either infinity against itself at every tolerance, and a block can write any of the three — so a value it wrote has to be assertable. A signed zero matches an unsigned one either way.
 - `EnsureUsableTolerance(double)` — A tolerance is a width, so it is a number of at least zero. A non-number or a negative one makes the band empty and rejects even an exact value, which no caller can mean; an infinite tolerance is a legal width that admits every finite value.
 
 ---
@@ -2739,7 +2739,7 @@ Marks a `ServiceProviderHandlerBase` as development surface, so a production hos
 
 ### ScenarioWireAttribute
 
-Marks a `ServiceProviderHandlerBase` with the wire struct its contract carries, so the DevHost can drive (`serviceProviderSet`) and assert (`serviceProviderExpect`) that contract from a committed scenario through the generic service-provider handler. Scenario-testing / DevHost only. The production runtime reaches hardware over MQTT (FlatBuffers) and never reads this — it carries no runtime behaviour. It is a declarative marker the DevHost discovers (the same assembly scan the runtime uses to find handlers) to build the contract message from a JSON scenario value. Declare the inbound struct the service provider delivers (SP → block, driven by a scenario), and/or the outbound command struct the block writes (block → SP, asserted by a scenario). Declaring BOTH makes one contract identifier drivable and assertable in the same scenario — a bidirectional contract, or an output whose provider confirms back what it applied. A handler carries exactly ONE of these; the attribute is not stackable. An input — a digital/analog input, a PPC demand: [ScenarioWire(Inbound = typeof(DigitalInputChanged))] An output that is confirmed back: [ScenarioWire(Inbound = typeof(DigitalOutputChanged), Outbound = typeof(SetDigitalOutput))] Bidirectional — one contract identifier, both directions: [ScenarioWire(Inbound = typeof(PpcDemandReceived), Outbound = typeof(PpcMeasurementSet))] A contract with no declared inbound cannot be driven; one with no declared outbound has nothing to assert.
+Marks a `ServiceProviderHandlerBase` with the wire struct its contract carries, so the DevHost can drive (`serviceProviderSet`) and assert (`serviceProviderExpect`) that contract from a committed scenario through the generic service-provider handler. Scenario-testing / DevHost only. The production runtime reaches hardware over MQTT and never reads this — it carries no runtime behaviour. It is a declarative marker the DevHost discovers (the same assembly scan the runtime uses to find handlers) to build the contract message from a JSON scenario value. Declare the inbound struct the service provider delivers (SP → block, driven by a scenario), and/or the outbound command struct the block writes (block → SP, asserted by a scenario). Declaring BOTH makes one contract identifier drivable and assertable in the same scenario — a bidirectional contract, or an output whose provider confirms back what it applied. A handler carries exactly ONE of these; the attribute is not stackable. An input — a digital/analog input, a PPC demand: [ScenarioWire(Inbound = typeof(DigitalInputChanged))] An output that is confirmed back: [ScenarioWire(Inbound = typeof(DigitalOutputChanged), Outbound = typeof(SetDigitalOutput))] Bidirectional — one contract identifier, both directions: [ScenarioWire(Inbound = typeof(PpcDemandReceived), Outbound = typeof(PpcMeasurementSet))] A contract with no declared inbound cannot be driven; one with no declared outbound has nothing to assert.
 
 **Properties:**
 
@@ -2773,11 +2773,25 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
   - `topic`: The full MQTT topic to publish to.
   - `payload`: The serialized payload bytes.
   - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
-  - `contentType`: The MQTT content type (e.g., `MessageMimeTypes.FlatBuffer`, `MessageMimeTypes.Json`). Defaults to `MessageMimeTypes.FlatBuffer` if not specified.
+  - `contentType`: The MQTT content type, such as `MessageMimeTypes.Json` or `MessageMimeTypes.FlatBuffer`.
   - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
   - `responseTopic`: Optional response topic for request-response patterns.
   - `retain`: Whether the message should be retained by the broker.
 - `PublishJson<T>(string, T, string, Guid?, string, bool)` — Serializes the payload as JSON and publishes it with `application/json` content type.
+  - `topic`: The full MQTT topic to publish to.
+  - `payload`: The value to serialize as the message body.
+  - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
+  - `responseTopic`: Optional response topic for request-response patterns.
+  - `retain`: Whether the message should be retained by the broker.
+- `PublishJson<T>(string, T, JsonTypeInfo<T>, string, Guid?, string, bool)` — Serializes the payload through the supplied source-generated type metadata — such as `HwJsonContext.Default.SetDoPayload`, which carries the naming policy and converters in place of `DefaultOptions` — and publishes it with `application/json` content type.
+  - `topic`: The full MQTT topic to publish to.
+  - `payload`: The value to serialize as the message body.
+  - `typeInfo`: The source-generated metadata is serialized through.
+  - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
+  - `responseTopic`: Optional response topic for request-response patterns.
+  - `retain`: Whether the message should be retained by the broker.
 - `ForwardToLogicBlocks<T>(ServiceProviderContractId, T)` — Forwards a state-changed message to all logic block actors mapped to the given service provider contract.
 - `FindMappedServiceProviderContracts(LogicBlockContractId)` — Finds all service provider contracts that a logic block contract is mapped to. Used by output handlers to reverse-lookup the target when a logic block sends a set command.
 
@@ -2804,6 +2818,8 @@ A parsed MQTT message for service provider handlers. Provides pre-extracted rout
 
 - `GetJsonPayload<T>(JsonSerializerOptions)` — Deserializes the payload as JSON.
   - `serializerOptions`: Optional JSON serializer options. If null, `DefaultOptions` are used.
+- `GetJsonPayload<T>(JsonTypeInfo<T>)` — Deserializes the payload as JSON through the supplied type metadata.
+  - `typeInfo`: The source-generated metadata for , such as `HwJsonContext.Default.DiStatePayload`. It carries the naming policy and converters, so `DefaultOptions` is not consulted.
 - `GetFlatBufferPayload` — Returns the payload as a FlatBuffer ByteBuffer for deserialization.
 - `GetPayloadBytes` — Returns the raw payload as a byte array. Use `RawPayload` to avoid the copy when possible.
 
