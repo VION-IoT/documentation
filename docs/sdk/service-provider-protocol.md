@@ -397,7 +397,7 @@ Mesh diffs successive health to detect state changes, and **every change is writ
 
 ### Wire format
 
-Health is a **JSON** `ComponentHealthStatusPayload`, published with `Content-Type: application/json` and the `schema` user property `ComponentHealthStatusPayload`. Set the same `application/json` `Content-Type` on your [Last Will](#last-will-testament) so the broker's retained `offline` will decodes correctly. JSON keeps health reportable from any provider, including those without a FlatBuffers toolchain (Python, TwinCAT / Structured Text, bare-metal firmware).
+Health is a **JSON** `ComponentHealthStatusPayload`, published with `Content-Type: application/json` and the `schema` user property `ComponentHealthStatusPayload`. Set the same `application/json` `Content-Type` on your [Last Will](#last-will-testament) so the broker's retained `offline` will decodes correctly.
 
 The payload wraps a single `component`:
 
@@ -508,7 +508,7 @@ All messages during the operational phase follow these conventions:
 | Protocol version | MQTT 5.0 required |
 | User property `schema` | Payload type name (e.g., `DiStatePayload`, `SetDoPayload`) |
 | User property `published_at` | ISO 8601 UTC timestamp |
-| Content-Type | `application/x-flatbuffers`, `application/json`, or `application/octet-stream` |
+| Content-Type | `application/json` or `application/octet-stream` |
 
 ## Service-Specific Messaging
 
@@ -614,15 +614,26 @@ A `ResponseTopic` on an incoming request is the requester declaring it wants a r
 
 ### Serialization
 
-Service providers choose their own serialization format. The `Content-Type` MQTT property distinguishes formats:
+Every built-in contract type — DigitalIo, AnalogIo and ModbusRtu — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw`, published with `Content-Type: application/json` and the `schema` user property set to the record's name:
+
+| Routing segment | Records |
+|-----------------|---------|
+| `hw/di` | `DiStatePayload` |
+| `hw/do` | `DoStatePayload`, `SetDoPayload` |
+| `hw/ai` | `AiStatePayload` |
+| `hw/ao` | `AoStatePayload`, `SetAoPayload` |
+| `hw/modbus` | `GetModbusPayload`, `GetModbusResponsePayload`, `SetModbusPayload`, `SetModbusResponsePayload` |
+
+The `schema` label is load-bearing in both directions: a message whose label is missing, or that names a record other than the one its topic carries, is dropped rather than decoded. An analog value is a finite JSON number — a payload carrying `NaN` or an infinity is refused when written and undecodable when read.
+
+A custom service provider chooses its own format, which the `Content-Type` property distinguishes:
 
 | Content-Type | Description |
 |-------------|-------------|
-| `application/x-flatbuffers` | FlatBuffers binary format (used by built-in DigitalIo and AnalogIo) |
-| `application/json` | JSON (recommended for custom providers — easiest to implement across technologies) |
+| `application/json` | JSON — easiest to implement across technologies |
 | `application/octet-stream` | Custom binary format |
 
-The dale runtime handler for each contract type must understand the serialization used by its corresponding service provider.
+The Dale runtime handler for each contract type must understand the serialization used by its corresponding service provider.
 
 ### Reserved Topic Prefixes
 
