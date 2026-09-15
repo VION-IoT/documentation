@@ -509,6 +509,7 @@ All messages during the operational phase follow these conventions:
 | User property `schema` | Payload type name (e.g., `DiStatePayload`, `SetDoPayload`) |
 | User property `published_at` | ISO 8601 UTC timestamp |
 | Content-Type | `application/x-flatbuffers`, `application/json`, or `application/octet-stream` |
+| `CorrelationData` | Required on every message — a 16-byte GUID, or its 36-character string form. A message carrying none, or one in another shape, is dropped before any handler sees it. |
 
 ## Service-Specific Messaging
 
@@ -606,7 +607,7 @@ Service providers typically use one or more of these patterns:
 
 **Command handling** — the Dale runtime publishes commands (e.g., set a digital output). The provider processes the command and publishes a state confirmation.
 
-**Request-response** — for operations the requester needs to confirm, or that return data (a property or register *write*, a Modbus register *read*), use the MQTT 5.0 `ResponseTopic` and `CorrelationData` properties. The requester sets `ResponseTopic` to indicate where the reply should go and `CorrelationData` to correlate it. The responder publishes to that topic, echoing the same `CorrelationData`, and sets a `status` user property — `Success` (with the resulting value as the payload) or `Error` (with an optional `error_message`). Whether the requester blocks on the reply, consumes it asynchronously, or ignores it is the requester's concern — the responder's obligation is the same either way.
+**Request-response** — for operations the requester needs to confirm, or that return data (a property or register *write*, a Modbus register *read*), set the MQTT 5.0 `ResponseTopic` property to indicate where the reply should go. The responder publishes to that topic, echoing the request's `CorrelationData`, and sets a `status` user property: `Success` (with the resulting value as the payload) or `Error` (with an optional `error_message`). Whether the requester blocks on the reply, consumes it asynchronously, or ignores it is the requester's concern — the responder's obligation is the same either way.
 
 ::: warning Always reply when a request names a response topic
 A `ResponseTopic` on an incoming request is the requester declaring it wants a reply — honor it unconditionally: `Success` once applied, or `Error` with an `error_message` if you reject the request (e.g. a value out of range, or a read-only target). You cannot tell from the message what the requester does while waiting. Some requesters consume replies asynchronously or not at all — but the platform runtime sends automation-driven property sets as *awaited* requests, and if you apply the change without replying it cannot tell success from a dropped message: it retries the set and ultimately reports the automation as failed, **even though you applied the value**. A request without a `ResponseTopic` is fire-and-forget — do not reply. The same applies in reverse: when your provider is the requester and does not need a reply, simply omit the `ResponseTopic`.
