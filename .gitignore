@@ -5,7 +5,7 @@ temp/
 
 # Harness state is not tracked. Repo-scoped slash commands under .claude/commands/ are, because they
 # are repo behaviour (decision 0113 — rationale in retro-0 D4), and so is .claude/settings.json,
-# because it enables the repo's plugins.
+# because it carries attribution.
 .claude/*
 !.claude/commands/
 !.claude/settings.json
