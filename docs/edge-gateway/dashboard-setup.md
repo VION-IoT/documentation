@@ -44,6 +44,6 @@ Updates are deployed from the platform level over the air — no manual SSH acce
 
 Both lanes flow through Mender but serve different purposes: the OS lane swaps the whole rootfs, while the application lane updates the containers on the data partition without touching the OS.
 
-An SSH key you place under `/root` by hand survives OS updates. The one update it does not survive is the update that introduced that behaviour, so a key placed on a device older than it has to be added back once — log in as `root` with the password you set during commissioning.
+An SSH key you place under `/root` by hand survives OS updates. This feature was introduced in v1.8.0 so a key placed on a device with an older release has to be added again after updating to a version > v1.8.0.
 
 The device is identified by a stable identifier derived from its hardware, so it keeps the same identity across reflashes and OS updates. During onboarding you can watch each commissioning stage; the [onboarding commissioning status](/edge-gateway/onboarding#commissioning-status) table lists what each stage means.

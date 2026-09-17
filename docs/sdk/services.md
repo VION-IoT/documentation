@@ -81,11 +81,11 @@ Led.Set(true);
 HeaterOutput.Set(0.75); // 75% power
 ```
 
-## Digital I/O on the IPCBox-CM5-A
+## Digital I/O on the IPCBox-CM5-B
 
 The service provider that drives this I/O is not deployable yet: it reaches a gateway as a Mender update, and [Supported Devices](/edge-gateway/supported-devices) marks the board's image as coming soon.
 
-The IPCBox-CM5-A exposes two isolated digital inputs and two isolated digital outputs on screw terminals, all under one service named `dio`. Bind them from a logic block the same way as any other I/O contract; the contract identifiers match the labels printed on the case, so an installer reading `out1` in the dashboard is reading the terminal in front of them.
+The IPCBox-CM5-B exposes two isolated digital inputs and two isolated digital outputs on screw terminals, all under one service named `dio`. Bind them from a logic block the same way as any other I/O contract; the contract identifiers match the labels printed on the case, so an installer reading `out1` in the dashboard is reading the terminal in front of them.
 
 | Contract | Interface | `true` means |
 |----------|-----------|--------------|

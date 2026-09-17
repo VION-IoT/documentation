@@ -21,11 +21,11 @@ VION publishes a prebuilt image for each board below. Pick the board you have, d
 | NanoPi NEO3 Plus | Ethernet | [nanopi-neo3-plus.img.gz](https://images.vion.swiss/releases/nanopi-neo3-plus.img.gz) |
 | Beckhoff CX82xx | Ethernet | [beckhoff-cx82xx.img.gz](https://images.vion.swiss/releases/beckhoff-cx82xx.img.gz) |
 | Beckhoff CX9240 | Ethernet | Coming soon |
-| Waveshare IPCBox-CM5-A | Ethernet ×2 | Coming soon |
+| Waveshare IPCBox-CM5-B | Ethernet ×2 | [raspberry-pi-cm5.img.gz](https://images.vion.swiss/releases/raspberry-pi-cm5.img.gz) |
 
 WiFi is available only on the boards whose row lists it — connect the rest by cable.
 
-The IPCBox-CM5-A wraps a Raspberry Pi Compute Module 5 in an industrial enclosure. Its storage is eMMC soldered onto the module, which changes how you flash it — see [onboarding](/edge-gateway/onboarding). Of its two Ethernet ports, `eth0` is the module's own gigabit port and `eth1` is the enclosure's 2.5 GbE port.
+The IPCBox-CM5-B wraps a Raspberry Pi Compute Module 5 in an industrial enclosure. Its storage is eMMC soldered onto the module, which changes how you flash it — see [onboarding](/edge-gateway/onboarding). Of its two Ethernet ports, `eth0` is the module's own gigabit port and `eth1` is the enclosure's 2.5 GbE port.
 
 ## Image contents
 

@@ -5,7 +5,7 @@ description: How to flash, commission, and register a new edge gateway with the 
 
 # Onboarding an Edge Gateway
 
-Onboarding connects a board to the VION platform. You flash a prebuilt image, power on the device, and register the device identifier it shows you in the [Dashboard onboarding wizard](https://dashboard.vion.swiss/#/onboarding). On first boot the device commissions itself — no provisioning script is involved.
+Onboarding connects a board to the VION platform. You flash a prebuilt image, power on the device, and register the device identifier it shows you in the [Dashboard onboarding wizard](https://dashboard.vion.swiss/#/onboarding).
 
 ## Overview
 
@@ -52,14 +52,14 @@ Write the image to the SD card or eMMC with [balenaEtcher](https://etcher.balena
 
 ### Boards with on-module eMMC
 
-The IPCBox-CM5-A image is not published yet — [Supported Devices](/edge-gateway/supported-devices) marks it coming soon. The board has no card to remove: its Compute Module 5 carries the eMMC soldered on, so you put the module into USB device mode and write it over the cable.
+The IPCBox-CM5-B image is available [here](https://images.vion.swiss/releases/raspberry-pi-cm5.img.gz). The board has no card to remove: its Compute Module 5 carries the eMMC soldered on, so you put the module into USB device mode and write it over the cable.
 
 Install [rpiboot](https://github.com/raspberrypi/usbboot) on your computer first, and disconnect every other USB storage device so there is only one disk you could write to by mistake.
 
 1. Power the enclosure off, hold its **BOOT** button, apply power, connect a data-capable USB-C cable to your computer, and release **BOOT** once the power indicator lights.
 2. Run `sudo rpiboot`. It exposes the eMMC to your computer as an ordinary USB disk.
 3. Confirm that disk is the module before you write: it appeared only just now, its transport is USB, and its size matches the module's eMMC. A size mismatch means you are looking at something else.
-4. Write the `.img.gz` to it with balenaEtcher, which verifies the write as it finishes.
+4. Write the `.img.gz` to it (i.e. with balenaEtcher, linux's **dd** or a similar etching tool), which verifies the write as it finishes.
 5. Power the enclosure down and **disconnect the USB-C cable**. Left connected, the module stays in device mode and will not boot.
 
 A microSD card in the enclosure's slot is ignored on a module with eMMC — leave the slot empty.
@@ -68,9 +68,9 @@ A microSD card in the enclosure's slot is ignored on a module with eMMC — leav
 
 Insert the SD card or eMMC into the board and apply power; a module with on-module eMMC needs only power, with the USB-C cable disconnected. The first boot runs auto-commissioning: it starts Docker, registers the Mender client, and enrolls a device certificate with Step CA. These tools are baked into the image, so nothing is installed over the network at this stage.
 
-Allow about two and a half minutes on the IPCBox-CM5-A, which gives no sign of progress while it boots.
+Allow about two and a half minutes on the IPCBox-CM5-B, which gives no sign of progress while it boots.
 
-Reach the commissioning prompt on the IPCBox-CM5-A over SSH:
+Reach the commissioning prompt on the IPCBox-CM5-B over SSH:
 
 ```bash
 ssh root@<device-ip>    # password: vion
