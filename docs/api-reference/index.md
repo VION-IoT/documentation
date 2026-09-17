@@ -1062,9 +1062,9 @@ The client's verdict on the link to its device, derived from the last transactio
 
 ### ModbusLinkSummary
 
-A point-in-time summary of one Modbus client's link to its device: the current verdict, when the device was last heard from, and lifetime counts and latencies per outcome.
+A point-in-time summary of one Modbus client's link to its device: the current verdict, when the device was last heard from, lifetime counts per outcome, and latencies over a recent window and since the client started.
 
-> Read it whenever you want it — every read returns a consistent snapshot, taken without blocking the transaction that is updating it. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`, and every field carries a title and a description so it reads without a projection. `State` moves only on outcomes that reached the wire: `Success` and `DeviceError` set `Online`; `Timeout`, `TransportError` and `ProtocolError` set `Faulted`. Locally decided outcomes — `Expired`, `Dropped`, `BackedOff`, `Invalid`, `Cancelled` — leave it alone: a full queue or a bad unit id is not evidence about the device. Every outcome sets `LastFailureAt` / `LastFailureOutcome`, but only eight of the ten carry a lifetime counter: the five that reached the wire, plus `BackedOffCount`, `ExpiredCount` and `DroppedCount`. `Invalid` and `Cancelled` have none — read them off `LastFailureOutcome`, or count them in the block from the receipt. `State` does not decay with time. A client that is polled once an hour and answered an hour ago is still `Online` here, because only the caller knows its own poll cadence. Build a freshness rule from `LastContactAt`, or from the monotonic stamp on the receipt of the value you care about. Counts and extremes are for the lifetime of the client instance and are never reset.
+> Read it whenever you want it — every read returns a consistent snapshot, taken without blocking the transaction that is updating it. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`, and every field carries a title and a description so it reads without a projection. `State` moves only on outcomes that reached the wire: `Success` and `DeviceError` set `Online`; `Timeout`, `TransportError` and `ProtocolError` set `Faulted`. Locally decided outcomes — `Expired`, `Dropped`, `BackedOff`, `Invalid`, `Cancelled` — leave it alone: a full queue or a bad unit id is not evidence about the device. Every outcome sets `LastFailureAt` / `LastFailureOutcome`, but only eight of the ten carry a lifetime counter: the five that reached the wire, plus `BackedOffCount`, `ExpiredCount` and `DroppedCount`. `Invalid` and `Cancelled` have none — read them off `LastFailureOutcome`, or count them in the block from the receipt. `State` does not decay with time. A client that is polled once an hour and answered an hour ago is still `Online` here, because only the caller knows its own poll cadence. Build a freshness rule from `LastContactAt`, or from the monotonic stamp on the receipt of the value you care about. The `Recent` figures cover a window of the last 15 minutes on the client's clock — at least 15 and less than 16, or the client's whole life where that is shorter — and forget what falls out of it, so a spike that is not repeated leaves them within 16 minutes. Each carries the number of transactions it rests on. An empty window reads its mean and max as `null` and its count as zero. Round trip is taken only from transactions that reached the wire; queued wait from every transaction that was queued, which is all of them but `Invalid`. The two counts differ exactly when requests were backed off, expired, dropped or cancelled. The outcome counts and the two `since start` maxima are for the lifetime of the client instance and are never reset. A maximum's instant is when the transaction that set it was observed, and only a larger value moves it.
 
 **Properties:**
 
@@ -1080,16 +1080,21 @@ A point-in-time summary of one Modbus client's link to its device: the current v
 - `BackedOffCount` — Transactions not attempted because the client was in connect backoff.
 - `ExpiredCount` — Transactions that aged past `MaxQueuedAge` before dispatch.
 - `DroppedCount` — Transactions evicted because the queue was full.
-- `LastRoundTrip` — The dispatch-to-response time of the last transaction that reached the wire.
-- `MinRoundTrip` — The shortest dispatch-to-response time seen.
-- `MaxRoundTrip` — The longest dispatch-to-response time seen.
-- `LastQueuedWait` — How long the last transaction waited locally before dispatch.
-- `MaxQueuedWait` — The longest local wait before dispatch seen.
+- `RecentRoundTripCount` — Transactions that reached the wire in the last 15 minutes.
+- `RecentMeanRoundTrip` — The mean dispatch-to-response time over the last 15 minutes.
+- `RecentMaxRoundTrip` — The longest dispatch-to-response time in the last 15 minutes.
+- `MaxRoundTrip` — The longest dispatch-to-response time since the client started.
+- `MaxRoundTripAt` — When the transaction that set was observed.
+- `RecentQueuedWaitCount` — Requests queued in the last 15 minutes.
+- `RecentMeanQueuedWait` — The mean local wait before dispatch over the last 15 minutes.
+- `RecentMaxQueuedWait` — The longest local wait before dispatch in the last 15 minutes.
+- `MaxQueuedWait` — The longest local wait before dispatch since the client started.
+- `MaxQueuedWaitAt` — When the transaction that set was observed.
 - `QueueDepth` — Requests waiting to be dispatched right now.
 
 **Methods:**
 
-- *Constructor* — A point-in-time summary of one Modbus client's link to its device: the current verdict, when the device was last heard from, and lifetime counts and latencies per outcome.
+- *Constructor* — A point-in-time summary of one Modbus client's link to its device: the current verdict, when the device was last heard from, lifetime counts per outcome, and latencies over a recent window and since the client started.
   - `State`: The verdict of the last transaction that reached the wire.
   - `LastContactAt`: When the device last answered, with data or with a Modbus exception code.
   - `LastFailureAt`: When the last non-successful outcome was recorded, local ones included.
@@ -1102,11 +1107,16 @@ A point-in-time summary of one Modbus client's link to its device: the current v
   - `BackedOffCount`: Transactions not attempted because the client was in connect backoff.
   - `ExpiredCount`: Transactions that aged past `MaxQueuedAge` before dispatch.
   - `DroppedCount`: Transactions evicted because the queue was full.
-  - `LastRoundTrip`: The dispatch-to-response time of the last transaction that reached the wire.
-  - `MinRoundTrip`: The shortest dispatch-to-response time seen.
-  - `MaxRoundTrip`: The longest dispatch-to-response time seen.
-  - `LastQueuedWait`: How long the last transaction waited locally before dispatch.
-  - `MaxQueuedWait`: The longest local wait before dispatch seen.
+  - `RecentRoundTripCount`: Transactions that reached the wire in the last 15 minutes.
+  - `RecentMeanRoundTrip`: The mean dispatch-to-response time over the last 15 minutes.
+  - `RecentMaxRoundTrip`: The longest dispatch-to-response time in the last 15 minutes.
+  - `MaxRoundTrip`: The longest dispatch-to-response time since the client started.
+  - `MaxRoundTripAt`: When the transaction that set was observed.
+  - `RecentQueuedWaitCount`: Requests queued in the last 15 minutes.
+  - `RecentMeanQueuedWait`: The mean local wait before dispatch over the last 15 minutes.
+  - `RecentMaxQueuedWait`: The longest local wait before dispatch in the last 15 minutes.
+  - `MaxQueuedWait`: The longest local wait before dispatch since the client started.
+  - `MaxQueuedWaitAt`: When the transaction that set was observed.
   - `QueueDepth`: Requests waiting to be dispatched right now.
 
 ---
