@@ -11,12 +11,12 @@ The Dale SDK provides multiple ways to connect logic blocks to the outside world
 
 Dale provides built-in interfaces for common I/O types:
 
-| Interface | Description | Value Type |
-|-----------|-------------|------------|
-| `IDigitalInput` | Boolean input (button, switch, contact) | `bool` |
-| `IDigitalOutput` | Boolean output (LED, relay, valve) | `bool` |
-| `IAnalogInput` | Numeric input (temperature sensor, light sensor) | `double` |
-| `IAnalogOutput` | Numeric output (dimmer, valve position, fan speed) | `double` |
+| Interface        | Description                                        | Value Type |
+| ---------------- | -------------------------------------------------- | ---------- |
+| `IDigitalInput`  | Boolean input (button, switch, contact)            | `bool`     |
+| `IDigitalOutput` | Boolean output (LED, relay, valve)                 | `bool`     |
+| `IAnalogInput`   | Numeric input (temperature sensor, light sensor)   | `double`   |
+| `IAnalogOutput`  | Numeric output (dimmer, valve position, fan speed) | `double`   |
 
 ### Declaring I/O Contract Bindings
 
@@ -83,13 +83,13 @@ HeaterOutput.Set(0.75); // 75% power
 
 ## Digital I/O on the IPCBox-CM5-B
 
-The service provider that drives this I/O is not deployable yet: it reaches a gateway as a Mender update, and [Supported Devices](/edge-gateway/supported-devices) marks the board's image as coming soon.
+The service provider reaches a gateway as a Mender update and can be deployed via the VION dashboard.
 
 The IPCBox-CM5-B exposes two isolated digital inputs and two isolated digital outputs on screw terminals, all under one service named `dio`. Bind them from a logic block the same way as any other I/O contract; the contract identifiers match the labels printed on the case, so an installer reading `out1` in the dashboard is reading the terminal in front of them.
 
-| Contract | Interface | `true` means |
-|----------|-----------|--------------|
-| `in1`, `in2` | `IDigitalInput` | voltage is present at the terminal |
+| Contract       | Interface        | `true` means                                         |
+| -------------- | ---------------- | ---------------------------------------------------- |
+| `in1`, `in2`   | `IDigitalInput`  | voltage is present at the terminal                   |
 | `out1`, `out2` | `IDigitalOutput` | the terminal is conducting and the load is energised |
 
 A block written against these contracts behaves the same here as on a Raspberry Pi.
@@ -176,12 +176,12 @@ public class Em122ElectricityMeter : LogicBlockBase
 
 The `IModbusRtu` interface provides typed read/write methods for all standard Modbus operations:
 
-| Method | Modbus Function |
-|--------|-----------------|
-| `ReadDiscreteInputs` | FC 2 — read discrete inputs |
-| `ReadCoils` / `WriteSingleCoil` / `WriteMultipleCoils` | FC 1, 5, 15 — coils |
-| `ReadInputRegistersAs{Float,Int,Short,...}` | FC 4 — read input registers |
-| `ReadHoldingRegistersAs{Float,Int,Short,...}` | FC 3 — read holding registers |
+| Method                                                                      | Modbus Function                    |
+| --------------------------------------------------------------------------- | ---------------------------------- |
+| `ReadDiscreteInputs`                                                        | FC 2 — read discrete inputs        |
+| `ReadCoils` / `WriteSingleCoil` / `WriteMultipleCoils`                      | FC 1, 5, 15 — coils                |
+| `ReadInputRegistersAs{Float,Int,Short,...}`                                 | FC 4 — read input registers        |
+| `ReadHoldingRegistersAs{Float,Int,Short,...}`                               | FC 3 — read holding registers      |
 | `WriteSingleHoldingRegister` / `WriteMultipleHoldingRegistersAs{Float,...}` | FC 6, 16 — write holding registers |
 
 All operations are callback-based and support configurable byte order, word order, and operation timeout:
@@ -242,13 +242,13 @@ public class EnergyMeterTcp : LogicBlockBase
 
 The TCP client provides the same typed read/write methods as `IModbusRtu` (same Modbus function codes), plus connection management:
 
-| Feature | Modbus RTU | Modbus TCP |
-|---------|------------|------------|
-| Transport | Serial via service provider | TCP/IP direct connection |
-| Declaration | `[ServiceProviderContractBinding]` | Constructor injection (DI) |
-| Connection | Managed by runtime | `IpAddress`, `Port`, `ConnectionTimeout` |
-| Queue management | Actor-based | Configurable `QueueCapacity` and `QueueOverflowPolicy` |
-| Multiple connections | One per binding | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
+| Feature              | Modbus RTU                         | Modbus TCP                                                   |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------ |
+| Transport            | Serial via service provider        | TCP/IP direct connection                                     |
+| Declaration          | `[ServiceProviderContractBinding]` | Constructor injection (DI)                                   |
+| Connection           | Managed by runtime                 | `IpAddress`, `Port`, `ConnectionTimeout`                     |
+| Queue management     | Actor-based                        | Configurable `QueueCapacity` and `QueueOverflowPolicy`       |
+| Multiple connections | One per binding                    | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
 
 For connecting to multiple Modbus TCP devices from one logic block, inject `ILogicBlockModbusTcpClientFactory` and call `Create()` for each connection.
 
@@ -292,16 +292,16 @@ public class WeatherStation : LogicBlockBase
 
 Available methods:
 
-| Method | Description |
-|--------|-------------|
-| `GetJson<T>` | GET request, deserialize JSON response |
+| Method                 | Description                               |
+| ---------------------- | ----------------------------------------- |
+| `GetJson<T>`           | GET request, deserialize JSON response    |
 | `PostJson<TReq, TRes>` | POST with JSON body, deserialize response |
-| `PostJson<TReq>` | POST with JSON body, no response body |
-| `PutJson<TReq, TRes>` | PUT with JSON body, deserialize response |
-| `PutJson<TReq>` | PUT with JSON body, no response body |
-| `DeleteJson<T>` | DELETE, deserialize response |
-| `Delete` | DELETE, no response body |
-| `SendRequest` | Raw `HttpRequestMessage` for full control |
+| `PostJson<TReq>`       | POST with JSON body, no response body     |
+| `PutJson<TReq, TRes>`  | PUT with JSON body, deserialize response  |
+| `PutJson<TReq>`        | PUT with JSON body, no response body      |
+| `DeleteJson<T>`        | DELETE, deserialize response              |
+| `Delete`               | DELETE, no response body                  |
+| `SendRequest`          | Raw `HttpRequestMessage` for full control |
 
 All methods accept optional `headers` and `timeout` parameters. Register the package:
 
@@ -313,11 +313,11 @@ services.AddDaleHttpSdk();
 
 A service provider contract link has two multiplicity sides: how many providers a consuming block expects, and how many consumers a provided contract role accepts. Both use the same `LinkMultiplicity` vocabulary:
 
-| Value | Meaning |
-|-------|---------|
-| `ExactlyOne` | Required and single (1..1). |
-| `ZeroOrOne` | Optional and single (0..1). |
-| `OneOrMore` | Required and many (1..n). |
+| Value        | Meaning                                                |
+| ------------ | ------------------------------------------------------ |
+| `ExactlyOne` | Required and single (1..1).                            |
+| `ZeroOrOne`  | Optional and single (0..1).                            |
+| `OneOrMore`  | Required and many (1..n).                              |
 | `ZeroOrMore` | Optional and many, including none (0..n). The default. |
 
 ### Consumer Side
