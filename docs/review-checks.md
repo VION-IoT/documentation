@@ -3,7 +3,7 @@
 One line per check: `Tn — name: what to look for, the shape of the violation`.
 Numbers run per prefix; a new check takes the next free one; a number is never reused or renumbered.
 No quotes, dates or session ids in a check.
-A check fires when a journal line names it. Unnamed for three retro rounds: deleted. Fires constantly: becomes a gate, removed here.
+A check fires when a merged pull request body's finding cites it. Three retro records at zero citations: deleted. Fires constantly: becomes a gate, removed here.
 
 - T1 — Verbosity: every paragraph is something the reader needs in order to act; an explanation of internals, design rationale, degraded-case behaviour or marketing, or a caveat that runs past one sentence.
 - T2 — A new topic is not a new page: a feature gets a section on the page that owns its topic, and adjacent pages link rather than repeat; a page that exists only because the feature is new, or the same content in two places.

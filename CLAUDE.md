@@ -55,10 +55,8 @@ At the start of a task, answer two questions out loud: is the change local? is a
 ### Communication
 
 - Say what was run, not that it worked.
-- A count is pasted with the command that produced it.
-- Expand an initialism the first time it is used.
+- A claim a decision rests on names its evidence: the command, the file and line, or that it is inferred.
 - Promise no notification that cannot be subscribed to.
-- A finding cites the line, or says it is inferred.
 
 ### Never
 
@@ -77,16 +75,32 @@ Naming `/vion-git:` and `/vion-improve:` skills below opts this repo into both p
 |---|---|
 | starting work on a change | `/vion-git:branch` |
 | a unit of work lands — a task, an acceptance criterion, a fixed review finding | `/vion-git:commit` |
-| the branch is ready for a pull request | `/vion-improve:codify`, then `/vion-git:pr` |
-| codify reports the journal's live window past 40 entries | `/vion-improve:retro` |
+| the branch is ready for a pull request | `/vion-git:pr` |
+| the journal's live window passes the header's `retro at:`, or the newest record ages past `retro`'s threshold | `/vion-improve:retro` |
 
 ### Pre-PR obligations
 
-In this order:
+In this order; an item's `On …:` is the trigger `/vion-git:pr` matches the changed paths against.
+CI runs `audit`, `check` and `build` on every pull request, so these are narrower by design.
 
-1. `pnpm check`
-2. `pnpm build`
-3. `/vion-improve:codify`
+1. On `docs/**`, `scripts/check-docs.mjs`: `pnpm check`
+2. On `docs/**`: `pnpm build`
+
+### Reader depth
+
+Beyond `/vion-git:pr`'s defaults. The published pages are this repo's product and read as `code`:
+
+- harness: `docs/process-journal/README.md`, `docs/review-checks.md`, `docs/STYLE.md`
+- records: `docs/process-journal/**`, `docs/retro/journal-*.md`
+- prose: `docs/changes/**`, `docs/retro/**`
+- generated: `docs/api-reference/index.md`
+- code: `docs/**`
+
+### Budgets
+
+Bytes as committed, enforced by hand: `CLAUDE.md` 10,240 · a repo command 12,288 · a
+repo skill 6,144 · `docs/review-checks.md` twelve checks. A file over its budget is touched only by
+a diff that makes it smaller than `origin/main`'s copy; a file under may not go over.
 
 ### Parallel sessions
 
@@ -109,12 +123,9 @@ pnpm check            # Style gate — the machine-checkable subset of docs/STYL
 pnpm build            # Production build (fails on dead links)
 ```
 
-`pnpm check` runs in CI before the build. Run it before opening a PR; it is faster than the build
-and catches the rules that otherwise cost a review round.
-
 ## Documentation Style
 
-**Read [docs/STYLE.md](docs/STYLE.md) before writing or editing any documentation page.** It defines terminology, page structure, tone, and formatting rules. Every change must conform to the style guide.
+**Read [docs/STYLE.md](docs/STYLE.md) before writing or editing any documentation page.** It defines terminology, page structure, tone and formatting.
 
 Key rules:
 - "logic block" (lowercase, two words in prose)
@@ -138,9 +149,9 @@ added to that list — `pnpm check` fails if the list goes missing entirely.
 
 ## Pre-PR Review
 
-**`/vion-git:pr` runs `/vion-git:review` before a PR opens.** It reviews the change against
-`STYLE.md` and [`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from
-this repo's own history — verbosity, unverified SDK claims, leaked internal or customer material.
+`/vion-git:pr` runs `/vion-git:review` against `STYLE.md` and
+[`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from this repo's own
+history — verbosity, unverified SDK claims, leaked internal or customer material.
 
 This is the repo's definition of done, and `/fix` and `/implement` briefs from the architecture repo
 condition theirs on it.
@@ -152,7 +163,7 @@ The improvement loop, tracked here per architecture decision 0113. All of it is 
 
 - [`docs/process-journal/`](docs/process-journal/) — friction log, one fragment per branch, in the
   grammar its [`README.md`](docs/process-journal/README.md) states.
-- [`docs/review-checks.md`](docs/review-checks.md) — the checks `/vion-git:review` runs.
+- [`docs/review-checks.md`](docs/review-checks.md) — the checks (§ Pre-PR Review).
 - [`docs/changes/`](docs/changes/) — change docs for feature-sized work, shaped by `_template.md`.
 - [`docs/retro/`](docs/retro/) — dated retro notes and archived journal windows. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)
   mined the transcript corpus that produced the review taxonomy; that corpus has since aged out, so
@@ -199,4 +210,3 @@ Only `test` and `production` environments exist — `staging` is no longer a nam
   [STYLE.md § Accuracy](docs/STYLE.md).
 - Examples use invented names only — never a customer's type, never a real product
 - All pages must have frontmatter with `title` and `description`
-- `pnpm check` and `pnpm build` must pass — style gate and dead links
