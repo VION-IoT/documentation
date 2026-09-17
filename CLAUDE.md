@@ -88,6 +88,19 @@ In this order:
 2. `pnpm build`
 3. `/vion-improve:codify`
 
+### Parallel sessions
+
+The main checkout stays on `main`. Every branch lives in the worktree `../documentation-<key>` beside
+it, which `/vion-git:branch` creates or reuses; the `vion-git` hook denies writes to the main checkout
+that git does not ignore. A new worktree has no `node_modules/`, so run `pnpm install` there before
+`pnpm dev` or `pnpm build`.
+
+The dev server binds no singleton port. `pnpm dev` asks for 5173 and takes the next free port when
+another checkout's server, or the `website` repo's, already holds it. The preview configuration,
+`.claude/launch.json`, is git-ignored, exists only in the main checkout, and names 5173 whichever
+server holds it. The preview workflow stays in the main checkout; in a worktree, open the port
+`pnpm dev` prints.
+
 ## Commands
 
 ```bash
