@@ -149,7 +149,7 @@ added to that list — `pnpm check` fails if the list goes missing entirely.
 
 ## Pre-PR Review
 
-`/vion-git:review` reviews the change against `STYLE.md` and
+`/vion-git:pr` runs `/vion-git:review` against `STYLE.md` and
 [`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from this repo's own
 history — verbosity, unverified SDK claims, leaked internal or customer material.
 
