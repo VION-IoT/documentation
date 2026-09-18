@@ -126,13 +126,6 @@ pnpm build            # Production build (fails on dead links)
 
 **Read [docs/STYLE.md](docs/STYLE.md) before writing or editing any documentation page.** It defines terminology, page structure, tone and formatting.
 
-Key rules:
-- "logic block" (lowercase, two words in prose)
-- Code examples always preceded by explanatory text
-- Max heading depth: h3
-- Tables for parameters/options, never three-column with "Required"
-- VitePress containers (:::tip, :::warning) used sparingly
-
 ## Architecture
 
 - `docs/.vitepress/config.ts` — site config, nav, sidebar, theme, and `srcExclude` (what stays off
@@ -146,15 +139,6 @@ Key rules:
 excluded from the build via `srcExclude`. Anything added there that should stay internal must be
 added to that list — `pnpm check` fails if the list goes missing entirely.
 
-## Pre-PR Review
-
-`/vion-git:pr` runs `/vion-git:review` against `STYLE.md` and
-[`docs/review-checks.md`](docs/review-checks.md), the findings taxonomy mined from this repo's own
-history — verbosity, unverified SDK claims, leaked internal or customer material.
-
-This is the repo's definition of done, and `/fix` and `/implement` briefs from the architecture repo
-condition theirs on it.
-
 ## Process Substrate
 
 The improvement loop, tracked here per architecture decision 0113. All of it is public
@@ -162,7 +146,10 @@ The improvement loop, tracked here per architecture decision 0113. All of it is 
 
 - [`docs/process-journal/`](docs/process-journal/) — friction log, one fragment per branch, in the
   grammar `/vion-improve:journal` states.
-- [`docs/review-checks.md`](docs/review-checks.md) — the checks (§ Pre-PR Review).
+- [`docs/review-checks.md`](docs/review-checks.md) — the findings taxonomy mined from this repo's own
+  history: verbosity, unverified SDK claims, leaked internal or customer material. This is the repo's
+  definition of done, and `/fix` and `/implement` briefs from the architecture repo condition theirs
+  on it.
 - [`docs/changes/`](docs/changes/) — change docs for feature-sized work, shaped by `_template.md`.
 - [`docs/retro/`](docs/retro/) — dated retro notes and archived journal windows. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)
   mined the transcript corpus that produced the review taxonomy; that corpus has since aged out, so
@@ -207,5 +194,4 @@ Only `test` and `production` environments exist — `staging` is no longer a nam
   and the compiled `examples/` are the best reference); `../dale` is the runtime only. Also
   `../cloud-api` and `../mesh`. A confident wrong sentence is worse than a missing one — see
   [STYLE.md § Accuracy](docs/STYLE.md).
-- Examples use invented names only — never a customer's type, never a real product
 - All pages must have frontmatter with `title` and `description`
