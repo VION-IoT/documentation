@@ -146,10 +146,8 @@ The improvement loop, tracked here per architecture decision 0113. All of it is 
 
 - [`docs/process-journal/`](docs/process-journal/) — friction log, one fragment per branch, in the
   grammar `/vion-improve:journal` states.
-- [`docs/review-checks.md`](docs/review-checks.md) — the findings taxonomy mined from this repo's own
-  history: verbosity, unverified SDK claims, leaked internal or customer material. This is the repo's
-  definition of done, and `/fix` and `/implement` briefs from the architecture repo condition theirs
-  on it.
+- [`docs/review-checks.md`](docs/review-checks.md) — the findings taxonomy, and this repo's definition
+  of done: `/fix` and `/implement` briefs from the architecture repo condition theirs on it.
 - [`docs/changes/`](docs/changes/) — change docs for feature-sized work, shaped by `_template.md`.
 - [`docs/retro/`](docs/retro/) — dated retro notes and archived journal windows. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)
   mined the transcript corpus that produced the review taxonomy; that corpus has since aged out, so
