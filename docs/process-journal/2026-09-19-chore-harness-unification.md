@@ -1,0 +1,1 @@
+2026-09-19 · decision · process substrate · CLAUDE.md § Process Substrate pointed at the journal README for the fragment grammar, and the README now carries only `retro at:`; the brief allowed repointing or dropping the clause, and it was repointed at `/vion-improve:journal`, the grammar's owner, so the folder's entry still says what shape a fragment takes.

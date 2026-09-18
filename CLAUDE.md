@@ -33,29 +33,28 @@ the known cases and applies it to the substrate too.
 At the start of a task, answer two questions out loud: is the change local? is a design point open?
 
 - **Fix-sized** — local, nothing open: branch, commit, review, pull request. No document. A change
-  that turns out not to be local stops and says so, and becomes feature-sized.
+  that turns out not to be local stops and says so: it is feature-sized.
 - **Feature-sized** — a change doc first, in `docs/changes/`. Ratified before code when a question
   in it is open. Archived in the pull request that lands it.
 
 ### STOPs
 
-- A STOP is named up front — by the brief, by an open question in the change doc, or by the lane
-  answer — and there is no other. With none named, the human review is on the pull request.
+- A STOP is named up front — by the brief, an open question in the change doc, or the lane answer —
+  and no other. With none named, human review is on the pull request.
 - A STOP is a `partial` REPORT with a question in it.
 - A decision nobody named is surfaced, not taken. A hedge in a brief is a STOP when it fails.
-- Scope does not widen on its own: a design or naming question is answered with options and changes
-  nothing until the human chooses; work nobody asked for is proposed, not produced.
+- Scope does not widen on its own: a design or naming question gets options and changes nothing
+  until the human chooses; work nobody asked for is proposed, not produced.
 - A question from the human is a question, not an instruction.
 - Anything committed after a `done` REPORT needs a new REPORT.
-- A request that breaks a convention of this repo is pushed back on before complying, naming the
-  convention.
-- Verification only a human can do is not a STOP: it is written as "not run, routes to a human" under
-  the pull request's Verification.
+- A request that breaks a convention of this repo is pushed back on before complying, by name.
+- Verification only a human can do is not a STOP: write it as "not run, routes to a human" under the
+  pull request's Verification.
 
 ### Communication
 
 - Say what was run, not that it worked.
-- A claim a decision rests on names its evidence: the command, the file and line, or that it is inferred.
+- A claim a decision rests on names its evidence: a command, a file and line, or that it is inferred.
 - Promise no notification that cannot be subscribed to.
 
 ### Never
@@ -69,19 +68,16 @@ At the start of a task, answer two questions out loud: is the change local? is a
 
 ## Skills in this repo
 
-Naming `/vion-git:` and `/vion-improve:` skills below opts this repo into both plugins.
-
 | moment | skill |
 |---|---|
 | starting work on a change | `/vion-git:branch` |
-| a unit of work lands — a task, an acceptance criterion, a fixed review finding | `/vion-git:commit` |
+| a unit of work lands — a task, a criterion, a fixed review finding | `/vion-git:commit` |
+| a correction to produced work, tooling that fought or false-passed, upstream that was wrong, a settled point, a grumble | `/vion-improve:journal` |
+| editing a file written for the agent — `CLAUDE.md`, a command, a skill, a convention doc, settings | `/vion-improve:harness` |
 | the branch is ready for a pull request | `/vion-git:pr` |
-| the journal's live window passes the header's `retro at:`, or the newest record ages past `retro`'s threshold | `/vion-improve:retro` |
+| a retro is due, by the count and age `retro` states | `/vion-improve:retro` |
 
 ### Pre-PR obligations
-
-In this order; an item's `On …:` is the trigger `/vion-git:pr` matches the changed paths against.
-CI runs `audit`, `check` and `build` on every pull request, so these are narrower by design.
 
 1. On `docs/**`, `scripts/check-docs.mjs`: `pnpm check`
 2. On `docs/**`: `pnpm build`
@@ -99,8 +95,7 @@ Beyond `/vion-git:pr`'s defaults. The published pages are this repo's product an
 ### Budgets
 
 Bytes as committed, enforced by hand: `CLAUDE.md` 10,240 · a repo command 12,288 · a
-repo skill 6,144 · `docs/review-checks.md` twelve checks. A file over its budget is touched only by
-a diff that makes it smaller than `origin/main`'s copy; a file under may not go over.
+repo skill 6,144 · `docs/review-checks.md` twelve checks.
 
 ### Parallel sessions
 
@@ -162,7 +157,7 @@ The improvement loop, tracked here per architecture decision 0113. All of it is 
 (§ Repo Scope).
 
 - [`docs/process-journal/`](docs/process-journal/) — friction log, one fragment per branch, in the
-  grammar its [`README.md`](docs/process-journal/README.md) states.
+  grammar `/vion-improve:journal` states.
 - [`docs/review-checks.md`](docs/review-checks.md) — the checks (§ Pre-PR Review).
 - [`docs/changes/`](docs/changes/) — change docs for feature-sized work, shaped by `_template.md`.
 - [`docs/retro/`](docs/retro/) — dated retro notes and archived journal windows. [Retro-0](docs/retro/2026-08-14-review-mining-round.md)
