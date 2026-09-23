@@ -403,70 +403,166 @@ Thrown when a response body was well-formed JSON that deserialized to null — t
 
 ---
 
+### HttpClientSummary
+
+A point-in-time summary of one HTTP client's requests: when a server last answered, the last failure, lifetime counts per outcome, and round trips over a recent window and since the client started.
+
+> Read it whenever you want it — every read returns a consistent snapshot. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`. It changes with every request, so the publish rate is set by the member's `MinInterval`: declare one in seconds, such as `"30s"`, and assign the summary from the block's own tick rather than from every callback. Each client instance keeps its own summary. A block that calls two services and wants them apart injects two clients. There is no up/down verdict: one client may call many servers, and only the caller knows its own cadence. Build one from `LastResponseAt` and the last failure. The `Recent` figures cover a window of the last 15 minutes on the client's clock — at least 15 and less than 16, or the client's whole life where that is shorter. An empty window reads its mean and max as `null` and its count as zero. Round trips are taken only from requests a server answered: successes, client errors, server errors and content errors. The counts and the `since start` maximum are for the lifetime of the client instance and are never reset. A call refused at the caller, before any request exists, is not counted.
+
+**Properties:**
+
+- `LastResponseAt` — When a server last answered, with any status.
+- `LastFailureAt` — When the last request that did not succeed ended.
+- `LastFailureOutcome` — How that request ended.
+- `LastFailureStatusCode` — The status that request was answered with, or `null` when no response arrived.
+- `SuccessCount` — Requests answered with a 2xx status whose content was read.
+- `ClientErrorCount` — Requests answered with a status outside 2xx and below 500.
+- `ServerErrorCount` — Requests answered with a status of 500 or above.
+- `ContentErrorCount` — Requests answered with a 2xx status whose body was absent, malformed or null.
+- `TimeoutCount` — Requests the request's own timeout, or the client's, ended.
+- `TransportErrorCount` — Requests whose connection, TLS handshake or response stream failed.
+- `InvalidCount` — Requests the client could not build or refused before sending.
+- `RecentRoundTripCount` — Requests a server answered in the last 15 minutes.
+- `RecentMeanRoundTrip` — The mean round trip over the last 15 minutes.
+- `RecentMaxRoundTrip` — The longest round trip in the last 15 minutes.
+- `MaxRoundTrip` — The longest round trip since the client started.
+- `MaxRoundTripAt` — When the request that set ended.
+- `InFlightCount` — Requests issued and not yet ended.
+
+**Methods:**
+
+- *Constructor* — A point-in-time summary of one HTTP client's requests: when a server last answered, the last failure, lifetime counts per outcome, and round trips over a recent window and since the client started.
+  - `LastResponseAt`: When a server last answered, with any status.
+  - `LastFailureAt`: When the last request that did not succeed ended.
+  - `LastFailureOutcome`: How that request ended.
+  - `LastFailureStatusCode`: The status that request was answered with, or `null` when no response arrived.
+  - `SuccessCount`: Requests answered with a 2xx status whose content was read.
+  - `ClientErrorCount`: Requests answered with a status outside 2xx and below 500.
+  - `ServerErrorCount`: Requests answered with a status of 500 or above.
+  - `ContentErrorCount`: Requests answered with a 2xx status whose body was absent, malformed or null.
+  - `TimeoutCount`: Requests the request's own timeout, or the client's, ended.
+  - `TransportErrorCount`: Requests whose connection, TLS handshake or response stream failed.
+  - `InvalidCount`: Requests the client could not build or refused before sending.
+  - `RecentRoundTripCount`: Requests a server answered in the last 15 minutes.
+  - `RecentMeanRoundTrip`: The mean round trip over the last 15 minutes.
+  - `RecentMaxRoundTrip`: The longest round trip in the last 15 minutes.
+  - `MaxRoundTrip`: The longest round trip since the client started.
+  - `MaxRoundTripAt`: When the request that set ended.
+  - `InFlightCount`: Requests issued and not yet ended.
+
+---
+
+### HttpOutcome
+
+How a single HTTP request ended.
+
+> The first four values mean a server answered: `ClientError` and `ServerError` carry the status it answered with on `StatusCode`. `Timeout` and `TransportError` mean no usable answer arrived — a `TransportError` keeps the 2xx status when the body broke after the headers — and `Invalid` that the request was never handed to the transport at all. A status of 500 or above is a `ServerError`; every other status outside 2xx — a 4xx, or a 1xx or 3xx the platform did not follow — is a `ClientError`.
+
+**Fields/Values:**
+
+- `Success` — The server answered with a 2xx status, and its content was read where the request reads any.
+- `ClientError` — The server answered with a status outside 2xx and below 500 — the request was not what it accepts.
+- `ServerError` — The server answered with a status of 500 or above.
+- `ContentError` — The server answered with a 2xx status, but its body was absent, malformed or deserialized to null.
+- `Timeout` — The request's own timeout, or the client's, elapsed before the response arrived.
+- `TransportError` — The connection, the TLS handshake or the response stream failed.
+- `Invalid` — Not sent: the client could not be built, or it refused the request — a URL no base address makes absolute, a disposed client, a request message sent before.
+
+---
+
+### HttpReceipt
+
+The facts of one HTTP request, handed to its success and its error callback alongside the value or the exception.
+
+> `StatusCode` is the status of the response the client judged, and is `null` when no response arrived. It is what tells a server's answer from a failure to reach it: a refused connection and a 404 both arrive as an `HttpRequestException`, and only the 404 carries a status here. The instant is taken when the outcome was observed, before the callback is handed to the block, so it is unaffected by how long the block takes to run it. `ReceivedAt` is wall clock and is what you publish; `ReceivedTimestamp` is the same instant on the monotonic scale — age a value with `TimeProvider.GetElapsedTime(receipt.ReceivedTimestamp)`. `RoundTrip` runs from handing the request to the client until the outcome was observed: for the members that return a value it includes reading and deserializing the body; for `SendRequest` it ends at the response headers, because the body is the callback's to read. Ignoring a receipt is a discard: `(value, _) =&gt; Temperature = value.Current`.
+
+**Properties:**
+
+- `ReceivedAt` — The UTC wall clock instant the outcome was observed.
+- `ReceivedTimestamp` — The same instant on the monotonic timestamp scale, for ageing the value.
+- `RoundTrip` — The time from handing the request to the client until the outcome was observed.
+- `Outcome` — How the request ended.
+- `StatusCode` — The status of the response, or `null` when no response arrived.
+
+**Methods:**
+
+- *Constructor* — The facts of one HTTP request, handed to its success and its error callback alongside the value or the exception.
+  - `ReceivedAt`: The UTC wall clock instant the outcome was observed.
+  - `ReceivedTimestamp`: The same instant on the monotonic timestamp scale, for ageing the value.
+  - `RoundTrip`: The time from handing the request to the client until the outcome was observed.
+  - `Outcome`: How the request ended.
+  - `StatusCode`: The status of the response, or `null` when no response arrived.
+
+---
+
 ### ILogicBlockHttpClient
 
 Provides non-blocking HTTP client functionality for logic blocks.
 
+**Properties:**
+
+- `Summary` — Gets a snapshot of every request this client has issued: when a server last answered, the last failure, counts per outcome and round trips. Each client instance keeps its own; see `HttpClientSummary` for what publishing it costs.
+
 **Methods:**
 
-- `GetJson<T>(IActorDispatcher, string, Action<T>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP GET request and passes the deserialized JSON response to the callback.
+- `GetJson<T>(IActorDispatcher, string, Action<T, HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP GET request and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the GET request to.
-  - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the deserialized response and the request's `HttpReceipt` on success.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `PostJson<T, T2>(IActorDispatcher, string, T, Action<T2>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body and passes the deserialized JSON response to the callback.
+- `PostJson<T, T2>(IActorDispatcher, string, T, Action<T2, HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the POST request to.
   - `body`: The object to serialize as the JSON request body.
-  - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the deserialized response and the request's `HttpReceipt` on success.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `PostJson<T>(IActorDispatcher, string, T, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body. The callback is invoked on success without a response body.
+- `PostJson<T>(IActorDispatcher, string, T, Action<HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP POST request with a JSON body. The callback is invoked on success without a response body.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the POST request to.
   - `body`: The object to serialize as the JSON request body.
-  - `successCallback`: Callback invoked when the request succeeds.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the request's `HttpReceipt` when the request succeeds.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `PutJson<T, T2>(IActorDispatcher, string, T, Action<T2>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body and passes the deserialized JSON response to the callback.
+- `PutJson<T, T2>(IActorDispatcher, string, T, Action<T2, HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block). Errors are always logged, regardless of whether an error callback is specified.
   - `url`: The URL to send the PUT request to.
   - `body`: The object to serialize as the JSON request body.
-  - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else.
+  - `successCallback`: Callback invoked with the deserialized response and the request's `HttpReceipt` on success.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `PutJson<T>(IActorDispatcher, string, T, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body. The callback is invoked on success without a response body.
+- `PutJson<T>(IActorDispatcher, string, T, Action<HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP PUT request with a JSON body. The callback is invoked on success without a response body.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the PUT request to.
   - `body`: The object to serialize as the JSON request body.
-  - `successCallback`: Callback invoked when the request succeeds.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the request's `HttpReceipt` when the request succeeds.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `DeleteJson<T>(IActorDispatcher, string, Action<T>, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request and passes the deserialized JSON response to the callback.
+- `DeleteJson<T>(IActorDispatcher, string, Action<T, HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request and passes the deserialized JSON response to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the DELETE request to.
-  - `successCallback`: Callback invoked with the deserialized response on success.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the deserialized response and the request's `HttpReceipt` on success.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `Delete(IActorDispatcher, string, Action, Action<Exception>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request. The callback is invoked on success without a response body.
+- `Delete(IActorDispatcher, string, Action<HttpReceipt>, Action<Exception, HttpReceipt>, Dictionary<string, string>, TimeSpan?)` — Performs a non-blocking HTTP DELETE request. The callback is invoked on success without a response body.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `url`: The URL to send the DELETE request to.
-  - `successCallback`: Callback invoked when the request succeeds.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the request's `HttpReceipt` when the request succeeds.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `headers`: HTTP headers to include in the request.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
-- `SendRequest(IActorDispatcher, HttpRequestMessage, Action<HttpResponseMessage>, Action<Exception>, TimeSpan?)` — Performs a non-blocking HTTP request and passes the `HttpResponseMessage` to the callback.
+- `SendRequest(IActorDispatcher, HttpRequestMessage, Action<HttpResponseMessage, HttpReceipt>, Action<Exception, HttpReceipt>, TimeSpan?)` — Performs a non-blocking HTTP request and passes the `HttpResponseMessage` to the callback.
   - `dispatcher`: The dispatcher that will invoke the callbacks. Pass the logic block that should handle the callbacks (typically `this` when calling from within a logic block).
   - `request`: The `HttpRequestMessage` to send. It stays yours: this member does not dispose it, and its method, URI, headers and content are the ones sent — no URL or header parameter of this member applies, and no content type is set for you.
-  - `successCallback`: Callback invoked with the `HttpResponseMessage` on success. The response is yours to read and to dispose: unlike the members that carry a response type, this one disposes nothing, and the callback may be reached while the body is still arriving, because the response is handed over as soon as its headers are in.
-  - `errorCallback`: Callback invoked with the exception if the request fails. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
+  - `successCallback`: Callback invoked with the `HttpResponseMessage` and the request's `HttpReceipt` on success. The response is yours to read and to dispose: unlike the members that carry a response type, this one disposes nothing, and the callback may be reached while the body is still arriving, because the response is handed over as soon as its headers are in.
+  - `errorCallback`: Callback invoked with the exception and the request's `HttpReceipt` if the request fails. The receipt's `StatusCode` is set only when a response arrived, which is what tells a non-success status from a transport failure. One class per failure: `HttpRequestException` for a non-success status or a transport failure the handler wrapped, `TimeoutException` when either the `timeout` above or the `HttpClient`'s own elapsed, `InvalidOperationException` for a URL that is not an absolute URI, `JsonException` for a body that is absent or malformed, `ContentNullAfterDeserializationException` for one that deserializes to null, and otherwise whatever the transport threw — this client wraps nothing else. Errors are always logged, regardless of whether an error callback is specified.
   - `timeout`: A bound on this request alone, applied in addition to the `HttpClient`'s own timeout rather than in place of it: whichever elapses first ends the request, so a value longer than the client's does not extend it. Either bound's expiry arrives as a `TimeoutException` naming, in seconds, the bound that actually elapsed.
 
 ---
@@ -502,6 +598,7 @@ A request a hosted HTTP server answered, as the client sent it.
 - `Headers` — Gets the request headers by case-insensitive name; a header sent more than once carries its values joined by `", "`.
 - `Body` — Gets the request body.
 - `ReceivedAt` — Gets when the request arrived, on the clock the server was composed with.
+- `StatusCode` — Gets the status the server answered the request with: the published response's, or the 404 or 405 it sent when nothing was published for the request.
 
 ---
 
@@ -528,6 +625,41 @@ A response a hosted HTTP server sends: a status, an optional content type and a 
 - `NotFound` — The empty 404 the server sends for a path nothing is published on.
 - `MethodNotAllowed(IEnumerable<string>)` — The empty 405 the server sends for a path published only under other methods, naming those methods.
 - `Refusal(HttpStatusCode)` — A refusal the transport answers itself, before a request reaches the route table.
+
+---
+
+### HttpServerSummary
+
+A point-in-time summary of what a hosted HTTP server has answered and refused: counts of requests answered and refused, the last request and the last refusal, and the connections it is serving now.
+
+> Read it whenever you want it, without a `Sync` callback — every read returns a consistent snapshot. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`. It changes with every request, so the publish rate is set by the member's `MinInterval`: declare one in seconds, such as `"30s"`, and assign the summary from the block's own tick. A request is counted as answered once its response has been written in full — the moment it is also recorded for the block to take. A route the block published itself with a 404 counts as answered; only a 404 or 405 the server sent because nothing was published counts as unmatched. The counts are for the lifetime of the server instance, across disabling and enabling, and are never reset. `DroppedCount` is the lifetime total; the snapshot's `DroppedRequestCount` counts only since the block last took the requests.
+
+**Properties:**
+
+- `LastRequestAt` — The latest arrival among the requests the server has recorded.
+- `AnsweredCount` — Requests answered from a response the block published.
+- `UnmatchedCount` — Requests answered 404 or 405 because nothing was published for them.
+- `RefusedCount` — Requests the server refused itself: malformed, chunked, or over a size cap.
+- `OverloadedCount` — Connections refused with 503 because the connection limit was reached.
+- `AbandonedCount` — Connections closed with neither a response written in full nor a refusal.
+- `DroppedCount` — Recorded requests dropped from the log before the block took them.
+- `LastRefusalAt` — When the server last refused a request or a connection.
+- `LastRefusalStatus` — The status it refused with.
+- `ActiveConnections` — Connections the server is serving now.
+
+**Methods:**
+
+- *Constructor* — A point-in-time summary of what a hosted HTTP server has answered and refused: counts of requests answered and refused, the last request and the last refusal, and the connections it is serving now.
+  - `LastRequestAt`: The latest arrival among the requests the server has recorded.
+  - `AnsweredCount`: Requests answered from a response the block published.
+  - `UnmatchedCount`: Requests answered 404 or 405 because nothing was published for them.
+  - `RefusedCount`: Requests the server refused itself: malformed, chunked, or over a size cap.
+  - `OverloadedCount`: Connections refused with 503 because the connection limit was reached.
+  - `AbandonedCount`: Connections closed with neither a response written in full nor a refusal.
+  - `DroppedCount`: Recorded requests dropped from the log before the block took them.
+  - `LastRefusalAt`: When the server last refused a request or a connection.
+  - `LastRefusalStatus`: The status it refused with.
+  - `ActiveConnections`: Connections the server is serving now.
 
 ---
 
@@ -565,7 +697,7 @@ Hosts an HTTP server for a logic block: clients elsewhere on the network request
 - `ListenAddress` — Gets or sets the local IP address the server listens on. Default is `"127.0.0.1"` (loopback); `"0.0.0.0"` listens on all interfaces. Changeable only while disabled.
 - `Port` — Gets or sets the local port the server listens on, from 1 to 65535. Default is 8080; changeable only while disabled.
 - `IsListening` — Gets a value indicating whether the server is currently listening for connections.
-- `LastRequestAt` — Gets when the most recent request arrived, or `null` when none has.
+- `Summary` — Gets a snapshot of what the server has answered and refused, readable without a `Sync` callback; see `HttpServerSummary` for what publishing it costs.
 
 **Methods:**
 
