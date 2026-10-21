@@ -107,7 +107,7 @@ dale topology schema --out topologies/.dale/topology.schema.json
 dale topology validate
 ```
 
-`validate` reads `./topologies` unless `--dir` names another directory, and `--require-schema-ref` fails a file with no `"$schema"` instead of warning.
+`validate` reads `./topologies` unless `--dir` names another directory.
 
 ## Command group
 
