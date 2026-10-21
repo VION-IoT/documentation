@@ -34,8 +34,8 @@ The Dale CLI gives AI agents a complete development feedback loop:
 | `dale add timer Poll --interval 5` | Add a timer via command |
 | `dale dev --headless` | Boots the DevHost without a browser and prints a JSON readiness line for the agent to parse |
 | `dale dev --stepped` | Boots a deterministic virtual clock so scenario runs step exactly |
-| `dale scenario run <id>` | Drives a committed scenario and returns a structured report |
-| `dale scenario validate` | Resolves every name path and topology offline — the CI gate |
+| `dale scenario run <id> --port <port>` | Drives a committed scenario and returns a structured report |
+| `dale scenario validate --config <file>` | Checks name paths and topology against an exported configuration, with no host running — the CI gate |
 | `dale scenario scaffold <id>` | Graduates a scenario to a typed xUnit test |
 
 The `--output json` flag on every command means agents can parse results programmatically rather than scraping terminal output.
@@ -47,9 +47,9 @@ The DevHost gives an agent a closed loop it can drive without a human in front o
 The loop has four moves:
 
 1. Boot a headless, deterministic DevHost with `dale dev --headless --stepped`. The host prints a JSON readiness line on stdout (`{"ready":true,"port":...}`) that the agent parses to learn the port.
-2. Drive a committed scenario with `dale scenario run <id>`. This returns the same structured report the Player's copy button produces — pass or fail, with the failing step's detail.
+2. Drive a committed scenario with `dale scenario run <id> --port <port>`. This returns the same structured report the Player's copy button produces — pass or fail, with the failing step's detail.
 3. Iterate on the failure detail until the report is green.
-4. Gate the work offline in CI with `dale scenario validate`, which resolves every name path and topology against the wired-host configuration without a running host.
+4. Gate the work offline in CI with `dale dev --export-config config.json` and `dale scenario validate --config config.json`, which check name paths and topology without a running host.
 
 When a scenario outgrows the file format, `dale scenario scaffold <id>` graduates it to a typed xUnit test (it runs the scenario's setup and steps via `ScenarioRunner.ApplyAsync` and leaves TODO assertions for the human judgments).
 

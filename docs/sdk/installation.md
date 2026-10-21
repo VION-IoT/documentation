@@ -28,25 +28,10 @@ dale --version
 
 ### `dale new` — Scaffold a Project
 
-Creates a new logic block library with DevHost and test projects.
+Creates a new logic block library with DevHost and test projects, a worked `Thermostat` block, a topology, and a scenario. [Quick Start](/introduction/quick-start#create-a-new-project) shows the generated tree.
 
 ```bash
 dale new MyLibrary
-```
-
-Output:
-```text
-✔ Created MyLibrary
-
-    MyLibrary/MyLibrary.csproj              (logic block library)
-    MyLibrary/MyLibrary.DevHost.csproj       (local DevHost with web UI)
-    MyLibrary/MyLibrary.Test.csproj          (tests)
-
-  Next steps:
-    cd MyLibrary
-    dale build
-    dale test
-    dale dev                                (web UI at localhost:5000)
 ```
 
 Use `--no-interactive` to skip prompts (useful in CI):
@@ -90,8 +75,10 @@ Starts the DevHost with a web UI for live testing.
 
 ```bash
 dale dev
-# Web UI at http://localhost:5000
+# DevHost Web UI running at http://localhost:5000
 ```
+
+The DevHost takes port 5000, or the next free port when 5000 is taken, and prints the address it bound.
 
 The DevHost lets you inspect and modify property values, simulate inputs, and debug logic block behavior — all in your browser.
 
@@ -177,9 +164,19 @@ dale scenario validate
 
 The verbs `run`, `validate`, `schema`, `scaffold`, and `open` are documented in [Scenarios](/sdk/scenarios).
 
+### `dale topology` — Topology Files
+
+Validates `*.topology.json` files and writes their editor schema, with no DevHost running.
+
+```bash
+dale topology validate
+```
+
+The verbs `validate` and `schema` are documented in [Scenarios](/sdk/scenarios#topology-files).
+
 ## `dale add` — Code Generation
 
-Add elements to a logic block without writing boilerplate. Run these commands from inside the logic block project folder, or pass `--project <path>` to target it explicitly — unlike `dale new`, `dale build`, and `dale test`, `dale add` cannot auto-detect the right project from the solution root when multiple csproj files exist.
+Add elements to a logic block without writing boilerplate. Run these commands from inside the logic block project folder, or from a solution root where exactly one project references the Dale SDK; otherwise pass `--project <path>`.
 
 ### Add a Logic Block
 
@@ -296,7 +293,7 @@ Options:
 
 ```bash
 dale login                          # Opens browser for Keycloak OAuth
-dale login --environment production # Target a specific environment
+dale login --environment test       # Default: the stored environment, else production
 dale whoami                         # Show current identity
 dale logout                         # Clear stored credentials
 ```
@@ -306,10 +303,10 @@ dale logout                         # Clear stored credentials
 ```bash
 dale config show                            # Show current config
 dale config set-environment production      # Switch environment
-dale config set-integrator                  # Select active integrator (interactive)
+dale config set-integrator                  # Select active integrator
 ```
 
-`set-integrator` fetches the current user's integrator memberships from the cloud and prompts to pick one. There are no flags — run `dale login` first.
+`set-integrator` fetches the current user's integrator memberships from the cloud, selects the only one or prompts to pick one, and takes `--integrator-id <id>` to select without prompting. Run `dale login` first.
 
 `set-environment` accepts the following options:
 
@@ -326,23 +323,6 @@ Custom environments:
 dale config set-environment custom \
   --auth-url https://auth.example.com/realms/vion \
   --api-url https://api.example.com
-```
-
-## Project Structure
-
-`dale new` creates three projects:
-
-```text
-MyLibrary/
-├── MyLibrary/                    # Logic block library (netstandard2.1)
-│   ├── MyLibrary.csproj
-│   ├── DependencyInjection.cs    # Service registration
-│   ├── HelloWorld.cs             # Example logic block
-│   └── SmartLedController.cs     # Example with I/O contracts
-├── MyLibrary.DevHost/            # DevHost (net10.0)
-│   └── MyLibrary.DevHost.csproj
-└── MyLibrary.Test/               # Unit tests (net10.0)
-    └── MyLibrary.Test.csproj
 ```
 
 ## Global Options

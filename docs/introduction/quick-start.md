@@ -146,7 +146,7 @@ Start the DevHost to run the library with a web UI:
 dale dev
 ```
 
-Open `http://localhost:5000` in your browser. Drag the **Target Temperature** slider and watch **Current Temperature** track toward it while the **Status** pill changes colour — green `Idle`, then `Heating` or `Cooling` as the controller engages. The energy meter climbs while the thermostat is actively heating or cooling.
+`dale dev` opens the web UI in your browser at `http://localhost:5000`, or at the next free port when 5000 is taken — the console prints the address. Drag the **Target Temperature** slider and watch **Current Temperature** track toward it while the **Status** pill changes colour — green `Idle`, then `Heating` or `Cooling` as the controller engages. The energy meter climbs while the thermostat is actively heating or cooling.
 
 The DevHost is folder-driven: it discovers which block instances to wire up from `topologies/default.topology.json`, so you do not edit `Program.cs`. Register new blocks in `DependencyInjection.cs` and add their instances to the topology file.
 
@@ -163,6 +163,8 @@ In a second terminal, run the scenario against the running DevHost and print its
 ```bash
 dale scenario run thermostat
 ```
+
+When the DevHost bound a port other than 5000, pass it with `--port`.
 
 Scenarios are the committed, replayable check that the Player, CI, and agents all run from the same file. See [Scenarios](/sdk/scenarios) for the authoring loop.
 
@@ -244,7 +246,7 @@ namespace SmartThermostat
 }
 ```
 
-Register the new block in `DependencyInjection.cs`:
+`dale add logicblock` has already registered the new block in `DependencyInjection.cs`:
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
