@@ -303,6 +303,17 @@ services.AddDaleModbusTcpSdk();
 The `Vion.Dale.Sdk.Http` package provides `ILogicBlockHttpClient` — a non-blocking HTTP client for calling external APIs from logic blocks. All operations use callbacks dispatched through the actor system, so the logic block thread is never blocked.
 
 ```csharp
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Http;
+
+public class WeatherReading
+{
+    [JsonPropertyName("temperature")]
+    public double Temperature { get; set; }
+}
+
 [LogicBlock(Name = "Weather Station")]
 public class WeatherStation : LogicBlockBase
 {
@@ -318,36 +329,86 @@ public class WeatherStation : LogicBlockBase
     [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public double Temperature { get; private set; }
 
+    [ServiceProperty(Title = "Last Error")]
+    [Presentation(Group = PropertyGroup.Diagnostics)]
+    public string LastError { get; private set; } = "";
+
+    protected override void Ready() { }
+
     [Timer(300)]
     public void FetchWeather()
     {
-        _http.GetJson<WeatherResponse>(
+        _http.GetJson<WeatherReading>(
             this,
-            "https://api.open-meteo.com/v1/forecast?latitude=47.37&longitude=8.55&current=temperature_2m",
-            response => { Temperature = response.Current.Temperature2m; },
-            ex => Logger.LogWarning(ex, "Weather API error"));
+            "https://weather.example.com/api/current",
+            (reading, receipt) => Temperature = reading.Temperature,
+            (ex, receipt) => LastError = $"{receipt.Outcome} {receipt.StatusCode}");
     }
 }
 ```
 
+A response with a non-success status code arrives at the error callback; `receipt.StatusCode` is set whenever a server answered, which tells it apart from a connection failure.
+
 Available methods:
 
-| Method                 | Description                               |
-| ---------------------- | ----------------------------------------- |
-| `GetJson<T>`           | GET request, deserialize JSON response    |
-| `PostJson<TReq, TRes>` | POST with JSON body, deserialize response |
-| `PostJson<TReq>`       | POST with JSON body, no response body     |
-| `PutJson<TReq, TRes>`  | PUT with JSON body, deserialize response  |
-| `PutJson<TReq>`        | PUT with JSON body, no response body      |
-| `DeleteJson<T>`        | DELETE, deserialize response              |
-| `Delete`               | DELETE, no response body                  |
-| `SendRequest`          | Raw `HttpRequestMessage` for full control |
+| Method                 | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `GetJson<T>`           | GET request, deserialize JSON response                       |
+| `PostJson<TReq, TRes>` | POST with JSON body, deserialize response                    |
+| `PostJson<TReq>`       | POST with JSON body, no response body                        |
+| `PutJson<TReq, TRes>`  | PUT with JSON body, deserialize response                     |
+| `PutJson<TReq>`        | PUT with JSON body, no response body                         |
+| `DeleteJson<T>`        | DELETE, deserialize response                                 |
+| `Delete`               | DELETE, no response body                                     |
+| `SendRequest`          | Raw `HttpRequestMessage`; the callback disposes the response |
 
-All methods accept optional `headers` and `timeout` parameters. Register the package:
+All methods accept an optional `timeout`, and all but `SendRequest` optional `headers`. Register the package:
 
 ```csharp
 services.AddDaleHttpSdk();
 ```
+
+## HTTP Server
+
+The same package lets a logic block serve HTTP. Inject `ILogicBlockHttpServer`, publish responses inside `Sync`, and enable it:
+
+```csharp
+using System.Net.Http;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Http.Server;
+
+[LogicBlock(Name = "Status Endpoint")]
+public class StatusEndpoint : LogicBlockBase
+{
+    private readonly ILogicBlockHttpServer _server;
+
+    public StatusEndpoint(ILogger logger, ILogicBlockHttpServer server) : base(logger)
+    {
+        _server = server;
+    }
+
+    [ServiceProperty(Title = "Setpoint", Unit = "kW")]
+    public double Setpoint { get; set; }
+
+    protected override void Ready()
+    {
+        Publish();
+        _server.IsEnabled = true;
+    }
+
+    [Timer(1)]
+    public void Publish()
+    {
+        var body = JsonSerializer.Serialize(new { setpoint = Setpoint });
+        _server.Sync(snapshot =>
+            snapshot.SetResponse(HttpMethod.Get, "/status", HttpServerResponse.Json(body)));
+    }
+}
+```
+
+The server listens on `127.0.0.1:8080` until `ListenAddress` and `Port` say otherwise, and serves plain HTTP with no authentication. `snapshot.TakeReceivedRequests()` returns the requests received since the last call.
 
 ## Link Multiplicity
 
