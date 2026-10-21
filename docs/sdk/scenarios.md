@@ -49,7 +49,7 @@ Top-level fields:
 | `version` (required) | Vocabulary version. Runners reject unknown versions. |
 | `id` (required) | URL-safe slug; must match the file name. The deep-link route is `#/scenario/{id}`. |
 | `title`, `description` | Human-readable text shown in the Player and reports. |
-| `topology` (required) | The topology id the scenario expects, compared against the running network. A mismatch blocks the run. |
+| `topology` (required) | The topology id the scenario runs on. The DevHost switches to it before the run, and refuses the run when it cannot. |
 | `specs` | Free-form trace ids for the scenario as a whole. |
 | `setup` | Staging entries applied in file order before the steps run. |
 | `steps` | The ordered sequence of stimuli and assertions. |
@@ -94,15 +94,24 @@ A topology declares the instance graph scenarios run against — which logic blo
 | Field | Description |
 |-------|-------------|
 | `id` (required) | The topology id a scenario references. |
-| `logicBlockInstances` | The instances in the graph, each a `typeFullName` and an instance `name`. |
+| `logicBlockInstances` (required) | The instances in the graph, each a `typeFullName` and an instance `name`. |
 | `interfaceMappings` | Wiring between logic block interfaces. |
 | `contractMappings` | Service provider contract bindings; an unmapped contract gets a DevHost mock. |
 
 The instance `name` is what scenario name paths bind to. To migrate an existing C# preset, run `dale dev --export-topology <file>`.
 
+Write the editor schema the files reference, and check every file the way the DevHost loads it — neither needs a running DevHost:
+
+```bash
+dale topology schema --out topologies/.dale/topology.schema.json
+dale topology validate
+```
+
+`validate` reads `./topologies` unless `--dir` names another directory, and `--require-schema-ref` fails a file with no `"$schema"` instead of warning.
+
 ## Command group
 
-The `dale scenario` verbs have no SDK dependency and run wherever the Dale CLI is installed. Each accepts the global `-o json` option, except `schema` and `scaffold`, where `-o` names an output file instead.
+The `dale scenario` verbs have no SDK dependency and run wherever the Dale CLI is installed. Each accepts the global `-o json` option; `schema` and `scaffold` write their file with `--out`.
 
 ### run
 
@@ -114,7 +123,7 @@ dale scenario run thermostat
 
 | Flag | Description |
 |------|-------------|
-| `--port <port>` | Port of the running DevHost (default 5000). |
+| `--port <port>` | Port of the running DevHost, as its address or readiness line printed it (default 5000). |
 | `--restart` | Cancel an active run and take over. |
 | `--timeout <timeout>` | Seconds to wait for the run to finish (default 600). |
 
@@ -131,7 +140,7 @@ dale scenario validate --config config.json
 |------|-------------|
 | `--dir <dir>` | Scenarios directory (default `./scenarios`). |
 | `--config <config>` | Configuration export from `dale dev --export-config`. When omitted, the running DevHost is used. |
-| `--port <port>` | Port of the running DevHost (default 5000). |
+| `--port <port>` | Port of the running DevHost, as its address or readiness line printed it (default 5000). |
 
 ### schema
 
@@ -139,18 +148,18 @@ Print the scenario JSON Schema, enriched with the topology's actual name paths w
 
 ```bash
 dale dev --export-config config.json
-dale scenario schema --config config.json -o scenarios/.dale/scenario.schema.json
+dale scenario schema --config config.json --out scenarios/.dale/scenario.schema.json
 ```
 
 | Flag | Description |
 |------|-------------|
-| `-o <file>` | Write to this file instead of printing. Conventionally `scenarios/.dale/scenario.schema.json`. |
+| `--out <file>`, `-O` | Write to this file instead of printing. Conventionally `scenarios/.dale/scenario.schema.json`. |
 | `--config <config>` | Configuration export to enrich from. Defaults to the running DevHost. |
-| `--port <port>` | Port of the running DevHost (default 5000). |
+| `--port <port>` | Port of the running DevHost, as its address or readiness line printed it (default 5000). |
 
 ### scaffold
 
-Generate a typed C# test from a scenario file — the graduation path when a scenario outgrows the format. The test runs the scenario's setup and steps, with TODO assertions for its human judgments. See [Testing](/sdk/testing).
+Generate a typed C# test from a scenario file — the graduation path when a scenario outgrows the format. The test runs the scenario's setup and steps against a wired DevHost that you build in its `CreateHostAsync`, with TODO assertions for its human judgments. See [Testing](/sdk/testing).
 
 ```bash
 dale scenario scaffold thermostat
@@ -160,11 +169,11 @@ dale scenario scaffold thermostat
 |------|-------------|
 | `--dir <dir>` | Scenarios directory (default `./scenarios`). |
 | `--namespace <namespace>` | Namespace for the generated test class (default `ScenarioTests`). |
-| `-o <file>` | Write to this file (default `<Id>ScenarioTest.cs`); pass `-` to print to stdout. |
+| `--out <file>`, `-O` | Write to this file (default `<Id>ScenarioTest.cs`); pass `-` to print to stdout. |
 
 ### open
 
-Open a scenario in the running DevHost's Player, resolving the `#/scenario/{id}` deep link on the host's actual port. Cite a scenario by id in a pull request rather than a per-machine localhost URL.
+Open a scenario in the running DevHost's Player, resolving the `#/scenario/{id}` deep link on the port `--port` names. Cite a scenario by id in a pull request rather than a per-machine localhost URL.
 
 ```bash
 dale scenario open thermostat
@@ -172,7 +181,7 @@ dale scenario open thermostat
 
 | Flag | Description |
 |------|-------------|
-| `--port <port>` | Port of the running DevHost (default 5000). |
+| `--port <port>` | Port of the running DevHost, as its address or readiness line printed it (default 5000). |
 
 ## Deterministic stepping
 
@@ -188,14 +197,14 @@ The Player is the DevHost web UI view for a scenario: ordered steps with acks an
 
 ## ScenarioWireAttribute
 
-`ScenarioWireAttribute` marks a service provider handler with the wire struct its contract carries, letting the DevHost drive an input contract or assert an output contract through the generic handler. It is a DevHost-only declarative marker for scenario testing — the production runtime never reads it and it carries no runtime behavior. Apply it to a `ServiceProviderHandlerBase` with the inbound struct a scenario drives, the outbound struct a scenario asserts, or both:
+`ScenarioWireAttribute` marks a service provider handler with the wire struct its contract carries, letting the DevHost drive an input contract or assert an output contract through the generic handler. It is a DevHost-only declarative marker for scenario testing — the production runtime never reads it and it carries no runtime behavior. Apply it once to a `ServiceProviderHandlerBase`, naming the inbound struct a scenario drives, the outbound struct a scenario asserts, or both:
 
 ```csharp
 using Vion.Dale.Sdk.Abstractions;
+using Vion.Dale.Sdk.DigitalIo.Output;
 
-[ScenarioWire(Inbound = typeof(DigitalInputChanged))]
-[ScenarioWire(Outbound = typeof(SetDigitalOutput))]
-public sealed class DigitalIoHandler : ServiceProviderHandlerBase
+[ScenarioWire(Inbound = typeof(DigitalOutputChanged), Outbound = typeof(SetDigitalOutput))]
+public sealed class MyOutputHandler : ServiceProviderHandlerBase
 {
     // handler implementation
 }
