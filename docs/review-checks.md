@@ -1,6 +1,6 @@
 # Review checks
 
-- CHK-01 (was T1) — Verbosity: every paragraph is something the reader needs in order to act; an explanation of internals, design rationale, degraded-case behaviour or marketing, or a caveat that runs past one sentence.
+- CHK-01 (was T1) — Verbosity: every paragraph is something the reader needs in order to act; an explanation of internals, design rationale, degraded-case behaviour or marketing, a caveat that runs past one sentence, or a member, option, limit or advanced case most readers never use.
 - CHK-02 (was T2) — A new topic is not a new page: a feature gets a section on the page that owns its topic, and adjacent pages link rather than repeat; a page that exists only because the feature is new, or the same content in two places.
 - CHK-03 (was T3) — Claims verified against source: every CLI flag, attribute, type name, default and lifecycle hook checked against `../dale-sdk` (CLI, SDK, compiled `examples/`), `../dale`, `../cloud-api` or `../mesh`; a plausible flag or command that does not exist, a renamed or removed API still described, or a code example that does not compile against the current SDK.
 - CHK-04 (was T4) — Internal references never ship: no spec slug, Jira key, actor internal or messaging plumbing reaches a page; a paragraph that describes an internal mechanism without naming it, which the gate's literal patterns cannot see.

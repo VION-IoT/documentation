@@ -7,3 +7,5 @@
 2026-10-21 · brief · cloud-api · The Scalar description of subscribeProperties says to call it before connecting to MQTT and to read values from the topics it returns; the call returns no topics, the topics come from the Services response, and the docs state the opposite order. (self)
 
 2026-10-21 · brief · dale-sdk · services.md documents ServiceProviderContractTypeAttribute for authoring a contract type, and the SDK does not mark it public API. (self)
+
+2026-10-21 · review · sdk-api-drift · The proposal planned a section for nearly every new public type, limits lists and advanced cases on the SDK and Cloud API pages; asked instead for the important, most-used things only, leaving the rest to the public source and its XML documentation.
