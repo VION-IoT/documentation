@@ -108,7 +108,7 @@ The receiver implements `HandleCommand<TMessage>`:
 ```csharp
 public void HandleCommand(PingContract.Ping message)
 {
-    Logger.LogInformation("Received ping: {Payload}", message.Payload);
+    _logger.LogInformation("Received ping: {Payload}", message.Payload);
 }
 ```
 
@@ -145,7 +145,7 @@ this.SendRequest(pongerInterfaceId, new PingPongContract.Ping("ping!"));
 // Handle the response when it arrives.
 public void HandleResponse(InterfaceId sender, PingPongContract.Pong response)
 {
-    Logger.LogInformation("Got pong: {Reply}", response.Reply);
+    _logger.LogInformation("Got pong: {Reply}", response.Reply);
 }
 ```
 
@@ -197,13 +197,13 @@ The receiver implements `HandleStateUpdate` and receives the sender's `Interface
 ```csharp
 public void HandleStateUpdate(InterfaceId sender, Toggling.TogglePressed message)
 {
-    Logger.LogInformation("Toggle pressed by {Sender}", sender);
+    _logger.LogInformation("Toggle pressed by {Sender}", sender);
     IsOn = true;
 }
 
 public void HandleStateUpdate(InterfaceId sender, Toggling.ToggleReleased message)
 {
-    Logger.LogInformation("Toggle released by {Sender}", sender);
+    _logger.LogInformation("Toggle released by {Sender}", sender);
     IsOn = false;
 }
 ```
