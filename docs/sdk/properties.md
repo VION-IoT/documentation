@@ -228,7 +228,7 @@ The 250 ms `MinInterval` throttle is **on by default**. A read-only value emits 
 Emission is **outbound-only**: writes into a writable property are always forwarded immediately, so put these knobs on read-only computed or sensed values, not operator inputs.
 
 - `MinInterval` is leading-edge: the first change after idle emits immediately; later changes within the interval coalesce latest-wins and flush at the boundary. Durations take an optional `us` / `ms` / `s` / `m` / `h` suffix; a bare number is milliseconds.
-- `MinChange` takes an invariant-culture number for `double` / `float` / `decimal` / `int` / `long` (e.g. `"0.5"`) or a duration for `TimeSpan` (e.g. `"1s"`); `bool` is a compile error. Any other type takes a deadband from an `IChangeThreshold<T>` implementation in the library.
+- `MinChange` takes an invariant-culture number for `double` / `float` / `decimal` / `int` / `long` (e.g. `"0.5"`) or a duration for `TimeSpan` (e.g. `"1s"`); `bool` is a compile error. Any other type takes a deadband from an `IChangeThreshold<T>` implementation in the assembly that declares the `MinChange`.
 - `Immediate = true` emits every change, but the value-equality floor still drops no-op assignments. Use it for safety and error flags.
 
 A member carrying **both** attributes throttles independently per stream — neither gate suppresses the other, and the knobs do **not** cross-fill.
