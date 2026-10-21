@@ -16,6 +16,8 @@ API="https://api.vion.swiss"
 TENANT_ID="<your-tenant-id>"
 ```
 
+A list answers an object with its rows under `items`, never a bare array. A paged list adds `nextCursor`, which you send back as the `cursor` query parameter; it is `null` on the last page. `GET /Me` and `GET /Tenant/{tenantId}/Services` answer single objects.
+
 ::: tip Finding Your IDs
 Call `GET /Me` to see your tenant and integrator memberships with their IDs:
 ```bash
@@ -32,7 +34,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   $API/Tenant/$TENANT_ID/Services
 ```
 
-The response includes services grouped by edge gateway, with properties and measuring points nested under each service.
+The response is one object whose `services` array lists every service with its `edgeGatewayId`, properties and measuring points.
 
 ## Set a Property Value
 
@@ -60,7 +62,7 @@ Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the propert
 
 Three details decide whether this works. The `clientId` must be the same string you send as `subscriberId` in step 2, and it must be your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore. Subscribe at QoS 0. Register the last will — it is what tears the subscription down when your client goes away, and without it the edge gateway keeps publishing after you close the tab. Get any of the three wrong and the broker refuses the subscription and closes the connection, naming nothing.
 
-Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `me` and `services` are the responses from the `GET /Me` and `GET /Tenant/{tenantId}/Services` calls above:
+Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `me` is the `GET /Me` response and `services` is the `services` array of the `GET /Tenant/{tenantId}/Services` response:
 
 ```js
 import mqtt from "mqtt";
@@ -149,17 +151,19 @@ curl -X POST \
 
 ## Query Measuring Point Data
 
-Retrieve time-series data for measuring points within a time range:
+Retrieve time-series data for measuring points within a time range, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   "$API/Tenant/$TENANT_ID/MeasuringPoints/data?\
 timeRangeStart=2026-03-01T00:00:00Z&\
 timeRangeEnd=2026-03-24T00:00:00Z&\
+aggregationInterval=Hourly&\
 edgeGatewayIds={gatewayId}&\
 serviceProviderIdentifiers={spId}&\
 serviceIdentifiers={serviceId}&\
-measuringPointIdentifiers=Power,Energy"
+measuringPointIdentifiers=Power&\
+measuringPointIdentifiers=Energy"
 ```
 
 ## List Projects
@@ -202,6 +206,25 @@ List the grants you have made on your libraries:
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   "$API/Integrator/$INTEGRATOR_ID/LogicBlockLibraryGrants"
+```
+
+The rows are under `items`:
+
+```json
+{
+  "items": [
+    {
+      "id": "<grant-id>",
+      "logicBlockLibraryId": "<library-id>",
+      "ownerIntegratorId": "<your-integrator-id>",
+      "ownerIntegratorName": "Acme Integration",
+      "ownerIntegratorSlug": "acme",
+      "granteeIntegratorId": "<partner-integrator-id>",
+      "granteeIntegratorName": "Example Partner",
+      "granteeIntegratorSlug": "example-partner"
+    }
+  ]
+}
 ```
 
 Revoke a grant by its ID:
