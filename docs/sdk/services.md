@@ -102,17 +102,31 @@ What a wiring plan needs:
 - Outputs are high-impedance at power-on, and logical off leaves the load de-energised.
 - Input changes are debounced over a 50 ms trailing window, so a contract reports where the line settled rather than the first edge of a bounce.
 
-## Modbus RTU Example
+## Modbus
+
+Two packages read and write Modbus registers with the same typed, callback-based methods. Both callbacks receive a `ModbusReceipt` whose `Outcome` says how the request ended, and a client's `Link` property returns a summary of its link that a block can publish as a diagnostics property.
+
+### Modbus RTU
 
 The `Vion.Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. Declare it with `[ServiceProviderContractBinding]`, the Dale runtime injects an implementation, and use it to read and write Modbus registers directly.
 
 ```csharp
-[LogicBlock(Name = "EM122 Electricity Meter", Icon = "flashlight-line")]
-public class Em122ElectricityMeter : LogicBlockBase
-{
-    public Em122ElectricityMeter(ILogger logger) : base(logger) { }
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Modbus.Core.Diagnostics;
+using Vion.Dale.Sdk.Modbus.Rtu;
 
-    [ServiceProviderContractBinding(Identifier = "Modbus", DefaultName = "EM122 Modbus RTU")]
+[LogicBlock(Name = "Energy Meter", Icon = "flashlight-line")]
+public class EnergyMeter : LogicBlockBase
+{
+    private readonly ILogger _logger;
+
+    public EnergyMeter(ILogger logger) : base(logger)
+    {
+        _logger = logger;
+    }
+
+    [ServiceProviderContractBinding(Identifier = "Modbus", DefaultName = "Meter Modbus RTU")]
     public IModbusRtu Modbus { get; set; } = null!;
 
     [ServiceProperty(Title = "Unit ID")]
@@ -134,13 +148,9 @@ public class Em122ElectricityMeter : LogicBlockBase
     [Presentation(Group = PropertyGroup.Status)]
     public double VoltageL3 { get; private set; }
 
-    [ServiceProperty(Title = "Read Count")]
+    [ServiceProperty(Title = "Link")]
     [Presentation(Group = PropertyGroup.Diagnostics)]
-    public int ReadCount { get; private set; }
-
-    [ServiceProperty(Title = "Error Count")]
-    [Presentation(Group = PropertyGroup.Diagnostics)]
-    public int ErrorCount { get; private set; }
+    public ModbusLinkSummary Link { get; private set; }
 
     protected override void Ready()
     {
@@ -155,21 +165,20 @@ public class Em122ElectricityMeter : LogicBlockBase
         Modbus.ReadInputRegistersAsFloat(
             UnitId,
             startingAddress: 0,
-            quantity: 3,
-            successCallback: values =>
+            count: 3,
+            dispatcher: this,
+            successCallback: (values, receipt) =>
             {
                 VoltageL1 = values[0];
                 VoltageL2 = values[1];
                 VoltageL3 = values[2];
-                ReadCount++;
+                Link = Modbus.Link;
             },
-            errorCallback: OnError);
-    }
-
-    private void OnError(Exception ex)
-    {
-        ErrorCount++;
-        Logger.LogWarning(ex, "Modbus error at unit {UnitId}", UnitId);
+            errorCallback: (ex, receipt) =>
+            {
+                Link = Modbus.Link;
+                _logger.LogWarning(ex, "Modbus read ended {Outcome}", receipt.Outcome);
+            });
     }
 }
 ```
@@ -190,31 +199,47 @@ All operations are callback-based and support configurable byte order, word orde
 // Write a holding register with explicit byte order.
 Modbus.WriteMultipleHoldingRegistersAsFloat(
     UnitId,
-    registerAddress: 2,
+    startingAddress: 2,
     values: new[] { 15.0f },
-    successCallback: () => Logger.LogInformation("Register written"),
-    errorCallback: OnError,
+    dispatcher: this,
+    successCallback: receipt => _logger.LogInformation("Register written"),
     byteOrder: ByteOrder.MsbToLsb);
 ```
 
-## Modbus TCP
+### Modbus TCP
 
 The `Vion.Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract binding like RTU). Use it when a logic block connects directly to a Modbus TCP device over the network.
 
 ```csharp
+using System;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Modbus.Tcp.Client.LogicBlock;
+
 [LogicBlock(Name = "Energy Meter TCP")]
 public class EnergyMeterTcp : LogicBlockBase
 {
+    private readonly ILogger _logger;
     private readonly ILogicBlockModbusTcpClient _modbus;
+    private string _ipAddress = "192.168.1.100";
 
     public EnergyMeterTcp(ILogger logger, ILogicBlockModbusTcpClient modbus) : base(logger)
     {
+        _logger = logger;
         _modbus = modbus;
     }
 
     [ServiceProperty(Title = "IP Address")]
     [Presentation(Group = PropertyGroup.Configuration)]
-    public string IpAddress { get; set; } = "192.168.1.100";
+    public string IpAddress
+    {
+        get => _ipAddress;
+        set
+        {
+            _ipAddress = value;
+            ApplyAddress();
+        }
+    }
 
     [ServiceProperty(Title = "Power", Unit = "kW")]
     [ServiceMeasuringPoint]
@@ -223,7 +248,7 @@ public class EnergyMeterTcp : LogicBlockBase
 
     protected override void Ready()
     {
-        _modbus.IpAddress = IpAddress;
+        ApplyAddress();
         _modbus.IsEnabled = true;
     }
 
@@ -233,12 +258,27 @@ public class EnergyMeterTcp : LogicBlockBase
         _modbus.ReadInputRegistersAsFloat(
             unitIdentifier: 1,
             startingAddress: 0,
-            quantity: 1,
-            successCallback: values => { Power = values[0]; },
-            errorCallback: ex => Logger.LogWarning(ex, "Modbus TCP error"));
+            count: 1,
+            dispatcher: this,
+            successCallback: (values, receipt) => Power = values[0],
+            errorCallback: (ex, receipt) => _logger.LogWarning(ex, "Modbus TCP read ended {Outcome}", receipt.Outcome));
+    }
+
+    private void ApplyAddress()
+    {
+        try
+        {
+            _modbus.IpAddress = _ipAddress;
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex, "Invalid IP address {IpAddress}", _ipAddress);
+        }
     }
 }
 ```
+
+A changed address or port applies from the next request, so set it from the property's setter rather than once in `Ready()`; an invalid address throws `FormatException`.
 
 The TCP client provides the same typed read/write methods as `IModbusRtu` (same Modbus function codes), plus connection management:
 
@@ -247,7 +287,7 @@ The TCP client provides the same typed read/write methods as `IModbusRtu` (same 
 | Transport            | Serial via service provider        | TCP/IP direct connection                                     |
 | Declaration          | `[ServiceProviderContractBinding]` | Constructor injection (DI)                                   |
 | Connection           | Managed by runtime                 | `IpAddress`, `Port`, `ConnectionTimeout`                     |
-| Queue management     | Actor-based                        | Configurable `QueueCapacity` and `QueueOverflowPolicy`       |
+| Queue management     | Managed by runtime                 | Configurable `QueueCapacity` and `QueueOverflowPolicy`       |
 | Multiple connections | One per binding                    | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
 
 For connecting to multiple Modbus TCP devices from one logic block, inject `ILogicBlockModbusTcpClientFactory` and call `Create()` for each connection.

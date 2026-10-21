@@ -125,7 +125,7 @@ const CONTENT_RULES = [
     // the denylist and nothing else — a denylist cannot match what it does not name. Do not restate
     // them in prose anywhere else in this repo (retro-0 D8).
     rule: 'real-world-name',
-    re: /\b(evtec|Cappuccino|Corretto|IControllableConsumer)\b/gi,
+    re: /\b(?:(?:evtec|Cappuccino|Corretto|IControllableConsumer)\b|EM122)/gi,
     detail: "Examples must be invented — never a customer's code or a real product",
     // The one rule that also guards unpublished substrate: this repo is public, so these names are
     // exposed by `git clone` regardless of whether the page renders (retro-0 D8).

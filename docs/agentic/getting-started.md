@@ -80,5 +80,5 @@ Center the loop on a committed scenario the agent can run and re-run:
 
 - **Be specific about data types**: "a double property called Temperature in Celsius" is better than "a temperature property"
 - **Mention the update interval**: "poll every 2 seconds" gives the agent what it needs for `[Timer(2)]`
-- **Reference existing patterns**: "like the PingPong example" or "similar to the EM122 Modbus block"
+- **Reference existing patterns**: "like the PingPong example" or "similar to the ModbusRtu meter block"
 - **Ask for tests**: "and write tests that verify the control logic" ensures coverage

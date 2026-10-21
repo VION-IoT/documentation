@@ -93,7 +93,7 @@ The source-available [Dale SDK repository](https://github.com/VION-IoT/dale-sdk/
 | **PingPong** | Inter-block communication with contracts, commands, and state updates |
 | **ToggleLight** | Digital I/O with `IDigitalInput` and `IDigitalOutput` service provider contracts |
 | **Energy** | Multi-block energy management with batteries, PV, and grid simulation |
-| **ModbusRtu** | Reading Modbus RTU registers from an electricity meter (EM122) |
+| **ModbusRtu** | Reading Modbus RTU registers from an electricity meter |
 | **Emission** | Emission policy on service properties and measuring points — throttle, deadband, and dedup knobs for fast-moving telemetry |
 | **Presentation** | Declarative presentation hints — groups, importance, units, and display formatting |
 | **RichTypes** | Service properties over custom and structured value types |
