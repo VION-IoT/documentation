@@ -25,11 +25,14 @@ The three documents are siblings: changes to one do not implicitly change anothe
 
 Logic-block interfaces declare default schema and presentation values on their members. Implementing classes inherit those defaults and may override individual fields. The two sides cascade differently.
 
-### Schema — Full Override
+### Schema — Interface Wins
 
-When an implementing class re-declares `[ServiceProperty]` or `[ServiceMeasuringPoint]`, it **replaces the interface's declaration entirely**. Any field not re-stated reverts to the attribute default.
+The interface owns the schema. When an implementing class re-declares `[ServiceProperty]` or `[ServiceMeasuringPoint]`, its schema fields are ignored; only its emission knobs (`MinInterval`, `MinChange`, `Immediate`) take effect, each overriding the interface's one at a time. Writability follows the class property's setter.
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+
 [ServiceInterface]
 public interface IElectricityMeter
 {
@@ -37,15 +40,18 @@ public interface IElectricityMeter
     double Voltage { get; }
 }
 
+[LogicBlock(Name = "Custom Meter")]
 public class CustomMeter : LogicBlockBase, IElectricityMeter
 {
-    // OVERRIDES — Minimum/Maximum from the interface are lost; reverts to ±∞.
-    [ServiceProperty(Title = "Phase A Voltage", Unit = "V")]
+    public CustomMeter(ILogger logger) : base(logger) { }
+
+    // Title, Unit, Minimum and Maximum still come from the interface; the class sets only the interval.
+    [ServiceProperty(MinInterval = "1s")]
     public double Voltage { get; private set; }
+
+    protected override void Ready() { }
 }
 ```
-
-This matches JSON Schema semantics: a schema is a contract, and a partial schema redeclaration would create ambiguous downstream codec behavior.
 
 ### Presentation — Per-Field Merge
 
@@ -67,8 +73,6 @@ public class CustomMeter : LogicBlockBase, IElectricityMeter
     public double Voltage { get; private set; }
 }
 ```
-
-The dominant pattern is "the interface declares the canonical UI; the class adjusts one thing" — full-override would force every implementer to re-state every field, which leads to drift.
 
 ## Preset Attributes
 
