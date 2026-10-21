@@ -373,6 +373,7 @@ services.AddDaleHttpSdk();
 The same package lets a logic block serve HTTP. Inject `ILogicBlockHttpServer`, publish responses inside `Sync`, and enable it:
 
 ```csharp
+using System;
 using System.Net.Http;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -382,10 +383,12 @@ using Vion.Dale.Sdk.Http.Server;
 [LogicBlock(Name = "Status Endpoint")]
 public class StatusEndpoint : LogicBlockBase
 {
+    private readonly ILogger _logger;
     private readonly ILogicBlockHttpServer _server;
 
     public StatusEndpoint(ILogger logger, ILogicBlockHttpServer server) : base(logger)
     {
+        _logger = logger;
         _server = server;
     }
 
@@ -395,7 +398,14 @@ public class StatusEndpoint : LogicBlockBase
     protected override void Ready()
     {
         Publish();
-        _server.IsEnabled = true;
+        try
+        {
+            _server.IsEnabled = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not listen on port {Port}", _server.Port);
+        }
     }
 
     [Timer(1)]
@@ -408,7 +418,7 @@ public class StatusEndpoint : LogicBlockBase
 }
 ```
 
-The server listens on `127.0.0.1:8080` until `ListenAddress` and `Port` say otherwise, and serves plain HTTP with no authentication. `snapshot.TakeReceivedRequests()` returns the requests received since the last call.
+The server listens on `127.0.0.1:8080` until `ListenAddress` and `Port` say otherwise, serves plain HTTP with no authentication, and throws on enable when the port is taken. `snapshot.TakeReceivedRequests()` returns the requests received since the last call.
 
 ## Link Multiplicity
 

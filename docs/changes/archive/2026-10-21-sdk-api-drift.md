@@ -147,6 +147,10 @@ they start with `Cloud.`.
   (`Vion.Dale.Cli/Commands/Add/AddLogicBlockCommand.cs:89-92`); `agentic/getting-started.md` no longer
   says the template's test project references the DevHost test package; and a rationale paragraph on
   `declarative-presentation.md` that argued for the old cascade went.
+- 2026-10-21: two facts D2 would leave off stay on `services.md`, because they bite: the HTTP server's
+  loopback default address, which is why nothing off the machine reaches it, and the exceptions on an
+  invalid Modbus TCP address and on enabling the HTTP server when the port is taken, which the samples
+  catch (`Vion.Dale.Sdk.Http/Server/ILogicBlockHttpServer.cs:39-40`).
 - 2026-10-21: every rewritten C# sample was compiled against the `v0.14.3` packages, and the Testing
   samples run green, `WeatherStation` included; the `ScenarioWire` fragment was compiled on an abstract
   handler, since the page leaves its body out.
