@@ -1,6 +1,6 @@
 ---
 slug: sdk-api-drift
-status: in-flight              # proposed | in-flight | archived
+status: archived               # proposed | in-flight | archived
 areas: [sdk, cli, agentic, cloud-api]
 author: Jonas Bertsch
 created: 2026-10-21
@@ -133,6 +133,23 @@ they start with `Cloud.`.
   and repeat `measuringPointIdentifiers`, after checking how the list binds.
 
 ## Drift checkpoints
+
+- 2026-10-21: the HTTP Server sample injects `ILogicBlockHttpServer` instead of calling the factory; it
+  is registered transient (`Vion.Dale.Sdk.Http/ServiceCollectionExtensions.cs:72`) and the block's scope
+  disposes it, so the sample needs no `Stopping()`.
+- 2026-10-21: the `real-world-name` pattern's trailing word boundary missed the class-name form of the
+  meter name, so that entry matches as a prefix.
+- 2026-10-21: the comma-joined `measuringPointIdentifiers` question is settled by the controller's
+  `[FromQuery]` with a `List<string>` and no custom binder
+  (`Cloud.Api/…/MeasuringPointsController.cs:42`); the example repeats the key.
+- 2026-10-21: three found-in-passing items not listed above also landed: `logic-blocks.md` no longer
+  says `dale add logicblock` always emits the attribute
+  (`Vion.Dale.Cli/Commands/Add/AddLogicBlockCommand.cs:89-92`); `agentic/getting-started.md` no longer
+  says the template's test project references the DevHost test package; and a rationale paragraph on
+  `declarative-presentation.md` that argued for the old cascade went.
+- 2026-10-21: every rewritten C# sample was compiled against the `v0.14.3` packages, and the Testing
+  samples run green, `WeatherStation` included; the `ScenarioWire` fragment was compiled on an abstract
+  handler, since the page leaves its body out.
 
 ## Tasks
 
