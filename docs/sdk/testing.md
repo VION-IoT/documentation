@@ -32,7 +32,7 @@ For full control over the test environment, use the test context builder. This l
 
 ```csharp
 var testContext = block.CreateTestContext()
-    .WithLogicInterfaceMapping<IMyInterface>(remoteBlockId)
+    .WithLogicInterfaceMapping<IMyInterface>(new InterfaceId("remote-id", "IMyInterface"))
     .WithPersistentValue(b => b.SavedValue, 42)
     .WithServices(services => services.AddSingleton(mockService.Object))
     .Build();
@@ -40,7 +40,7 @@ var testContext = block.CreateTestContext()
 
 | Method                          | Purpose                                                  |
 |---------------------------------|----------------------------------------------------------|
-| `WithLogicInterfaceMapping`     | Wire a service interface to a remote block ID.           |
+| `WithLogicInterfaceMapping`     | Wire a logic interface to a remote `InterfaceId`.        |
 | `WithPersistentValue`           | Pre-load a persisted property value.                     |
 | `WithServices`                  | Register additional services into the DI container.      |
 | `WithEmissionPolicy`            | Turn the emission policy on or off under the fake clock. See [Testing Emission Policy](#testing-emission-policy). |
@@ -175,7 +175,7 @@ namespace Examples.Emission.Test
 }
 ```
 
-[Scenarios](/sdk/scenarios) are the deterministic executable counterpart to these unit tests. `dale scenario scaffold` graduates a scenario that outgrows the JSON format into a TestKit / xUnit test with `TODO` assertions.
+[Scenarios](/sdk/scenarios) are the deterministic executable counterpart to these unit tests. `dale scenario scaffold` graduates a scenario that outgrows the JSON format into an xUnit test that runs it against a wired DevHost, with `TODO` assertions and a `CreateHostAsync` for you to implement.
 
 ## Testing I/O
 
@@ -194,6 +194,40 @@ testContext.VerifyAnalogOutputSet(block.Heater, value: 0.8, tolerance: 0.1);
 - `RaiseInputChanged` simulates a hardware event on an input.
 - `VerifyDigitalOutputSet` asserts that a digital output was set to the expected boolean value.
 - `VerifyAnalogOutputSet` asserts that an analog output was set within a tolerance range.
+- The helpers come from the `Vion.Dale.Sdk.DigitalIo.TestKit` and `Vion.Dale.Sdk.AnalogIo.TestKit` packages, under namespaces of the same names.
+
+## Testing HTTP
+
+The `Vion.Dale.Sdk.Http.TestKit` package scripts the answers an HTTP client receives. Pass the harness's `Client` to the block, trigger the request, then respond:
+
+```csharp
+using System;
+using Vion.Dale.Sdk.Http.TestKit;
+using Vion.Dale.Sdk.TestKit;
+using Xunit;
+
+public sealed class WeatherStationShould : IDisposable
+{
+    private readonly FakeHttpHarness _http = new();
+
+    public void Dispose() => _http.Dispose();
+
+    [Fact]
+    public void StoreTheReportedTemperature()
+    {
+        var block = new WeatherStation(LogicBlockTestHelper.CreateLoggerMock().Object, _http.Client);
+        var testContext = block.CreateTestContext().Build();
+
+        block.FetchWeather();
+        _http.Respond("{\"temperature\":21.5}");
+        testContext.FlushPendingActions();
+
+        Assert.Equal(21.5, block.Temperature);
+    }
+}
+```
+
+`Respond(HttpStatusCode)` and `Fail(exception)` script the other outcomes, and `Requests` lists what the block sent. `FakeHttpServerHarness` does the same for a block that serves HTTP.
 
 ## Flushing Pending Actions
 
@@ -207,73 +241,72 @@ This processes all queued callbacks synchronously so you can verify their side e
 
 ## Complete Example
 
-A full test class for the PingPong sample, testing initialization, message handling, pause behavior, and timer interaction:
+Tests for the `Ping` block of the PingPong example in the Dale SDK repository, covering message handling, a property that changes behaviour, a measuring point and a timer:
 
 ```csharp
-public class PingBlockTests
+using System;
+using Moq;
+using Vion.Dale.Sdk.TestKit;
+using Vion.Dale.Sdk.Utils;
+using Vion.Examples.PingPong.Contracts;
+using Vion.Examples.PingPong.LogicBlocks;
+using Xunit;
+
+public class PingShould
 {
-    private readonly PingBlock _block;
-    private readonly LogicBlockTestContext _testContext;
-    private readonly LogicBlockId _pongBlockId = new("pong-block-1");
+    private readonly InterfaceId _mappedPong = new("pong-id", "IPong");
 
-    public PingBlockTests()
+    [Fact]
+    public void SendPingRequestOnPongResponse()
     {
-        _block = new PingBlock(LogicBlockTestHelper.CreateLoggerMock().Object);
-        _testContext = _block.CreateTestContext()
-            .WithLogicInterfaceMapping<IPong>(_pongBlockId)
-            .WithPersistentValue(b => b.TotalPings, 0)
+        var ping = new Ping(LogicBlockTestHelper.CreateLoggerMock().Object);
+        var testContext = ping.CreateTestContext()
+            .WithLogicInterfaceMapping(lb => lb, _mappedPong)
             .Build();
+        testContext.ClearRecordedMessages();
+
+        ping.HandleResponse(_mappedPong, new PingPong.PongResponse());
+
+        testContext.VerifySendRequest<PingPong.PingRequest>(_mappedPong);
     }
 
     [Fact]
-    public void InitialState_PingsPerSecondIsZero()
+    public void NotSendPingRequestWhenPaused()
     {
-        Assert.Equal(0, _block.PingsPerSecond);
-        Assert.False(_block.Pause);
+        var ping = new Ping(LogicBlockTestHelper.CreateLoggerMock().Object);
+        var testContext = ping.CreateTestContext()
+            .WithLogicInterfaceMapping(lb => lb, _mappedPong)
+            .Build();
+        ping.Pause = true;
+        testContext.ClearRecordedMessages();
+
+        ping.HandleResponse(_mappedPong, new PingPong.PongResponse());
+
+        testContext.VerifySendRequest<PingPong.PingRequest>(times: Times.Never());
     }
 
     [Fact]
-    public void SendsPingOnTimer()
+    public void CountPingsPerSecond()
     {
-        _block.FireTimer(lb => lb.OnPingTimer());
+        var ping = new Ping(LogicBlockTestHelper.CreateLoggerMock().Object);
+        ping.CreateTestContext()
+            .WithLogicInterfaceMapping(lb => lb, _mappedPong)
+            .WithoutAutoStart()
+            .Build();
 
-        _testContext.VerifySendRequest<PingRequest>(
-            _pongBlockId,
-            msg => Assert.True(msg.Timestamp > 0));
+        ping.HandleResponse(_mappedPong, new PingPong.PongResponse());
+        ping.LogCount();
+
+        Assert.Equal(1, ping.PingsPerSecond);
     }
 
     [Fact]
-    public void PauseStopsSendingPings()
+    public void LogCountEverySecond()
     {
-        _block.Pause = true;
+        var ping = new Ping(LogicBlockTestHelper.CreateLoggerMock().Object);
+        ping.InitializeForTest();
 
-        _block.FireTimer(lb => lb.OnPingTimer());
-
-        _testContext.VerifySendRequest<PingRequest>(
-            _pongBlockId, times: Times.Never());
-    }
-
-    [Fact]
-    public void ReceivingPongUpdatesMeasuringPoint()
-    {
-        _block.HandleResponse(new PongResponse { PingId = 1 });
-
-        _testContext.VerifyServiceMeasuringPointChanged(
-            b => b.PingsPerSecond,
-            val => Assert.True(val > 0));
-    }
-
-    [Fact]
-    public void TimerIntervalIsFiveSeconds()
-    {
-        var interval = _block.GetTimerInterval(lb => lb.OnPingTimer());
-        Assert.Equal(TimeSpan.FromSeconds(5), interval);
-    }
-
-    [Fact]
-    public void PersistentValueIsRestored()
-    {
-        Assert.Equal(0, _block.TotalPings);
+        Assert.Equal(TimeSpan.FromSeconds(1), ping.GetTimerInterval(lb => lb.LogCount()));
     }
 }
 ```

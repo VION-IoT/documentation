@@ -53,11 +53,16 @@ logic blocks follow a well-defined lifecycle with three key methods:
 [LogicBlock(Name = "Sensor Reader", Icon = "sensor-line")]
 public class SensorReader : LogicBlockBase
 {
-    public SensorReader(ILogger logger) : base(logger) { }
+    private readonly ILogger _logger;
+
+    public SensorReader(ILogger logger) : base(logger)
+    {
+        _logger = logger;
+    }
 
     protected override void Starting()
     {
-        Logger.LogInformation("SensorReader is starting up");
+        _logger.LogInformation("SensorReader is starting up");
     }
 
     protected override void Ready()
@@ -67,7 +72,7 @@ public class SensorReader : LogicBlockBase
 
     protected override void Stopping()
     {
-        Logger.LogInformation("SensorReader is shutting down");
+        _logger.LogInformation("SensorReader is shutting down");
     }
 }
 ```
@@ -216,6 +221,6 @@ The fastest way to create a new logic block is with the `dale` CLI:
 dale add logicblock MyBlock --name "My Block" --icon dashboard-line
 ```
 
-This scaffolds a new logic block class with the correct base class, lifecycle methods, and a `[LogicBlock]` attribute already in place. `--name` and `--icon` are optional — they populate `[LogicBlock(Name = "…", Icon = "…")]` (the icon is a Remixicon name without the `ri-` prefix); omit them and the class name is used.
+This scaffolds a new logic block class with the correct base class and a `Ready()` override, and registers it in `DependencyInjection.cs`. `--name` and `--icon` are optional — they emit `[LogicBlock(Name = "…", Icon = "…")]` (the icon is a Remixicon name without the `ri-` prefix); omit both and no attribute is emitted, so the class name is used.
 
 For CLI installation and full command reference, see [Installation](/sdk/installation).

@@ -64,7 +64,7 @@ Switch environments or integrators:
 
 ```bash
 dale config set-environment production
-dale config set-integrator "Partner Corp"
+dale config set-integrator --integrator-id <integrator-id>
 ```
 
 ### Other Auth Commands

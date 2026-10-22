@@ -102,17 +102,31 @@ What a wiring plan needs:
 - Outputs are high-impedance at power-on, and logical off leaves the load de-energised.
 - Input changes are debounced over a 50 ms trailing window, so a contract reports where the line settled rather than the first edge of a bounce.
 
-## Modbus RTU Example
+## Modbus
+
+Two packages read and write Modbus registers with the same typed, callback-based methods. Both callbacks receive a `ModbusReceipt` whose `Outcome` says how the request ended, and a client's `Link` property returns a summary of its link that a block can publish as a diagnostics property.
+
+### Modbus RTU
 
 The `Vion.Dale.Sdk.Modbus.Rtu` package provides the `IModbusRtu` interface — a service provider contract that works just like `IDigitalInput` or `IAnalogOutput`. Declare it with `[ServiceProviderContractBinding]`, the Dale runtime injects an implementation, and use it to read and write Modbus registers directly.
 
 ```csharp
-[LogicBlock(Name = "EM122 Electricity Meter", Icon = "flashlight-line")]
-public class Em122ElectricityMeter : LogicBlockBase
-{
-    public Em122ElectricityMeter(ILogger logger) : base(logger) { }
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Modbus.Core.Diagnostics;
+using Vion.Dale.Sdk.Modbus.Rtu;
 
-    [ServiceProviderContractBinding(Identifier = "Modbus", DefaultName = "EM122 Modbus RTU")]
+[LogicBlock(Name = "Energy Meter", Icon = "flashlight-line")]
+public class EnergyMeter : LogicBlockBase
+{
+    private readonly ILogger _logger;
+
+    public EnergyMeter(ILogger logger) : base(logger)
+    {
+        _logger = logger;
+    }
+
+    [ServiceProviderContractBinding(Identifier = "Modbus", DefaultName = "Meter Modbus RTU")]
     public IModbusRtu Modbus { get; set; } = null!;
 
     [ServiceProperty(Title = "Unit ID")]
@@ -134,13 +148,9 @@ public class Em122ElectricityMeter : LogicBlockBase
     [Presentation(Group = PropertyGroup.Status)]
     public double VoltageL3 { get; private set; }
 
-    [ServiceProperty(Title = "Read Count")]
+    [ServiceProperty(Title = "Link")]
     [Presentation(Group = PropertyGroup.Diagnostics)]
-    public int ReadCount { get; private set; }
-
-    [ServiceProperty(Title = "Error Count")]
-    [Presentation(Group = PropertyGroup.Diagnostics)]
-    public int ErrorCount { get; private set; }
+    public ModbusLinkSummary Link { get; private set; }
 
     protected override void Ready()
     {
@@ -155,21 +165,20 @@ public class Em122ElectricityMeter : LogicBlockBase
         Modbus.ReadInputRegistersAsFloat(
             UnitId,
             startingAddress: 0,
-            quantity: 3,
-            successCallback: values =>
+            count: 3,
+            dispatcher: this,
+            successCallback: (values, receipt) =>
             {
                 VoltageL1 = values[0];
                 VoltageL2 = values[1];
                 VoltageL3 = values[2];
-                ReadCount++;
+                Link = Modbus.Link;
             },
-            errorCallback: OnError);
-    }
-
-    private void OnError(Exception ex)
-    {
-        ErrorCount++;
-        Logger.LogWarning(ex, "Modbus error at unit {UnitId}", UnitId);
+            errorCallback: (ex, receipt) =>
+            {
+                Link = Modbus.Link;
+                _logger.LogWarning(ex, "Modbus read ended {Outcome}", receipt.Outcome);
+            });
     }
 }
 ```
@@ -190,31 +199,47 @@ All operations are callback-based and support configurable byte order, word orde
 // Write a holding register with explicit byte order.
 Modbus.WriteMultipleHoldingRegistersAsFloat(
     UnitId,
-    registerAddress: 2,
+    startingAddress: 2,
     values: new[] { 15.0f },
-    successCallback: () => Logger.LogInformation("Register written"),
-    errorCallback: OnError,
+    dispatcher: this,
+    successCallback: receipt => _logger.LogInformation("Register written"),
     byteOrder: ByteOrder.MsbToLsb);
 ```
 
-## Modbus TCP
+### Modbus TCP
 
 The `Vion.Dale.Sdk.Modbus.Tcp` package provides `ILogicBlockModbusTcpClient` — a queue-based Modbus TCP client injected via dependency injection (not a service provider contract binding like RTU). Use it when a logic block connects directly to a Modbus TCP device over the network.
 
 ```csharp
+using System;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Modbus.Tcp.Client.LogicBlock;
+
 [LogicBlock(Name = "Energy Meter TCP")]
 public class EnergyMeterTcp : LogicBlockBase
 {
+    private readonly ILogger _logger;
     private readonly ILogicBlockModbusTcpClient _modbus;
+    private string _ipAddress = "192.168.1.100";
 
     public EnergyMeterTcp(ILogger logger, ILogicBlockModbusTcpClient modbus) : base(logger)
     {
+        _logger = logger;
         _modbus = modbus;
     }
 
     [ServiceProperty(Title = "IP Address")]
     [Presentation(Group = PropertyGroup.Configuration)]
-    public string IpAddress { get; set; } = "192.168.1.100";
+    public string IpAddress
+    {
+        get => _ipAddress;
+        set
+        {
+            _ipAddress = value;
+            ApplyAddress();
+        }
+    }
 
     [ServiceProperty(Title = "Power", Unit = "kW")]
     [ServiceMeasuringPoint]
@@ -223,7 +248,7 @@ public class EnergyMeterTcp : LogicBlockBase
 
     protected override void Ready()
     {
-        _modbus.IpAddress = IpAddress;
+        ApplyAddress();
         _modbus.IsEnabled = true;
     }
 
@@ -233,12 +258,27 @@ public class EnergyMeterTcp : LogicBlockBase
         _modbus.ReadInputRegistersAsFloat(
             unitIdentifier: 1,
             startingAddress: 0,
-            quantity: 1,
-            successCallback: values => { Power = values[0]; },
-            errorCallback: ex => Logger.LogWarning(ex, "Modbus TCP error"));
+            count: 1,
+            dispatcher: this,
+            successCallback: (values, receipt) => Power = values[0],
+            errorCallback: (ex, receipt) => _logger.LogWarning(ex, "Modbus TCP read ended {Outcome}", receipt.Outcome));
+    }
+
+    private void ApplyAddress()
+    {
+        try
+        {
+            _modbus.IpAddress = _ipAddress;
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex, "Invalid IP address {IpAddress}", _ipAddress);
+        }
     }
 }
 ```
+
+A changed address or port applies from the next request, so set it from the property's setter rather than once in `Ready()`; an invalid address throws `FormatException`.
 
 The TCP client provides the same typed read/write methods as `IModbusRtu` (same Modbus function codes), plus connection management:
 
@@ -247,7 +287,7 @@ The TCP client provides the same typed read/write methods as `IModbusRtu` (same 
 | Transport            | Serial via service provider        | TCP/IP direct connection                                     |
 | Declaration          | `[ServiceProviderContractBinding]` | Constructor injection (DI)                                   |
 | Connection           | Managed by runtime                 | `IpAddress`, `Port`, `ConnectionTimeout`                     |
-| Queue management     | Actor-based                        | Configurable `QueueCapacity` and `QueueOverflowPolicy`       |
+| Queue management     | Managed by runtime                 | Configurable `QueueCapacity` and `QueueOverflowPolicy`       |
 | Multiple connections | One per binding                    | Use `ILogicBlockModbusTcpClientFactory` for multiple clients |
 
 For connecting to multiple Modbus TCP devices from one logic block, inject `ILogicBlockModbusTcpClientFactory` and call `Create()` for each connection.
@@ -263,6 +303,17 @@ services.AddDaleModbusTcpSdk();
 The `Vion.Dale.Sdk.Http` package provides `ILogicBlockHttpClient` — a non-blocking HTTP client for calling external APIs from logic blocks. All operations use callbacks dispatched through the actor system, so the logic block thread is never blocked.
 
 ```csharp
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Http;
+
+public class WeatherReading
+{
+    [JsonPropertyName("temperature")]
+    public double Temperature { get; set; }
+}
+
 [LogicBlock(Name = "Weather Station")]
 public class WeatherStation : LogicBlockBase
 {
@@ -278,36 +329,96 @@ public class WeatherStation : LogicBlockBase
     [Presentation(Group = PropertyGroup.Status, Importance = Importance.Primary)]
     public double Temperature { get; private set; }
 
+    [ServiceProperty(Title = "Last Error")]
+    [Presentation(Group = PropertyGroup.Diagnostics)]
+    public string LastError { get; private set; } = "";
+
+    protected override void Ready() { }
+
     [Timer(300)]
     public void FetchWeather()
     {
-        _http.GetJson<WeatherResponse>(
+        _http.GetJson<WeatherReading>(
             this,
-            "https://api.open-meteo.com/v1/forecast?latitude=47.37&longitude=8.55&current=temperature_2m",
-            response => { Temperature = response.Current.Temperature2m; },
-            ex => Logger.LogWarning(ex, "Weather API error"));
+            "https://weather.example.com/api/current",
+            (reading, receipt) => Temperature = reading.Temperature,
+            (ex, receipt) => LastError = $"{receipt.Outcome} {receipt.StatusCode}");
     }
 }
 ```
 
+A response with a non-success status code arrives at the error callback; `receipt.StatusCode` is set whenever a server answered, which tells it apart from a connection failure.
+
 Available methods:
 
-| Method                 | Description                               |
-| ---------------------- | ----------------------------------------- |
-| `GetJson<T>`           | GET request, deserialize JSON response    |
-| `PostJson<TReq, TRes>` | POST with JSON body, deserialize response |
-| `PostJson<TReq>`       | POST with JSON body, no response body     |
-| `PutJson<TReq, TRes>`  | PUT with JSON body, deserialize response  |
-| `PutJson<TReq>`        | PUT with JSON body, no response body      |
-| `DeleteJson<T>`        | DELETE, deserialize response              |
-| `Delete`               | DELETE, no response body                  |
-| `SendRequest`          | Raw `HttpRequestMessage` for full control |
+| Method                 | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `GetJson<T>`           | GET request, deserialize JSON response                       |
+| `PostJson<TReq, TRes>` | POST with JSON body, deserialize response                    |
+| `PostJson<TReq>`       | POST with JSON body, no response body                        |
+| `PutJson<TReq, TRes>`  | PUT with JSON body, deserialize response                     |
+| `PutJson<TReq>`        | PUT with JSON body, no response body                         |
+| `DeleteJson<T>`        | DELETE, deserialize response                                 |
+| `Delete`               | DELETE, no response body                                     |
+| `SendRequest`          | Raw `HttpRequestMessage`; the callback disposes the response |
 
-All methods accept optional `headers` and `timeout` parameters. Register the package:
+All methods accept an optional `timeout`, and all but `SendRequest` optional `headers`. Register the package:
 
 ```csharp
 services.AddDaleHttpSdk();
 ```
+
+## HTTP Server
+
+The same package lets a logic block serve HTTP. Inject `ILogicBlockHttpServer`, publish responses inside `Sync`, and enable it:
+
+```csharp
+using System;
+using System.Net.Http;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.Http.Server;
+
+[LogicBlock(Name = "Status Endpoint")]
+public class StatusEndpoint : LogicBlockBase
+{
+    private readonly ILogger _logger;
+    private readonly ILogicBlockHttpServer _server;
+
+    public StatusEndpoint(ILogger logger, ILogicBlockHttpServer server) : base(logger)
+    {
+        _logger = logger;
+        _server = server;
+    }
+
+    [ServiceProperty(Title = "Setpoint", Unit = "kW")]
+    public double Setpoint { get; set; }
+
+    protected override void Ready()
+    {
+        Publish();
+        try
+        {
+            _server.IsEnabled = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not listen on port {Port}", _server.Port);
+        }
+    }
+
+    [Timer(1)]
+    public void Publish()
+    {
+        var body = JsonSerializer.Serialize(new { setpoint = Setpoint });
+        _server.Sync(snapshot =>
+            snapshot.SetResponse(HttpMethod.Get, "/status", HttpServerResponse.Json(body)));
+    }
+}
+```
+
+The server listens on `127.0.0.1:8080` until `ListenAddress` and `Port` say otherwise, serves plain HTTP with no authentication, and throws on enable when the port is taken. `snapshot.TakeReceivedRequests()` returns the requests received since the last call.
 
 ## Link Multiplicity
 

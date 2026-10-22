@@ -31,7 +31,7 @@ Projects created with `dale new` include an `AGENTS.md` file with:
 - Common patterns (property change tracking, persistence, timers)
 - Instructions for verifying headlessly through the DevHost and scenario files
 
-The test project is xUnit (xunit.v3). Tests reference `Vion.Dale.Sdk.TestKit` for stubbed-collaborator unit tests, and `Vion.Dale.DevHost.Xunit` for wired-network scenario tests.
+The test project is xUnit (xunit.v3). It references `Vion.Dale.Sdk.TestKit` for stubbed-collaborator unit tests; add `Vion.Dale.DevHost.Xunit` for wired-network scenario tests.
 
 A `CLAUDE.md` file is also included. It is a one-line pointer to `AGENTS.md`, so Claude Code picks up the conventions automatically. Other tools like Cursor and Windsurf read `AGENTS.md` directly.
 
@@ -71,8 +71,8 @@ Center the loop on a committed scenario the agent can run and re-run:
 2. **Let the agent scaffold** using `dale add` commands or direct code generation
 3. **Build** — `dale build` catches compile errors immediately
 4. **Author a scenario** — describe setup, steps, and expectations in a `scenarios/*.scenario.json` file (see [Scenarios](/sdk/scenarios))
-5. **Run the loop** — boot `dale dev --headless --stepped`, then `dale scenario run <id>`; the agent reads the structured report and iterates on the failure detail
-6. **Gate offline** — `dale scenario validate` resolves every name path and topology without a running host, the check to run in CI
+5. **Run the loop** — boot `dale dev --headless --stepped`, then `dale scenario run <id> --port <port>` with the port from the readiness line; the agent reads the structured report and iterates on the failure detail
+6. **Gate offline** — `dale dev --export-config config.json`, then `dale scenario validate --config config.json` checks name paths and topology without a running host, the check to run in CI
 7. **Graduate when needed** — `dale scenario scaffold <id>` turns a scenario into a typed xUnit test the agent runs with `dale test`
 8. **Publish** — `dale upload` when ready
 
@@ -80,5 +80,5 @@ Center the loop on a committed scenario the agent can run and re-run:
 
 - **Be specific about data types**: "a double property called Temperature in Celsius" is better than "a temperature property"
 - **Mention the update interval**: "poll every 2 seconds" gives the agent what it needs for `[Timer(2)]`
-- **Reference existing patterns**: "like the PingPong example" or "similar to the EM122 Modbus block"
+- **Reference existing patterns**: "like the PingPong example" or "similar to the ModbusRtu meter block"
 - **Ask for tests**: "and write tests that verify the control logic" ensures coverage

@@ -298,6 +298,12 @@ properties, measuring points do not need to appear in it.
   These are internal artifacts; the reader cannot open them. State the rule, not the diagnostic code
   that enforces it, and describe the behaviour, not the document that specified it. *(Gated by
   `pnpm run check`.)*
+- **Every member, option and limit.** A guide page covers what most readers use: the common path,
+  the settings they change, and what will bite them. Advanced cases, full member lists and limits
+  stay in the XML documentation, which the public source carries and the
+  [SDK API Reference](/api-reference/) renders; for the Cloud API, its
+  [Scalar reference](https://api.vion.swiss/scalar). A type appearing in a release is not by itself
+  a reason to mention it.
 - **Internal implementation details** — MQTT topic plumbing, actor internals, how a validator works.
   The exception is the Cloud API integration contract: a client cannot be written without the
   property state topic, the last will topic and the subscriber ID format, so those pages state them.

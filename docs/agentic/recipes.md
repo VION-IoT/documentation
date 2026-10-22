@@ -52,8 +52,8 @@ These recipes show example prompts and the expected agent workflow. They work wi
 **Expected agent workflow:**
 1. `dale build` — fix any compilation errors
 2. `dale test` — fix any xUnit test failures
-3. `dale scenario validate` — resolve every scenario's name paths and topology offline
-4. Boot `dale dev --headless --stepped`, then `dale scenario run <id>` for each scenario as the gate before upload
+3. `dale dev --export-config config.json`, then `dale scenario validate --config config.json` — check name paths and topology offline
+4. Boot `dale dev --headless --stepped`, then `dale scenario run <id> --port <port>` for each scenario as the gate before upload
 5. `dale upload --release-notes "Added room controller with hysteresis logic"`
 6. Report success or failure
 
@@ -77,7 +77,7 @@ These recipes show example prompts and the expected agent workflow. They work wi
 
 **Expected agent workflow:**
 1. Boot the DevHost headless and deterministic with `dale dev --headless --stepped`, then parse the JSON readiness line to learn the port
-2. `dale scenario run room-controller` to drive the committed scenario against the wired network
+2. `dale scenario run room-controller --port <port>` to drive the committed scenario against the wired network
 3. Read the structured report — the same one the Player's copy button produces
 4. If a step failed, fix the logic block and re-run; iterate until the report is green
 

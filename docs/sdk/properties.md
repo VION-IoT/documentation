@@ -217,7 +217,7 @@ The knobs are identical on both attributes:
 
 | Knob | Description |
 |------|-------------|
-| `MinInterval` | Minimum spacing between two emitted values, as a duration string. Defaults to `"250ms"`. `"0"` disables interval throttling. |
+| `MinInterval` | Minimum spacing between two emitted values, as a duration string. Defaults to `"250ms"`, or to a struct value type's own `[DefaultMinInterval("30s")]`. `"0"` disables interval throttling. |
 | `MinChange` | Deadband: the minimum change a new value must clear before it re-emits. Defaults to none. |
 | `Immediate` | When `true`, emits every change immediately, bypassing the throttle and deadband. Defaults to `false`. |
 
@@ -228,7 +228,7 @@ The 250 ms `MinInterval` throttle is **on by default**. A read-only value emits 
 Emission is **outbound-only**: writes into a writable property are always forwarded immediately, so put these knobs on read-only computed or sensed values, not operator inputs.
 
 - `MinInterval` is leading-edge: the first change after idle emits immediately; later changes within the interval coalesce latest-wins and flush at the boundary. Durations take an optional `us` / `ms` / `s` / `m` / `h` suffix; a bare number is milliseconds.
-- `MinChange` takes an invariant-culture number for `double` / `float` / `decimal` / `int` / `long` (e.g. `"0.5"`) or a duration for `TimeSpan` (e.g. `"1s"`); `bool` is a compile error.
+- `MinChange` takes an invariant-culture number for `double` / `float` / `decimal` / `int` / `long` (e.g. `"0.5"`) or a duration for `TimeSpan` (e.g. `"1s"`); `bool` is a compile error. Any other type takes a deadband from an `IChangeThreshold<T>` implementation in the assembly that declares the `MinChange`.
 - `Immediate = true` emits every change, but the value-equality floor still drops no-op assignments. Use it for safety and error flags.
 
 A member carrying **both** attributes throttles independently per stream — neither gate suppresses the other, and the knobs do **not** cross-fill.
@@ -693,7 +693,7 @@ public class RoomClimateBlock : LogicBlockBase, IClimateService
 }
 ```
 
-`[Presentation]` cascades per-field — the interface declares defaults; the class can override any single field without re-declaring the rest. Schema attributes cascade as a whole — overriding `[ServiceProperty]` on the class replaces the interface's declaration entirely. See [Declarative Presentation](/sdk/declarative-presentation#cascade-rules).
+`[Presentation]` cascades per-field — the interface declares defaults; the class can override any single field without re-declaring the rest. The schema comes from the interface — a class that re-declares the service property attribute changes only its emission knobs. See [Declarative Presentation](/sdk/declarative-presentation#cascade-rules).
 
 ### Service Relations
 
