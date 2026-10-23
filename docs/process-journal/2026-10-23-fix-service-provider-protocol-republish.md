@@ -1,0 +1,1 @@
+2026-10-23 · gate · pnpm · `pnpm install` refused in the new worktree again, as on fix/service-provider-protocol-gaps the same day: host Node 26 and pnpm 11.20 sit outside package.json engines; `pnpm check` and `pnpm build` were run as their node scripts against the main checkout's node_modules through a junction. (self)
