@@ -478,7 +478,7 @@ A restart command tells the provider to restart. The target is the provider addr
 | Direction | Mesh → provider |
 | Payload | empty — `RestartPayload` has no fields |
 
-On receipt, exit the process and let your supervisor (a container restart policy, systemd, etc.) bring it back; restarting in place is equally valid. Afterward, the provider re-runs registration, re-publishes its declaration, and publishes its current values again, as on every [operational connection](#operational-connection). There is no restart response — Mesh observes the provider go `offline`, then `online` again, on the [health state topic](#connection-state-online-offline).
+On receipt, exit the process and let your supervisor (a container restart policy, systemd, etc.) bring it back; restarting in place is equally valid. Afterward, the provider connects again as described in [Reconnecting](#reconnecting), then re-publishes its declaration and publishes its current values, as on every [operational connection](#operational-connection). There is no restart response — Mesh observes the provider go `offline`, then `online` again, on the [health state topic](#connection-state-online-offline).
 
 ### Log level
 
