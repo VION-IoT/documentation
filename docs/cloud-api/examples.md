@@ -16,7 +16,7 @@ API="https://api.vion.swiss"
 TENANT_ID="<your-tenant-id>"
 ```
 
-A list answers an object with its rows under `items`, never a bare array. A paged list adds `nextCursor`, which you send back as the `cursor` query parameter; it is `null` on the last page. `GET /Me` and `GET /Tenant/{tenantId}/Services` answer single objects.
+A list answers an object with its rows under `items`, never a bare array. A paged list adds `nextCursor`, which you send back as the `cursor` query parameter; it is `null` on the last page. `GET /Me` answers a single object.
 
 ::: tip Finding Your IDs
 Call `GET /Me` to see your tenant and integrator memberships with their IDs:
@@ -25,16 +25,16 @@ curl -H "Authorization: Bearer $TOKEN" $API/Me
 ```
 :::
 
-## Get All Services
+## List Services
 
-Retrieve the complete service topology for a tenant — all services, properties, and measuring points:
+List the services of a tenant, each with its properties and measuring points:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   $API/Tenant/$TENANT_ID/Services
 ```
 
-The response is one object whose `services` array lists every service with its `edgeGatewayId`, properties and measuring points.
+The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier` and `name`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. The list holds only the services your token may read. A gateway's name is not on the row; `GET /Tenant/{tenantId}/EdgeGateways` lists the gateways, and a gateway's `id` there is the `edgeGatewayId` here.
 
 ## Set a Property Value
 
@@ -58,11 +58,11 @@ The snippets below are the summary. For a version of this flow you can run inste
 
 **Step 1: Connect to the MQTT broker and subscribe**
 
-Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the Services response that tells you exactly which topic to subscribe to — use that value; a topic built by hand does not match.
+Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the services list that tells you exactly which topic to subscribe to — use that value; a topic built by hand does not match.
 
 Three details decide whether this works. The `clientId` must be the same string you send as `subscriberId` in step 2, and it must be your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore. Subscribe at QoS 0. Register the last will — it is what tears the subscription down when your client goes away, and without it the edge gateway keeps publishing after you close the tab. Get any of the three wrong and the broker refuses the subscription and closes the connection, naming nothing.
 
-Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `me` is the `GET /Me` response and `services` is the `services` array of the `GET /Tenant/{tenantId}/Services` response:
+Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `me` is the `GET /Me` response and `services` is the `items` array of the `GET /Tenant/{tenantId}/Services` response:
 
 ```js
 import mqtt from "mqtt";
@@ -71,7 +71,7 @@ const identityProviderUserId = me.user.identityProviderUserId;
 const suffix = Math.random().toString(36).slice(2, 8); // six alphanumeric characters
 const subscriberId = `${identityProviderUserId}_${suffix}_`;
 
-// Topics and properties both come from the Services response. Never assemble a topic by hand.
+// Topics and properties both come from the services list. Never assemble a topic by hand.
 const topics = [...new Set(services.flatMap((s) => s.properties.map((p) => p.topic)))];
 const properties = services.flatMap((s) =>
   s.properties.map((p) => ({
