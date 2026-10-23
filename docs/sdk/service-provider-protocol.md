@@ -88,7 +88,7 @@ The `serviceProviderIdentifier` is a human-readable identifier for this provider
 
 - It must match `[A-Za-z0-9_-]`, 1–64 characters.
 - It must be unique within the gateway — not globally unique, so different gateways may have providers with the same identifier.
-- `mesh` and `registration` are reserved, case-insensitively.
+- The system component names (`mesh`, `broker`, `otel-collector`) and `registration` are reserved, case-insensitively.
 
 A request with an invalid identifier is denied with `Invalid service provider identifier`.
 
@@ -132,6 +132,10 @@ Reconnect to the broker using the credentials from the accepted registration pay
 | Username | `username` from accepted payload |
 | Password | `password` from accepted payload |
 | Protocol | MQTT 5.0 |
+
+Mesh never asks a provider for its property or measuring-point values: it learns them only by subscribing, and other consumers may work the same way. Publish these values retained, so a consumer that was offline or restarted receives the current value when it subscribes.
+
+The broker keeps retained messages in memory only, so a broker restart wipes them. Your provider can't tell whether a disconnect came from a broker restart or something else. So each time you connect operationally, publish the current value of every property and measuring point you declare, retained.
 
 ### Last Will Testament
 
