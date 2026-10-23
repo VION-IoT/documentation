@@ -133,6 +133,8 @@ Reconnect to the broker using the credentials from the accepted registration pay
 | Password | `password` from accepted payload |
 | Protocol | MQTT 5.0 |
 
+On every operational connect, the first and each reconnect, republish the retained state of every property and measuring point you declare — never assume the broker still holds what you published before.
+
 ### Last Will Testament
 
 Configure a Last Will Testament (LWT) so the broker publishes an offline health status if the service provider disconnects unexpectedly:
