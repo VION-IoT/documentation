@@ -34,7 +34,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   $API/Tenant/$TENANT_ID/Services
 ```
 
-The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier` and `name`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. The list holds only the services your token may read. A gateway's name is not on the row; `GET /Tenant/{tenantId}/EdgeGateways` lists the gateways, and a gateway's `id` there is the `edgeGatewayId` here.
+The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier` and `name`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. The list holds only the services your token may read. A gateway's name is not on the row; `GET /Tenant/{tenantId}/EdgeGateways` lists the gateways your token may read; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
 
 ## Set a Property Value
 

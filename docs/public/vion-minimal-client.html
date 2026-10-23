@@ -959,7 +959,8 @@ $('s4go').addEventListener('click', async () => {
     try {
       gateways = await getJson(api() + '/Tenant/' + S.tenantId + '/EdgeGateways')
     } catch (e) {
-      // Names only: a token that reads no gateway is refused here and still subscribes.
+      // Names only: the list holds just the gateways this token reads, and one it lacks, or a failed
+      // read, leaves the gateway's id as its label.
       log(e.message + ' — gateways are labelled by id')
     }
     indexServices(services, gateways)
