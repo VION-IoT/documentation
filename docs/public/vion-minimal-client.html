@@ -507,7 +507,6 @@ const S = {
   tenantName: null,
   services: [],
   gateways: new Map(),
-  providers: new Map(),
   props: new Map(),      // key -> property record
   topics: new Map(),     // mqtt topic -> { edgeGatewayId, serviceProviderIdentifier, serviceIdentifier }
   subscriberId: null,
@@ -862,7 +861,9 @@ function renderS4Wire(counts) {
   const n = counts || {}
   $('s4wire').innerHTML =
     '<i># 1. the topics — never built by hand, always properties[].topic</i>\n' +
-    '<b>GET</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/Services\n\n' +
+    '<b>GET</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/Services\n' +
+    '<i># the gateway names — labels only; a gateway missing here keeps its id</i>\n' +
+    '<b>GET</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/EdgeGateways\n\n' +
     '<i># 2. MQTT 5 CONNECT</i>\n' +
     '<b>url</b>              ' + esc(broker()) + '\n' +
     '<b>clientId</b>         ' + (S.subscriberId ? esc(S.subscriberId) : '&lt;identityProviderUserId&gt;_&lt;6 chars&gt;_') + '\n' +
@@ -887,10 +888,12 @@ function renderS4Wire(counts) {
     }, null, 2)) + (n.props !== undefined ? '\n<i># ' + n.props + ' properties in this call</i>' : '')
 }
 
-function indexServices(data) {
-  S.services = data.services || []
-  S.gateways = new Map((data.edgeGateways || []).map((g) => [g.id, g]))
-  S.providers = new Map((data.serviceProviders || []).map((p) => [p.edgeGatewayId + '|' + p.identifier, p]))
+function indexServices(services, gateways) {
+  S.services = services.items || []
+  // The gateways are the services' own: a token that reads a service need not read its gateway, so
+  // the gateway list only names them, and a gateway it lacks is labelled by its id.
+  const names = new Map((gateways.items || []).map((g) => [g.id, g.name]))
+  S.gateways = new Map(S.services.map((s) => [s.edgeGatewayId, { id: s.edgeGatewayId, name: names.get(s.edgeGatewayId) || s.edgeGatewayId }]))
   S.props.clear()
   S.topics.clear()
   for (const svc of S.services) {
@@ -950,9 +953,17 @@ $('s4go').addEventListener('click', async () => {
   $('s4go').disabled = true
   try {
     log('GET /Services…')
-    const data = await getJson(api() + '/Tenant/' + S.tenantId + '/Services')
-    indexServices(data)
-    // The Services response is already filtered to what this account may read, so "the tenant has
+    const services = await getJson(api() + '/Tenant/' + S.tenantId + '/Services')
+    log('GET /EdgeGateways…')
+    let gateways = { items: [] }
+    try {
+      gateways = await getJson(api() + '/Tenant/' + S.tenantId + '/EdgeGateways')
+    } catch (e) {
+      // Names only: a token that reads no gateway is refused here and still subscribes.
+      log(e.message + ' — gateways are labelled by id')
+    }
+    indexServices(services, gateways)
+    // The services list is already filtered to what this account may read, so "the tenant has
     // nothing" and "this account may see nothing" arrive identically. Say both rather than pick one.
     if (!S.services.length) {
       throw {
