@@ -133,7 +133,9 @@ Reconnect to the broker using the credentials from the accepted registration pay
 | Password | `password` from accepted payload |
 | Protocol | MQTT 5.0 |
 
-On every operational connect, the first and each reconnect, republish the retained state of every property and measuring point you declare — never assume the broker still holds what you published before.
+Mesh never asks a provider for its property or measuring-point values: it learns them only by subscribing, and other consumers may work the same way. Publish these values retained, so a consumer that was offline or restarted receives the current value when it subscribes.
+
+The broker keeps retained messages in memory only, so a broker restart wipes them. Your provider can't tell whether a disconnect came from a broker restart or something else. So each time you connect operationally, publish the current value of every property and measuring point you declare, retained.
 
 ### Last Will Testament
 
