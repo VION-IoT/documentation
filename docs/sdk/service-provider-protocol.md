@@ -88,7 +88,7 @@ The `serviceProviderIdentifier` is a human-readable identifier for this provider
 
 - It must match `[A-Za-z0-9_-]`, 1–64 characters.
 - It must be unique within the gateway — not globally unique, so different gateways may have providers with the same identifier.
-- `mesh` and `registration` are reserved, case-insensitively.
+- The system component names (`mesh`, `broker`, `otel-collector`) and `registration` are reserved, case-insensitively.
 
 A request with an invalid identifier is denied with `Invalid service provider identifier`.
 
