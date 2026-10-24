@@ -413,7 +413,7 @@ code { font-family: var(--mono); font-size: 0.92em; background: var(--bg-3); pad
     <span class="stage-summary" id="s3sum"></span>
   </button>
   <div class="stage-body">
-    <p><code>GET /Me</code> returns your memberships and your identity provider user id. That id is
+    <p><code>GET /me</code> returns your memberships and your identity provider user id. That id is
        one half of both the subscriber id and the last will topic, so it is read here rather than
        typed anywhere.</p>
     <p class="wire-label">The call this makes</p>
@@ -789,9 +789,9 @@ async function getJson(url) {
 
 async function loadMe() {
   clearError('s3err')
-  $('s3wire').innerHTML = '<b>GET</b> ' + esc(api()) + '/Me\nAuthorization: Bearer &lt;access token&gt;'
+  $('s3wire').innerHTML = '<b>GET</b> ' + esc(api()) + '/me\nAuthorization: Bearer &lt;access token&gt;'
   try {
-    S.me = await getJson(api() + '/Me')
+    S.me = await getJson(api() + '/me')
   } catch (e) { return showError('s3err', e) }
   const oid = S.me.user.identityProviderUserId
   $('s3wire').innerHTML +=
@@ -811,7 +811,7 @@ async function loadMe() {
         + ' authorization are separate here: a valid token gets you this far and no further.',
       detail: 'Fix: a tenant administrator grants this account a role in the tenant. For a service'
         + ' account, the role goes on its service account user, not on the client.'
-        + '\n\nGET /Me returned: ' + S.me.integratorMemberships.length + ' integrator membership(s), '
+        + '\n\nGET /me returned: ' + S.me.integratorMemberships.length + ' integrator membership(s), '
         + S.me.platformMemberships.length + ' platform membership(s), 0 tenant memberships.',
     })
   }
@@ -861,9 +861,9 @@ function renderS4Wire(counts) {
   const n = counts || {}
   $('s4wire').innerHTML =
     '<i># 1. the topics — never built by hand, always properties[].topic</i>\n' +
-    '<b>GET</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/Services\n' +
+    '<b>GET</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/services\n' +
     '<i># the gateway names — labels only; a gateway missing here keeps its id</i>\n' +
-    '<b>GET</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/EdgeGateways\n\n' +
+    '<b>GET</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/edgeGateways\n\n' +
     '<i># 2. MQTT 5 CONNECT</i>\n' +
     '<b>url</b>              ' + esc(broker()) + '\n' +
     '<b>clientId</b>         ' + (S.subscriberId ? esc(S.subscriberId) : '&lt;identityProviderUserId&gt;_&lt;6 chars&gt;_') + '\n' +
@@ -878,7 +878,7 @@ function renderS4Wire(counts) {
     '<i># 3. SUBSCRIBE at qos 0 — and wait for the SUBACK before step 4</i>\n' +
     '<b>SUBSCRIBE</b> ' + (n.topics !== undefined ? n.topics + ' topic(s)' : '&lt;one per service&gt;') + ' <b>qos</b> 0\n\n' +
     '<i># 4. only now register with VION Cloud</i>\n' +
-    '<b>POST</b> ' + esc(api()) + '/Tenant/' + tenantSegment() + '/Services/subscribeProperties\n' +
+    '<b>POST</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/services/subscribeProperties\n' +
     esc(JSON.stringify({
       subscriberId: S.subscriberId || '<identityProviderUserId>_<6 chars>_',
       properties: [{
@@ -932,7 +932,7 @@ function log(line) {
 
 async function restRegister() {
   const body = subscribeBody()
-  const r = await fetch(api() + '/Tenant/' + S.tenantId + '/Services/subscribeProperties', {
+  const r = await fetch(api() + '/tenant/' + S.tenantId + '/services/subscribeProperties', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + S.token, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -952,12 +952,12 @@ $('s4go').addEventListener('click', async () => {
   logLines.length = 0
   $('s4go').disabled = true
   try {
-    log('GET /Services…')
-    const services = await getJson(api() + '/Tenant/' + S.tenantId + '/Services')
-    log('GET /EdgeGateways…')
+    log('GET /services…')
+    const services = await getJson(api() + '/tenant/' + S.tenantId + '/services')
+    log('GET /edgeGateways…')
     let gateways = { items: [] }
     try {
-      gateways = await getJson(api() + '/Tenant/' + S.tenantId + '/EdgeGateways')
+      gateways = await getJson(api() + '/tenant/' + S.tenantId + '/edgeGateways')
     } catch (e) {
       // Names only: the list holds just the gateways this token reads, and one it lacks, or a failed
       // read, leaves the gateway's id as its label.
@@ -1259,7 +1259,7 @@ async function doSet(p, input, btn) {
 
   btn.disabled = true
   try {
-    const url = api() + '/Tenant/' + S.tenantId + '/Services/' + p.edgeGatewayId + '/' +
+    const url = api() + '/tenant/' + S.tenantId + '/services/' + p.edgeGatewayId + '/' +
       encodeURIComponent(p.serviceProviderIdentifier) + '/' + encodeURIComponent(p.serviceIdentifier) +
       '/property/' + encodeURIComponent(p.identifier)
     const r = await fetch(url, {

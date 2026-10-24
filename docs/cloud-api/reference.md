@@ -29,16 +29,17 @@ Scalar lets you browse all endpoints, see request/response schemas, and make liv
 | **Projects** | Tenant | Create and manage projects |
 | **Logic Configurations** | Tenant | Deploy and activate logic configurations |
 | **Measuring Points** | Tenant | Query time-series measurement data |
+| **Alerts, System Events** | Tenant | List a tenant's alerts and events, page by page |
 | **Logic Block Libraries** | Integrator | Manage libraries and versions |
-| **Edge Gateways** | Integrator/Tenant | Device management |
+| **Edge Gateways** | Integrator, Tenant | Device management |
 
 ### URL Pattern
 
 All endpoints follow the scoped URL pattern described in [Authentication](/cloud-api/authentication#api-url-structure):
 
 ```text
-GET /Tenant/{tenantId}/Services
-POST /Integrator/{integratorId}/LogicBlockLibraryVersions
+GET /tenant/{tenantId}/services
+POST /integrator/{integratorId}/logicBlockLibraryVersions
 ```
 
 For practical examples using `curl`, see [Integration Examples](/cloud-api/examples).
