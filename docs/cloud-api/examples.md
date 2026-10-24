@@ -21,7 +21,7 @@ A list answers an object with its rows under `items`, never a bare array. A page
 
 A tenant list narrows by query parameter:
 
-- A list whose rows belong to a project takes `projectId` and keeps that project's rows — services, edge gateways, projects, logic configurations, alerts and system events among them.
+- A list whose rows are or belong to a project takes `projectId` and keeps that project's rows — services, edge gateways, projects, logic configurations, alerts and system events among them.
 - A list whose rows sit on an edge gateway — services, edge gateways, alerts and system events — also takes `edgeGatewayId`.
 - Alerts and system events take a time range in `from` and `to`, and page by `limit` and `cursor`.
 - Alerts also take `status`, `active` or `resolved`.
@@ -206,7 +206,7 @@ do {
 } while (cursor);
 ```
 
-System events read the same way from `/tenant/$TENANT_ID/systemEvents`, with `from` and `to` in place of `status`.
+System events read the same way from `/tenant/$TENANT_ID/systemEvents`, without `status`.
 
 ## List Projects
 
