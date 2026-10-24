@@ -14,9 +14,19 @@ For the full API reference, see the [Scalar API Documentation](https://api.vion.
 TOKEN="<your-access-token>"
 API="https://api.vion.swiss"
 TENANT_ID="<your-tenant-id>"
+PROJECT_ID="<your-project-id>"
 ```
 
 A list answers an object with its rows under `items`, never a bare array. A paged list adds `nextCursor`, which you send back as the `cursor` query parameter; it is `null` on the last page. `GET /me` answers a single object.
+
+A tenant list narrows by query parameter:
+
+- A list whose rows belong to a project takes `projectId` and keeps that project's rows — services, edge gateways, projects, logic configurations, alerts and system events among them.
+- A list whose rows sit on an edge gateway — services, edge gateways, alerts and system events — also takes `edgeGatewayId`.
+- Alerts and system events take a time range in `from` and `to`, and page by `limit` and `cursor`.
+- Alerts also take `status`, `active` or `resolved`.
+
+The defaults, the maximum page size and the error cases are in the [Scalar API Documentation](https://api.vion.swiss/scalar).
 
 ::: tip Finding Your IDs
 Call `GET /me` to see your tenant and integrator memberships with their IDs:
@@ -166,7 +176,41 @@ measuringPointIdentifiers=Power&\
 measuringPointIdentifiers=Energy"
 ```
 
+## List Alerts
+
+List a project's active alerts, fifty to a page:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "$API/tenant/$TENANT_ID/alerts?\
+projectId=$PROJECT_ID&\
+status=active&\
+limit=50"
+```
+
+The rows are under `items`, newest first, and `nextCursor` is the cursor of the next page. To read every page, send `nextCursor` back as `cursor` until it is `null`, with the same filters on every page — the cursor does not carry them:
+
+```js
+const alerts = [];
+let cursor = null;
+do {
+  const params = new URLSearchParams({ projectId: PROJECT_ID, status: "active", limit: "50" });
+  if (cursor) params.set("cursor", cursor);
+  const response = await fetch(`${API}/tenant/${TENANT_ID}/alerts?${params}`, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
+  });
+  if (!response.ok) throw new Error(`GET alerts answered ${response.status}`);
+  const page = await response.json();
+  alerts.push(...page.items);
+  cursor = page.nextCursor;
+} while (cursor);
+```
+
+System events read the same way from `/tenant/$TENANT_ID/systemEvents`, with `from` and `to` in place of `status`.
+
 ## List Projects
+
+List the projects of a tenant; add `projectId` to read that one project:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
@@ -174,6 +218,8 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```
 
 ## List Logic Configurations
+
+List the logic configurations of a tenant; add `projectId` to keep one project's:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
