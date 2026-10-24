@@ -27,7 +27,7 @@ Seven things decide whether a client sees values at all. The example gets each o
 | Read a message only when its `schema` user property is `PropertiesStatePayload` | a client that skips the check parses whatever arrives on the topic as property state |
 | Take the topic from each property's `topic` field in the Services response, never build it | a hand-built topic does not match the one values are published on |
 
-Your identity provider user ID is the `user.identityProviderUserId` field of `GET /Me`. Read it from there rather than typing it in — it is one half of both the subscriber ID and the last will topic.
+Your identity provider user ID is the `user.identityProviderUserId` field of `GET /me`. Read it from there rather than typing it in — it is one half of both the subscriber ID and the last will topic.
 
 A clean MQTT `DISCONNECT` tells the broker *not* to fire the will, so a client that exits politely leaves its registration standing and the edge gateway publishing to nobody. Publish an empty message to the last will topic yourself before disconnecting; the example's **Sign out** does that, then discards the token.
 

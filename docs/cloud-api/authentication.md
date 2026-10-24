@@ -70,7 +70,7 @@ Include the access token in the `Authorization` header:
 
 ```bash
 curl -H "Authorization: Bearer <access-token>" \
-  https://api.vion.swiss/Me
+  https://api.vion.swiss/me
 ```
 
 ## API URL Structure
@@ -79,9 +79,9 @@ The API uses a scoped URL pattern reflecting the multi-tenancy hierarchy:
 
 | Level | URL Pattern | Example |
 |-------|-------------|---------|
-| **Common** | `/<controller>` | `GET /Me` |
-| **Integrator** | `/Integrator/{integratorId}/<controller>` | `POST /Integrator/{id}/LogicBlockLibraryVersions` |
-| **Tenant** | `/Tenant/{tenantId}/<controller>` | `GET /Tenant/{id}/Services` |
+| **Common** | `/<controller>` | `GET /me` |
+| **Integrator** | `/integrator/{integratorId}/<controller>` | `POST /integrator/{id}/logicBlockLibraryVersions` |
+| **Tenant** | `/tenant/{tenantId}/<controller>` | `GET /tenant/{id}/services` |
 
 Most operational endpoints (services, properties, projects) are at the **Tenant** level.
 
