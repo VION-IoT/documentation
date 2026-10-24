@@ -30,7 +30,7 @@ Token URL:         https://auth.vion.swiss/realms/vion/protocol/openid-connect/t
 | `code_challenge_method` | `S256` (PKCE required) |
 
 ::: tip
-The easiest way to explore the API interactively is through the [Scalar API Reference](https://api.vion.swiss/scalar/v1), which has built-in OAuth authentication.
+The easiest way to explore the API interactively is through the [Scalar API Reference](https://api.vion.swiss/scalar), which has built-in OAuth authentication.
 :::
 
 ### Machine-to-Machine (Client Credentials Flow)
