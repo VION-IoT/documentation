@@ -504,7 +504,6 @@ const S = {
   saSecret: null,
   me: null,
   tenantId: null,
-  tenantName: null,
   services: [],
   gateways: new Map(),
   props: new Map(),      // key -> property record
@@ -825,7 +824,6 @@ async function loadMe() {
 
 function pickTenant(t) {
   S.tenantId = t.tenantId
-  S.tenantName = t.tenantName
   completeStage('s3', t.tenantName, 's4')
   renderS4Wire()
 }
