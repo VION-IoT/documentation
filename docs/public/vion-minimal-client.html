@@ -892,7 +892,7 @@ function indexServices(services, gateways) {
   S.services = services.items || []
   // The gateways are the services' own: a token that reads a service need not read its gateway, so
   // the gateway list only names them, and a gateway it lacks is labelled by its id.
-  const names = new Map((gateways.items || []).map((g) => [g.id, g.name]))
+  const names = new Map((gateways.items || []).map((g) => [g.id, g.displayName]))
   S.gateways = new Map(S.services.map((s) => [s.edgeGatewayId, { id: s.edgeGatewayId, name: names.get(s.edgeGatewayId) || s.edgeGatewayId }]))
   S.props.clear()
   S.topics.clear()
