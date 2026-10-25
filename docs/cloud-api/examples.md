@@ -267,7 +267,8 @@ The rows are under `items`:
       "ownerIntegratorSlug": "acme",
       "granteeIntegratorId": "<partner-integrator-id>",
       "granteeIntegratorName": "Example Partner",
-      "granteeIntegratorSlug": "example-partner"
+      "granteeIntegratorSlug": "example-partner",
+      "meta": { "permissions": [ "Integrator.ManageLibraries" ] }
     }
   ]
 }
