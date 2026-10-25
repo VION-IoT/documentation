@@ -161,7 +161,7 @@ curl -X POST \
 
 ## Query Measuring Point Data
 
-Retrieve time-series data for measuring points within a time range from `from` up to `to`, which is exclusive, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
+Retrieve time-series data for measuring points within a time range from `from`, included, up to `to`, excluded, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
