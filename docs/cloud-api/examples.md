@@ -22,7 +22,7 @@ A list answers an object with its rows under `items`, never a bare array. A page
 A tenant list narrows by query parameter:
 
 - A list whose rows are or belong to a project takes `projectId` and keeps that project's rows — services, edge gateways, projects, logic configurations, alerts and system events among them.
-- A list whose rows sit on an edge gateway — services, edge gateways, alerts and system events — also takes `edgeGatewayId`.
+- A list whose rows sit on an edge gateway — services, edge gateways, alerts and system events among them — also takes `edgeGatewayId`.
 - Alerts and system events take a time range in `from` and `to`, and page by `limit` and `cursor`.
 - Alerts also take `status`, `active` or `resolved`.
 
@@ -44,7 +44,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   $API/tenant/$TENANT_ID/services
 ```
 
-The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier` and `name`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. The list holds only the services your token may read. A gateway's name is not on the row; `GET /tenant/{tenantId}/edgeGateways` lists the gateways your token may read; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
+The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier`, `name` and `displayName`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. Show a service by its `name`, and a gateway or a logic block instance by its `displayName`. The list holds only the services your token may read. To label a gateway, `GET /tenant/{tenantId}/edgeGateways` lists the gateways your token may read, each with the `displayName` to show; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
 
 ## Set a Property Value
 
@@ -161,13 +161,13 @@ curl -X POST \
 
 ## Query Measuring Point Data
 
-Retrieve time-series data for measuring points within a time range, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
+Retrieve time-series data for measuring points within a time range from `from`, included, up to `to`, excluded, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   "$API/tenant/$TENANT_ID/measuringPoints/data?\
-timeRangeStart=2026-03-01T00:00:00Z&\
-timeRangeEnd=2026-03-24T00:00:00Z&\
+from=2026-03-01T00:00:00Z&\
+to=2026-03-24T00:00:00Z&\
 aggregationInterval=Hourly&\
 edgeGatewayIds={gatewayId}&\
 serviceProviderIdentifiers={spId}&\
@@ -267,7 +267,8 @@ The rows are under `items`:
       "ownerIntegratorSlug": "acme",
       "granteeIntegratorId": "<partner-integrator-id>",
       "granteeIntegratorName": "Example Partner",
-      "granteeIntegratorSlug": "example-partner"
+      "granteeIntegratorSlug": "example-partner",
+      "meta": { "permissions": [ "Integrator.ManageLibraries" ] }
     }
   ]
 }

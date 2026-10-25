@@ -504,7 +504,6 @@ const S = {
   saSecret: null,
   me: null,
   tenantId: null,
-  tenantName: null,
   services: [],
   gateways: new Map(),
   props: new Map(),      // key -> property record
@@ -825,7 +824,6 @@ async function loadMe() {
 
 function pickTenant(t) {
   S.tenantId = t.tenantId
-  S.tenantName = t.tenantName
   completeStage('s3', t.tenantName, 's4')
   renderS4Wire()
 }
@@ -892,7 +890,7 @@ function indexServices(services, gateways) {
   S.services = services.items || []
   // The gateways are the services' own: a token that reads a service need not read its gateway, so
   // the gateway list only names them, and a gateway it lacks is labelled by its id.
-  const names = new Map((gateways.items || []).map((g) => [g.id, g.name]))
+  const names = new Map((gateways.items || []).map((g) => [g.id, g.displayName]))
   S.gateways = new Map(S.services.map((s) => [s.edgeGatewayId, { id: s.edgeGatewayId, name: names.get(s.edgeGatewayId) || s.edgeGatewayId }]))
   S.props.clear()
   S.topics.clear()
@@ -969,10 +967,10 @@ $('s4go').addEventListener('click', async () => {
     if (!S.services.length) {
       throw {
         message: 'This tenant returned no services. Either it has none commissioned yet, or this'
-          + ' account has no read permission on any of them — the Services endpoint returns only what'
+          + ' account has no read permission on any of them — the services list returns only what'
           + ' you are authorized to see, so the two are indistinguishable from here.',
-        detail: 'Fix: a tenant administrator grants this account read access on the projects or'
-          + ' logic block instances whose services you need. Membership in the tenant alone does not'
+        detail: 'Fix: a tenant administrator grants this account read access on the logic block'
+          + ' instances or the service providers whose services you need. Membership in the tenant alone does not'
           + ' carry it.',
       }
     }
