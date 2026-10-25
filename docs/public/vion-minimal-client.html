@@ -969,7 +969,7 @@ $('s4go').addEventListener('click', async () => {
     if (!S.services.length) {
       throw {
         message: 'This tenant returned no services. Either it has none commissioned yet, or this'
-          + ' account has no read permission on any of them — the Services endpoint returns only what'
+          + ' account has no read permission on any of them — the services list returns only what'
           + ' you are authorized to see, so the two are indistinguishable from here.',
         detail: 'Fix: a tenant administrator grants this account read access on the logic block'
           + ' instances or the service providers whose services you need. Membership in the tenant alone does not'
