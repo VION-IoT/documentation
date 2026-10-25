@@ -161,13 +161,13 @@ curl -X POST \
 
 ## Query Measuring Point Data
 
-Retrieve time-series data for measuring points within a time range, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
+Retrieve time-series data for measuring points within a time range from `from` up to `to`, which is exclusive, aggregated by the required `aggregationInterval` (for example `Hourly`). Repeat a filter parameter once per value:
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   "$API/tenant/$TENANT_ID/measuringPoints/data?\
-timeRangeStart=2026-03-01T00:00:00Z&\
-timeRangeEnd=2026-03-24T00:00:00Z&\
+from=2026-03-01T00:00:00Z&\
+to=2026-03-24T00:00:00Z&\
 aggregationInterval=Hourly&\
 edgeGatewayIds={gatewayId}&\
 serviceProviderIdentifiers={spId}&\
