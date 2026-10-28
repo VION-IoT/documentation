@@ -3000,10 +3000,27 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
   - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
   - `responseTopic`: Optional response topic for request-response patterns.
   - `retain`: Whether the message should be retained by the broker.
+- `Publish(string, byte[], string, string, DateTimeOffset, Guid?, string, bool)` — Publishes an MQTT message as does, with a deadline from which a host that honours it makes no further attempt at it.
+  - `topic`: The full MQTT topic to publish to.
+  - `payload`: The serialized payload bytes.
+  - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `contentType`: The MQTT content type, such as `MessageMimeTypes.Json` or `MessageMimeTypes.FlatBuffer`.
+  - `deadline`: The instant from which the message is of no use to its receiver.
+  - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
+  - `responseTopic`: Optional response topic for request-response patterns.
+  - `retain`: Whether the message should be retained by the broker.
 - `PublishJson<T>(string, T, string, Guid?, string, bool)` — Serializes the payload as JSON and publishes it with `application/json` content type.
   - `topic`: The full MQTT topic to publish to.
   - `payload`: The value to serialize as the message body.
   - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
+  - `responseTopic`: Optional response topic for request-response patterns.
+  - `retain`: Whether the message should be retained by the broker.
+- `PublishJson<T>(string, T, string, DateTimeOffset, Guid?, string, bool)` — Serializes the payload as JSON and publishes it with `application/json` content type, with a deadline from which a host that honours it makes no further attempt at it.
+  - `topic`: The full MQTT topic to publish to.
+  - `payload`: The value to serialize as the message body.
+  - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `deadline`: The instant from which the message is of no use to its receiver.
   - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
   - `responseTopic`: Optional response topic for request-response patterns.
   - `retain`: Whether the message should be retained by the broker.
@@ -3012,6 +3029,15 @@ Base class for all service provider handler actors (DI, DO, AI, AO, Modbus, cust
   - `payload`: The value to serialize as the message body.
   - `typeInfo`: The source-generated metadata is serialized through.
   - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
+  - `responseTopic`: Optional response topic for request-response patterns.
+  - `retain`: Whether the message should be retained by the broker.
+- `PublishJson<T>(string, T, JsonTypeInfo<T>, string, DateTimeOffset, Guid?, string, bool)` — Serializes the payload through the supplied source-generated type metadata and publishes it with `application/json` content type, with a deadline from which a host that honours it makes no further attempt at it.
+  - `topic`: The full MQTT topic to publish to.
+  - `payload`: The value to serialize as the message body.
+  - `typeInfo`: The source-generated metadata is serialized through.
+  - `schemaName`: The schema name set as an MQTT user property (identifies the payload type).
+  - `deadline`: The instant from which the message is of no use to its receiver.
   - `correlationId`: An existing correlation ID to use. If `null`, a new one is generated.
   - `responseTopic`: Optional response topic for request-response patterns.
   - `retain`: Whether the message should be retained by the broker.
