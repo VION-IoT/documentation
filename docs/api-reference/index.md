@@ -1930,8 +1930,12 @@ Wires a `FakeModbusTcpClientProxy` and `SynchronousRequestQueue` into a real `Lo
 
 The test-side master view of a fake Modbus TCP server: drives the wire side of a server-fronted block without sockets. Method names follow the Modbus TCP client surface so wire-contract tests read like client code. Typed values are deliberately encoded with `BinaryPrimitives` (big-endian), independent of the SDK's converter — so a conversion bug cannot cancel itself out in a test.
 
+> The harness's view addresses no unit, which a server that declares no unit answers from its one map. A server that declares units needs the unit a master addresses: take that view with . Every member's exceptions then also include `GatewayTargetDeviceFailedToRespond` for a unit the server does not declare, and the unaddressed view throws `InvalidOperationException` on such a server.
+
 **Methods:**
 
+- `ForUnit(byte)` — Gets a master view whose requests address .
+  - `unitId`: The unit identifier every request of the returned view carries.
 - `WriteSingleHoldingRegister(ushort, ushort)` — Writes a single holding register (function code 6).
   - `address`: The register address to write.
   - `value`: The register value.
@@ -1980,9 +1984,11 @@ Wires a `FakeModbusTcpServerProxy` into a real `LogicBlockModbusTcpServer`, so t
 
 In-memory `IModbusTcpServerProxy`: full-range register buffers without any sockets. The simulate-client methods replay what a connected Modbus master would do, including the extent validation the real server performs (out-of-map access throws a `ModbusException` with `IllegalDataAddress`, mirroring the wire behavior) and the `LastClientWriteAt` bookkeeping.
 
+> A server that declares units gets a register map per unit here, as on the wire. The unit-addressed simulate-client overloads then answer from the addressed unit's map, and a unit the server did not declare with the `GatewayTargetDeviceFailedToRespond` exception a master receives. A master always sends some unit identifier, so the unaddressed overloads refuse on such a server. On a server that declares no unit, both kinds answer from its one map.
+
 **Properties:**
 
-- `Extents` — The extents passed to the most recent call. Drives the simulate-client validation.
+- `Extents` — The extents passed to the most recent call. Drives the simulate-client validation of a server that declares no unit.
 - `TimeProvider` — The clock stamping `LastClientWriteAt` on simulated client writes. Default is `System`; assign a `FakeTimeProvider` for deterministic tests.
 - `IsListening` — *(no description)*
 - `ConnectionCount` — The number of connected clients reported to the server. Settable so tests can shape diagnostics.
@@ -1992,30 +1998,62 @@ In-memory `IModbusTcpServerProxy`: full-range register buffers without any socke
 **Methods:**
 
 - `Start(IPAddress, int, ModbusServerAreaExtents)` — *(no description)*
+- `Start(IPAddress, int, IReadOnlyDictionary<byte, ModbusServerAreaExtents>)` — *(no description)*
 - `Stop` — *(no description)*
+- `AddUnit(byte)` — *(no description)*
+- `GetLastClientWriteAt(byte)` — *(no description)*
 - `GetHoldingRegisterBuffer` — *(no description)*
 - `GetInputRegisterBuffer` — *(no description)*
 - `GetCoilBuffer` — *(no description)*
 - `GetDiscreteInputBuffer` — *(no description)*
+- `GetHoldingRegisterBuffer(byte)` — *(no description)*
+- `GetInputRegisterBuffer(byte)` — *(no description)*
+- `GetCoilBuffer(byte)` — *(no description)*
+- `GetDiscreteInputBuffer(byte)` — *(no description)*
 - `Dispose` — *(no description)*
 - `SimulateClientWriteHoldingRegisters(ushort, byte[])` — Simulates a connected master writing holding registers (function codes 6/16).
+  - `startingAddress`: The register address to start writing at.
+  - `registerBytes`: The register bytes in wire order (2 bytes per register).
+- `SimulateClientWriteHoldingRegisters(byte, ushort, byte[])` — Simulates a connected master writing holding registers (function codes 6/16) at one unit identifier.
+  - `unitId`: The unit identifier the request addresses.
   - `startingAddress`: The register address to start writing at.
   - `registerBytes`: The register bytes in wire order (2 bytes per register).
 - `SimulateClientWriteSingleCoil(ushort, bool)` — Simulates a connected master writing a single coil (function code 5).
   - `address`: The coil address to write.
   - `value`: The coil value to write.
+- `SimulateClientWriteSingleCoil(byte, ushort, bool)` — Simulates a connected master writing a single coil (function code 5) at one unit identifier.
+  - `unitId`: The unit identifier the request addresses.
+  - `address`: The coil address to write.
+  - `value`: The coil value to write.
 - `SimulateClientReadHoldingRegisters(ushort, ushort)` — Simulates a connected master reading holding registers (function code 3).
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers to read.
+- `SimulateClientReadHoldingRegisters(byte, ushort, ushort)` — Simulates a connected master reading holding registers (function code 3) at one unit identifier.
+  - `unitId`: The unit identifier the request addresses.
   - `startingAddress`: The register address to start reading from.
   - `quantity`: The number of registers to read.
 - `SimulateClientReadInputRegisters(ushort, ushort)` — Simulates a connected master reading input registers (function code 4).
   - `startingAddress`: The register address to start reading from.
   - `quantity`: The number of registers to read.
+- `SimulateClientReadInputRegisters(byte, ushort, ushort)` — Simulates a connected master reading input registers (function code 4) at one unit identifier.
+  - `unitId`: The unit identifier the request addresses.
+  - `startingAddress`: The register address to start reading from.
+  - `quantity`: The number of registers to read.
 - `SimulateClientReadCoils(ushort, ushort)` — Simulates a connected master reading coils (function code 1).
+  - `startingAddress`: The coil address to start reading from.
+  - `quantity`: The number of coils to read.
+- `SimulateClientReadCoils(byte, ushort, ushort)` — Simulates a connected master reading coils (function code 1) at one unit identifier.
+  - `unitId`: The unit identifier the request addresses.
   - `startingAddress`: The coil address to start reading from.
   - `quantity`: The number of coils to read.
 - `SimulateClientReadDiscreteInputs(ushort, ushort)` — Simulates a connected master reading discrete inputs (function code 2).
   - `startingAddress`: The discrete input address to start reading from.
   - `quantity`: The number of discrete inputs to read.
+- `SimulateClientReadDiscreteInputs(byte, ushort, ushort)` — Simulates a connected master reading discrete inputs (function code 2) at one unit identifier.
+  - `unitId`: The unit identifier the request addresses.
+  - `startingAddress`: The discrete input address to start reading from.
+  - `quantity`: The number of discrete inputs to read.
+- `ResolveMap(byte?, ModbusServerArea, ushort, uint)` — The map a simulated request is answered from, after the checks the real server makes before it reads one: listening, the unit addressed, then the range against that map's extents.
 
 ---
 
@@ -2242,7 +2280,7 @@ A point-in-time summary of one Modbus TCP client's socket: whether it is up, and
 
 Hosts a Modbus TCP server (slave role) for logic blocks: external Modbus clients connect to the logic block and read or write its register map.
 
-> The server is configured via properties and gated by `IsEnabled`, exactly like the Modbus TCP client: configure while disabled, then enable. Configuration properties can only be changed while the server is disabled — to reconfigure, disable the server first, update the settings, then re-enable it (a port or address change is a rebind). It listens on all interfaces (`0.0.0.0`) unless told otherwise, because a logic-block-hosted server exists to be reached by Modbus masters elsewhere on the network. Set `ListenAddress` to bind one interface — loopback for a simulator that must not be reachable off the machine, or a specific NIC on a multi-homed device. All register access happens inside callbacks, which execute synchronously on the caller's thread while holding the server lock — client requests are served from the register buffers on background threads, and the lock makes each callback atomic with respect to them. No events or callbacks are ever delivered to the logic block from background threads. The block chooses its own cadence (a timer, a reactive trigger) and may use several independent cadences; each `Sync` call is atomic on its own. The register buffers exist independently of the listener: `Sync` also works while the server is disabled, so a block can seed default values before it starts listening. Buffer contents survive disable/enable cycles. The server accepts requests for any unit identifier and echoes the request's unit identifier in the response — the endpoint behavior the Modbus TCP specification intends for directly connected servers. Client requests outside the declared register-map extents are answered with an IllegalDataAddress Modbus exception. The server should be disposed when no longer needed. Disposal stops the listener and releases all resources; benign teardown races of the underlying server library are caught and logged, never thrown.
+> The server is configured via properties and gated by `IsEnabled`, exactly like the Modbus TCP client: configure while disabled, then enable. Configuration properties can only be changed while the server is disabled — to reconfigure, disable the server first, update the settings, then re-enable it (a port or address change is a rebind). It listens on all interfaces (`0.0.0.0`) unless told otherwise, because a logic-block-hosted server exists to be reached by Modbus masters elsewhere on the network. Set `ListenAddress` to bind one interface — loopback for a simulator that must not be reachable off the machine, or a specific NIC on a multi-homed device. All register access happens inside callbacks, which execute synchronously on the caller's thread while holding the server lock — client requests are served from the register buffers on background threads, and the lock makes each callback atomic with respect to them. No events or callbacks are ever delivered to the logic block from background threads. The block chooses its own cadence (a timer, a reactive trigger) and may use several independent cadences; each `Sync` call is atomic on its own. The register buffers exist independently of the listener: `Sync` also works while the server is disabled, so a block can seed default values before it starts listening. Buffer contents survive disable/enable cycles. A server that declares no unit accepts requests for any unit identifier, answers them from its one register map and echoes the request's unit identifier in the response — the endpoint behavior the Modbus TCP specification intends for directly connected servers. Client requests outside the declared register-map extents are answered with an IllegalDataAddress Modbus exception. A server that stands in for a device serving several unit identifiers behind one port — different values at the same addresses under each — declares each with instead, and configures and reads each unit through the handle it returns. A request to a unit identifier it did not declare is then answered with a GatewayTargetDeviceFailedToRespond Modbus exception, and the connection stays open. The server should be disposed when no longer needed. Disposal stops the listener and releases all resources; benign teardown races of the underlying server library are caught and logged, never thrown.
 
 **Properties:**
 
@@ -2255,10 +2293,12 @@ Hosts a Modbus TCP server (slave role) for logic blocks: external Modbus clients
 - `DiscreteInputCount` — Gets or sets the declared discrete input extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
 - `IsListening` — Gets a value indicating whether the server is currently listening for client connections.
 - `ConnectionCount` — Gets the number of currently connected clients.
-- `LastClientWriteAt` — Gets the time of the most recent client write to any register area, or `null` when no client has written yet.
+- `LastClientWriteAt` — Gets the time of the most recent client write to any register area, at any unit, or `null` when no client has written yet.
 
 **Methods:**
 
+- `AddUnit(byte)` — Declares a unit identifier this server serves from a register map of its own, and returns the handle that configures and reads that map.
+  - `unitId`: The unit identifier to serve, 0 to 255.
 - `Sync(Action<IModbusServerSnapshot>)` — Executes with a consistent view of all four register areas.
   - `access`: The callback receiving the snapshot. It runs synchronously on the caller's thread while the server lock is held — keep it short and free of blocking calls, and do not capture the snapshot outside the callback.
 - `Sync<T>(Func<IModbusServerSnapshot, T>)` — Executes with a consistent view of all four register areas and returns its result.
@@ -2273,6 +2313,30 @@ Factory for creating instances of `ILogicBlockModbusTcpServer`.
 **Methods:**
 
 - `Create` — Creates a new instance of `ILogicBlockModbusTcpServer`.
+
+---
+
+### ILogicBlockModbusTcpServerUnit
+
+One unit identifier a Modbus TCP server serves from a register map of its own, declared with .
+
+> A unit is configured and read exactly like the server's own map: four extents, set while the server is disabled, and all register access inside callbacks. A value written at one unit, by the block or by a client, is not seen at another. Every unit's `Sync` takes the same server lock as the server's own. A callback may call another unit's `Sync` to change several units atomically with respect to client requests.
+
+**Properties:**
+
+- `UnitId` — Gets the unit identifier this map is served under.
+- `HoldingRegisterCount` — Gets or sets this unit's declared holding register extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `InputRegisterCount` — Gets or sets this unit's declared input register extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `CoilCount` — Gets or sets this unit's declared coil extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `DiscreteInputCount` — Gets or sets this unit's declared discrete input extent: addresses 0 to count - 1 are served. Default is 0 (the area is not served).
+- `LastClientWriteAt` — Gets the time of the most recent client write to any area of this unit, or `null` when no client has written to it yet.
+
+**Methods:**
+
+- `Sync(Action<IModbusServerSnapshot>)` — Executes with a consistent view of this unit's four register areas.
+  - `access`: The callback receiving the snapshot. It runs synchronously on the caller's thread while the server lock is held — keep it short and free of blocking calls, and do not capture the snapshot outside the callback.
+- `Sync<T>(Func<IModbusServerSnapshot, T>)` — Executes with a consistent view of this unit's four register areas and returns its result.
+  - `access`: The callback receiving the snapshot. It runs synchronously on the caller's thread while the server lock is held — keep it short and free of blocking calls, and do not capture the snapshot outside the callback.
 
 ---
 
