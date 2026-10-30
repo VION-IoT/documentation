@@ -25,8 +25,8 @@ CHK-01, CHK-07 and CHK-12 only by renaming them from T-numbers, so it is no firi
 | Reason dropped as unverifiable | 3 | F7:3, F7:5, #32 | left: one event |
 | Pre-PR review skipped | 3 | #21, #22, #27 | left: every body from #29 on records a review |
 
-F1–F9 are the fragments in file-name order, archived in
-[`journal-2026-09-13-to-2026-10-24.md`](journal-2026-09-13-to-2026-10-24.md).
+F1–F9 are the fragments in file-name order, each marked by a comment in
+[`journal-2026-09-13-to-2026-10-24.md`](journal-2026-09-13-to-2026-10-24.md); `Fn:line` counts from it.
 
 ## Checks by citing bodies
 
@@ -50,7 +50,8 @@ Retro-0 gave no per-check counts, so no check is pruned for zero citations this 
   architecture repo; it is routed there.
 - **Pruned:** the twelve `(was Tn)` aliases in `docs/review-checks.md`; the ids count from this
   round. CHK-11 "Correction logged": no citing body, no window support, and retro-0 recorded none;
-  its rule is the journal skill's, triggered from `CLAUDE.md`. CHK-12 keeps its number.
+  its rule is the journal skill's, triggered from `CLAUDE.md`. CHK-12 keeps its number; 11 stays retired, and the next new
+  check is CHK-13.
 - **Kept against the recurrence rule:** CHK-01/02, CHK-08, CHK-10 and the review lane. Their
   recurrences are the checks firing before merge — `(self)` branch-review entries and review notes
   fixed in #31, #32, #34, #35 — not escapes.
