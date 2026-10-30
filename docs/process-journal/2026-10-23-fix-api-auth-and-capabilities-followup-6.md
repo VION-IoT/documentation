@@ -1,1 +1,0 @@
-2026-10-23 · brief · minimal-client · The brief said a token reading no gateway is likely refused by the tenant's gateway list; the endpoint filters its rows instead and answers 200 with fewer, so the client's comment first named a refusal (self)
