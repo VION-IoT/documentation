@@ -312,10 +312,11 @@ Drives a block's HTTP calls against answers the test scripts: the SDK's real reg
 - `Dispose` — Disposes the composed services. A request still outstanding is abandoned: its callbacks never run.
 - `Respond(string)` — Answers the oldest outstanding request with status 200 and as its `application/json` body.
   - `json`: The response body.
-- `Respond(HttpStatusCode, string, string)` — Answers the oldest outstanding request with and an optional body.
+- `Respond(HttpStatusCode, string, string, IEnumerable<KeyValuePair<string, string>>)` — Answers the oldest outstanding request with , an optional body and optional headers.
   - `statusCode`: The response status.
   - `body`: The response body, or `null` for an empty one.
   - `contentType`: The content type of .
+  - `headers`: The response headers, added as the wire would carry them, a name given twice sent twice — a content header such as `Content-Language` goes onto the body — or `null` for none. `Content-Type` is 's, and is refused here.
 - `Fail(Exception)` — Fails the oldest outstanding request with , the way a transport failure arrives.
   - `exception`: The exception the transport raised, delivered to the block unchanged.
 
@@ -379,7 +380,7 @@ An answer a `FakeHttpServerHarness`'s server gave.
 
 - `StatusCode` — Gets the response status.
 - `ContentType` — Gets the content type of the body, or `null` when none was set.
-- `Headers` — Gets the headers the server added itself, such as the `Allow` of a 405, by case-insensitive name.
+- `Headers` — Gets every other header the response carries by case-insensitive name, a repeated one joined by `", "`.
 - `Body` — Gets the response body as UTF-8 text.
 
 ---
@@ -474,7 +475,7 @@ How a single HTTP request ended.
 
 The facts of one HTTP request, handed to its success and its error callback alongside the value or the exception.
 
-> `StatusCode` is the status of the response the client judged, and is `null` when no response arrived. It is what tells a server's answer from a failure to reach it: a refused connection and a 404 both arrive as an `HttpRequestException`, and only the 404 carries a status here. The instant is taken when the outcome was observed, before the callback is handed to the block, so it is unaffected by how long the block takes to run it. `ReceivedAt` is wall clock and is what you publish; `ReceivedTimestamp` is the same instant on the monotonic scale — age a value with `TimeProvider.GetElapsedTime(receipt.ReceivedTimestamp)`. `RoundTrip` runs from handing the request to the client until the outcome was observed: for the members that return a value it includes reading and deserializing the body; for `SendRequest` it ends at the response headers, because the body is the callback's to read. Ignoring a receipt is a discard: `(value, _) =&gt; Temperature = value.Current`.
+> `StatusCode` is the status of the response the client judged, and is `null` when no response arrived. It is what tells a server's answer from a failure to reach one: a refused connection and a 404 both arrive as an `HttpRequestException`, and only the 404 carries a status here. `Headers` are that response's headers, its content headers included, on a refusal as on a success, and are `null` exactly when `StatusCode` is. A header the platform understands, such as a date, reads in the platform's canonical form. `RetryAfter` is the delay the response's `Retry-After` asks for, or `null` when it sends none in either standard form; what to do with it is the block's decision. The instant is taken when the outcome was observed, before the callback is handed to the block, so it is unaffected by how long the block takes to run it. `ReceivedAt` is wall clock and is what you publish; `ReceivedTimestamp` is the same instant on the monotonic scale — age a value with `TimeProvider.GetElapsedTime(receipt.ReceivedTimestamp)`. `RoundTrip` runs from handing the request to the client until the outcome was observed: for the members that return a value it includes reading and deserializing the body; for `SendRequest` it ends at the response headers, because the body is the callback's to read. Ignoring a receipt is a discard: `(value, _) =&gt; Temperature = value.Current`.
 
 **Properties:**
 
@@ -483,6 +484,8 @@ The facts of one HTTP request, handed to its success and its error callback alon
 - `RoundTrip` — The time from handing the request to the client until the outcome was observed.
 - `Outcome` — How the request ended.
 - `StatusCode` — The status of the response, or `null` when no response arrived.
+- `Headers` — The headers of the response and of its content by case-insensitive name, a header sent more than once carrying its values joined by `", "`; `null` when no response arrived.
+- `RetryAfter` — Gets the delay the response's `Retry-After` asks for, or `null` when it sends none in either form.
 
 **Methods:**
 
@@ -492,6 +495,8 @@ The facts of one HTTP request, handed to its success and its error callback alon
   - `RoundTrip`: The time from handing the request to the client until the outcome was observed.
   - `Outcome`: How the request ended.
   - `StatusCode`: The status of the response, or `null` when no response arrived.
+  - `Headers`: The headers of the response and of its content by case-insensitive name, a header sent more than once carrying its values joined by `", "`; `null` when no response arrived.
+- `TryParseHttpDate(string, DateTime@)` — Reads IMF-fixdate alone. The two obsolete forms an HTTP-date may also take never reach it: the platform parses a date header and renders every form it understands as IMF-fixdate before the package can read the header.
 
 ---
 
@@ -604,14 +609,16 @@ A request a hosted HTTP server answered, as the client sent it.
 
 ### HttpServerResponse
 
-A response a hosted HTTP server sends: a status, an optional content type and a body.
+A response a hosted HTTP server sends: a status, an optional content type, headers and a body.
+
+> A response is immutable: returns a new one, so a header reaches a response however it was built — `HttpServerResponse.Json(body, HttpStatusCode.TooManyRequests).WithHeader("Retry-After", "120")`. The server writes `Content-Type`, `Content-Length` and `Connection` itself, and refuses each of them and `Transfer-Encoding` as a header.
 
 **Properties:**
 
 - `StatusCode` — Gets the status code sent.
 - `ContentType` — Gets the `Content-Type` sent with the body, or `null` for none.
 - `Body` — Gets the body sent.
-- `Headers` — The headers the server adds itself, such as the `Allow` of a 405. Never set by a block.
+- `Headers` — Gets the headers sent besides the content type, in the order added; a name added twice is sent twice.
 
 **Methods:**
 
@@ -619,6 +626,9 @@ A response a hosted HTTP server sends: a status, an optional content type and a 
   - `statusCode`: The status code of a final response, from 200 to 599.
   - `contentType`: The `Content-Type` of the body, or `null` for none: printable ASCII and tabs only, since it is written into the response's header block as given.
   - `body`: The body; copied, so later changes to the array are not sent.
+- `WithHeader(string, string)` — Returns a copy of this response that also sends the header with .
+  - `name`: The header name: a token, and none of `Content-Type`, `Content-Length`, `Connection` and `Transfer-Encoding` in any case.
+  - `value`: The header value: printable ASCII and tabs only, since it is written into the response's header block as given.
 - `Json(string, HttpStatusCode)` — Creates a response carrying as UTF-8 with the `application/json` content type.
   - `json`: The JSON document to send.
   - `statusCode`: The status code; 200 by default.
@@ -715,6 +725,407 @@ Factory for creating instances of `ILogicBlockHttpServer`.
 **Methods:**
 
 - `Create` — Creates a new, disabled `ILogicBlockHttpServer`. Each instance hosts one server on its own port.
+
+---
+
+## Vion.Dale.Sdk.MBus.TestKit
+
+### IMBusExtensions
+
+Extension methods on `IMBus` for answering a logic block's pending M-Bus read in a test.
+
+> A simulation answers the read the block has pending and completes it, because a binding has one read in flight at a time; a second simulation with no read pending is refused. Every answer is stamped from the test context's virtual clock, and the callbacks are dispatched the way production dispatches them — call `LogicBlockTestContext.FlushPendingActions()` to run them. A capture from a log or a datasheet is replayed as hexadecimal text, one string per telegram, and runs through the frame checks and the decoder a gateway runs.
+
+**Methods:**
+
+- `SimulateReadResponse<T>(IMBus, LogicBlockTestContext<T>, string[])` — Answers the pending read with the given telegrams, through the frame checks and the decoder.
+  - `mBus`: The M-Bus contract instance.
+  - `testContext`: The test context the read was recorded in.
+  - `telegramsHex`: Each telegram as hexadecimal text, from its start byte to its stop byte.
+- `SimulateReadError<T>(IMBus, LogicBlockTestContext<T>, MBusOutcome)` — Completes the pending read through its error callback with .
+  - `mBus`: The M-Bus contract instance.
+  - `testContext`: The test context the read was recorded in.
+  - `outcome`: How the read failed; any outcome but `Success`.
+
+---
+
+### LogicBlockTestContextExtensions
+
+Verification extension methods for asserting M-Bus reads in tests.
+
+**Methods:**
+
+- `VerifyMBusReadSent<T>(LogicBlockTestContext<T>, IMBus, int?, int?, Times?)` — Asserts that an M-Bus read was sent.
+  - `testContext`: The test context for the logic block.
+  - `mBus`: The M-Bus contract to filter by, or null for any.
+  - `primaryAddress`: The expected primary address, or null to skip verification.
+  - `maxTelegrams`: The expected telegram count, or null to skip verification.
+  - `times`: The expected number of times, or null for once.
+
+---
+
+## Vion.Dale.Sdk.MBus
+
+### IMBus
+
+Reads wired M-Bus meters through the service provider that owns the M-Bus master. The provider returns the telegrams as the meter sent them; this contract checks and decodes them, and a logic block picks values from the readout with `MBusSelector`s.
+
+> Declare the binding as `IMBus` with `[ServiceProviderContractBinding]`, enable it, and read on a timer. A contract starts disabled and executes no read until `IsEnabled` is set. One read is in flight per binding. A while the binding's previous read is pending is dropped: it publishes nothing, invokes neither callback and is counted in `Link.BusyCount`. The pending read's callbacks still arrive. One read returns the whole meter, so read once per interval. Every failure reaches the error callback as an `MBusException` whose `Outcome` equals the receipt's. Every M-Bus binding of a runtime shares one handler, and with it a limit of pending reads. Expiry is checked by a sweep that runs about once a second.
+
+**Properties:**
+
+- `IsEnabled` — Whether the contract executes reads; `false` until set. A read already accepted still completes.
+- `DefaultOperationTimeout` — How long the service provider has to answer a read once it is published, including the time the read waits in the provider's line queue behind other meters; 300 s by default.
+- `MaxQueuedAge` — How long a read may take to reach the shared handler before it is completed as `Expired` unpublished; 30 s by default, `null` for no limit.
+- `Link` — The link to the meter: its state, counts per outcome and of busy reads, and recent latencies.
+
+**Methods:**
+
+- `Read(int, int, IActorDispatcher, Action<MBusReadout, MBusReceipt>, Action<Exception, MBusReceipt>, TimeSpan?)` — Reads every telegram of the meter at , up to , and returns at once; the readout or the failure arrives later through . A read while this binding's previous read is pending does nothing, and an argument out of range is refused through the error callback.
+  - `primaryAddress`: The meter's primary address, 0–250.
+  - `maxTelegrams`: How many telegrams the meter sends, at least 1; a smaller count leaves the readout incomplete.
+  - `dispatcher`: The actor the callbacks run on, normally the logic block itself.
+  - `successCallback`: Receives the readout and the receipt.
+  - `errorCallback`: Receives the failure, an `MBusException`, and the receipt.
+  - `operationTimeout`: This read's operation timeout, or `null` for `DefaultOperationTimeout` .
+
+---
+
+### MBusException
+
+Every failed M-Bus read reaches the error callback as this exception; its `Outcome` equals the receipt's, which is what a logic block decides on.
+
+**Properties:**
+
+- `Outcome` — How the read ended; the same as the receipt's outcome.
+- `ResponseCode` — The response code the service provider answered with, or `null` when no answer arrived.
+- `Telegrams` — For a `ProtocolError`, the telegrams as received, which a logic block can log as a capture; empty otherwise.
+
+---
+
+### MBusFunction
+
+Which value of a quantity a data record carries, as its function field states.
+
+**Fields/Values:**
+
+- `Instantaneous` — The current value.
+- `Maximum` — A maximum value.
+- `Minimum` — A minimum value.
+- `ValueDuringError` — The value during an error state.
+
+---
+
+### MBusHeader
+
+The fixed header of a variable data telegram: who the meter is and the state it reports.
+
+**Properties:**
+
+- `Identification` — The identification number, as its eight digits with leading zeros kept.
+- `Manufacturer` — The manufacturer, as its three-letter code.
+- `Version` — The meter's version or generation, as the manufacturer defines it.
+- `Medium` — The medium (device type) code.
+- `AccessNumber` — The access number, which the meter increments with each answer.
+- `Status` — The status byte.
+
+---
+
+### MBusLinkState
+
+The contract's verdict on the link to its meter, from the last read whose outcome says something about it.
+
+**Fields/Values:**
+
+- `Unknown` — No read has said anything about the meter yet.
+- `Online` — The meter last answered with telegrams that passed their checks.
+- `Faulted` — The last read got no answer, a garbled one, an unavailable line, a timeout or telegrams that failed their checks.
+
+---
+
+### MBusLinkSummary
+
+A point-in-time summary of one M-Bus binding's link to its meter: the current verdict, when the meter was last heard from, lifetime counts per outcome and of busy reads, and latencies over a recent window and since the contract started.
+
+> Read it whenever you want it: every read returns a consistent snapshot. Every field is a service-property-legal type, so the whole summary can be published as one `[ServiceProperty]`; it changes with every read, so a member publishing it whole sends at most once every 30 s by default. `State` moves only on outcomes that say something about the meter: `Success` sets `Online`; `NoResponse`, `Garbled`, `LineUnavailable`, `Timeout` and `ProtocolError` set `Faulted`. `Expired`, `Dropped` and `Invalid` leave it alone. It does not decay with time; build a freshness rule from `LastContactAt`. A rising `BusyCount` means reads are issued faster than the line answers them: the binding's previous read was still pending each time. The `Recent` figures cover at least the last 15 minutes and less than 16 on the contract's clock, or its whole life where that is shorter. Round trip is taken from reads the provider answered, queued wait from reads that reached the shared handler; an empty window reads its mean and max as `null`.
+
+**Properties:**
+
+- `State` — The verdict of the last read that said something about the meter.
+- `LastContactAt` — When the meter last answered with telegrams that passed their checks.
+- `LastFailureAt` — When the last read that did not succeed completed.
+- `LastFailureOutcome` — The outcome recorded at .
+- `SuccessCount` — Reads the meter answered with valid telegrams.
+- `NoResponseCount` — Reads the meter did not answer.
+- `GarbledCount` — Reads the provider saw garbled on the line.
+- `LineUnavailableCount` — Reads the provider could not put on its line.
+- `TimeoutCount` — Reads no answer arrived for in time.
+- `ProtocolErrorCount` — Reads whose telegrams failed their checks or could not be decoded.
+- `ExpiredCount` — Reads that aged past `MaxQueuedAge` before they were published.
+- `DroppedCount` — Reads dropped at the runtime-wide limit of pending reads.
+- `InvalidCount` — Reads refused for their arguments or mapping, or not understood by the provider.
+- `BusyCount` — Reads dropped because the binding's previous read was still pending.
+- `RecentRoundTripCount` — Reads the provider answered in the last 15 minutes.
+- `RecentMeanRoundTrip` — The mean publish-to-answer time over the last 15 minutes.
+- `RecentMaxRoundTrip` — The longest publish-to-answer time in the last 15 minutes.
+- `MaxRoundTrip` — The longest publish-to-answer time since the contract started.
+- `MaxRoundTripAt` — When the read that set was observed.
+- `RecentQueuedWaitCount` — Reads that reached the shared handler in the last 15 minutes.
+- `RecentMeanQueuedWait` — The mean hop to the shared handler over the last 15 minutes.
+- `RecentMaxQueuedWait` — The longest hop to the shared handler in the last 15 minutes.
+- `MaxQueuedWait` — The longest hop to the shared handler since the contract started.
+- `MaxQueuedWaitAt` — When the read that set was observed.
+
+**Methods:**
+
+- *Constructor* — A point-in-time summary of one M-Bus binding's link to its meter: the current verdict, when the meter was last heard from, lifetime counts per outcome and of busy reads, and latencies over a recent window and since the contract started.
+  - `State`: The verdict of the last read that said something about the meter.
+  - `LastContactAt`: When the meter last answered with telegrams that passed their checks.
+  - `LastFailureAt`: When the last read that did not succeed completed.
+  - `LastFailureOutcome`: The outcome recorded at .
+  - `SuccessCount`: Reads the meter answered with valid telegrams.
+  - `NoResponseCount`: Reads the meter did not answer.
+  - `GarbledCount`: Reads the provider saw garbled on the line.
+  - `LineUnavailableCount`: Reads the provider could not put on its line.
+  - `TimeoutCount`: Reads no answer arrived for in time.
+  - `ProtocolErrorCount`: Reads whose telegrams failed their checks or could not be decoded.
+  - `ExpiredCount`: Reads that aged past `MaxQueuedAge` before they were published.
+  - `DroppedCount`: Reads dropped at the runtime-wide limit of pending reads.
+  - `InvalidCount`: Reads refused for their arguments or mapping, or not understood by the provider.
+  - `BusyCount`: Reads dropped because the binding's previous read was still pending.
+  - `RecentRoundTripCount`: Reads the provider answered in the last 15 minutes.
+  - `RecentMeanRoundTrip`: The mean publish-to-answer time over the last 15 minutes.
+  - `RecentMaxRoundTrip`: The longest publish-to-answer time in the last 15 minutes.
+  - `MaxRoundTrip`: The longest publish-to-answer time since the contract started.
+  - `MaxRoundTripAt`: When the read that set was observed.
+  - `RecentQueuedWaitCount`: Reads that reached the shared handler in the last 15 minutes.
+  - `RecentMeanQueuedWait`: The mean hop to the shared handler over the last 15 minutes.
+  - `RecentMaxQueuedWait`: The longest hop to the shared handler in the last 15 minutes.
+  - `MaxQueuedWait`: The longest hop to the shared handler since the contract started.
+  - `MaxQueuedWaitAt`: When the read that set was observed.
+
+---
+
+### MBusOutcome
+
+How a single M-Bus read ended.
+
+> `Success` sets the link state to `Online`; `NoResponse`, `Garbled`, `LineUnavailable`, `Timeout` and `ProtocolError` set it to `Faulted`. The others are decided without the meter — the request aged out, the shared limit was reached, the call or the deployment was wrong — and leave the link state as it was. A read refused because the binding's previous read is still pending has no outcome: it invokes neither callback and is counted in `BusyCount`.
+
+**Fields/Values:**
+
+- `Success` — The meter answered and every telegram passed its checks.
+- `NoResponse` — The meter stayed silent through the service provider's repetitions.
+- `Garbled` — The service provider saw a checksum, framing, length or collision fault on the line.
+- `LineUnavailable` — The service provider's line or terminal was not ready, or its request queue was full.
+- `Timeout` — No answer arrived within the operation timeout.
+- `ProtocolError` — An answer arrived, but a telegram failed its checks or could not be decoded.
+- `Expired` — Not attempted: the read aged past `MaxQueuedAge` before it was published.
+- `Dropped` — Not attempted: the runtime-wide limit of pending reads was reached.
+- `Invalid` — Not attempted, or not understood: an argument was out of range, the binding is not mapped, or the service provider and this SDK are of different contract versions.
+
+---
+
+### MBusQuantity
+
+What a data record measures, as its value information names it. A record's `Number` is reported in the unit each member names, whichever coding of the quantity the meter sent.
+
+> A record whose value information is outside the decoder's table carries no quantity and is reached by its code.
+
+**Fields/Values:**
+
+- `Energy` — Active energy, reported in Wh; codings in J are converted.
+- `ReactiveEnergy` — Reactive energy, reported in varh.
+- `Volume` — Volume, reported in m³.
+- `Power` — Active power, reported in W; codings in J/h are converted.
+- `ReactivePower` — Reactive power, reported in var.
+- `ApparentPower` — Apparent power, reported in VA.
+- `VolumeFlow` — Volume flow, reported in m³/h; codings per minute and per second are converted.
+- `FlowTemperature` — Flow (inlet) temperature, reported in °C.
+- `ReturnTemperature` — Return (outlet) temperature, reported in °C.
+- `TemperatureDifference` — Temperature difference, reported in K.
+- `Voltage` — Voltage, reported in V.
+- `Current` — Current, reported in A.
+- `Frequency` — Frequency, reported in Hz.
+- `OperatingTime` — Operating time, reported in h; codings in seconds, minutes and days are converted.
+- `Dimensionless` — A number without a unit, such as a power factor.
+- `DateTime` — A date, or a date and time, read from `Timestamp`.
+
+---
+
+### MBusReadout
+
+Everything one read returned: the telegrams in the order the meter sent them, and their records joined in that order.
+
+> A readout is incomplete when its last telegram announces more records than were read: the provider stopped before the meter did. Values from the telegrams that were not read are then missing, never zero. Fewer telegrams than the read asked for means the provider stopped; as many as asked for means the meter sends more than the read asked for.
+
+**Properties:**
+
+- `Header` — The header of the first telegram.
+- `Telegrams` — The telegrams, in the order the meter sent them.
+- `Records` — The records of every telegram, in telegram order.
+- `IsComplete` — Whether the last telegram announces no further records, so every record the meter sends was read.
+- `OnMiss` — Called with each selector that finds nothing on a complete readout; the contract logs it.
+
+**Methods:**
+
+- `Find(MBusSelector)` — The first record, in telegram order, that names, or `null` when none does.
+  - `selector`: The record to find.
+- `Value(MBusSelector, MBusUnit)` — The value of the record names, in ; `null` when no record matches or the record has no value. On a complete readout a miss is logged once per selector.
+  - `selector`: The record to read.
+  - `unit`: The unit to convert the value into, one of its quantity's units.
+- `SelectorFor(MBusRecord)` — A selector that finds in this readout: by meaning where that names it unambiguously, by code otherwise. `null` for a record whose data and value information repeat an earlier record's, which every selector reaching it would find first.
+  - `record`: A record of this readout.
+- `Describe` — One line per record: its number and telegram, quantity, value and unit, storage, tariff, subunit and function, its bytes, and a selector that finds it — or the record that shadows it.
+- `Create(IReadOnlyList<byte[]>, int, int)` — Checks and decodes the frames one read returned from the meter at .
+- `ShadowOf(int)` — The index of the earliest record with the same data and value information bytes, or -1 when there is none.
+
+---
+
+### MBusReceipt
+
+The per-read facts of one M-Bus read, handed to the success and the error callback.
+
+> The instants are taken in the shared handler the moment the answer or failure was observed, before the callback reaches the logic block's mailbox, so a receipt is usable as the age of the values it accompanies. Publish `ReceivedAt`; age a value with `TimeProvider.GetElapsedTime(receipt.ReceivedTimestamp)`, which a corrected wall clock cannot move. `QueuedWait` is the hop from the logic block to the shared handler. `RoundTrip` runs from the handler's publish to the answer, so it includes the time the read waited in the service provider's line queue behind other meters.
+
+**Properties:**
+
+- `ReceivedAt` — The UTC wall clock instant the answer or failure was observed.
+- `ReceivedTimestamp` — The same instant on the monotonic timestamp scale, for ageing the values.
+- `RoundTrip` — The time from publishing the read to observing the answer, the provider's line queue included.
+- `QueuedWait` — The time the read took to reach the shared handler.
+- `Outcome` — How the read ended.
+
+**Methods:**
+
+- *Constructor* — The per-read facts of one M-Bus read, handed to the success and the error callback.
+  - `ReceivedAt`: The UTC wall clock instant the answer or failure was observed.
+  - `ReceivedTimestamp`: The same instant on the monotonic timestamp scale, for ageing the values.
+  - `RoundTrip`: The time from publishing the read to observing the answer, the provider's line queue included.
+  - `QueuedWait`: The time the read took to reach the shared handler.
+  - `Outcome`: How the read ended.
+
+---
+
+### MBusRecord
+
+One data record of a telegram: what it measures, which value of it, and the value, with its bytes as received.
+
+> A record carries at most one of `Number`, `Timestamp` and `Text`, and none when the meter reported an error for it or its data cannot be read as a value.
+
+**Properties:**
+
+- `Quantity` — What the record measures, or `null` when its value information is outside the decoder's table.
+- `Function` — Which value of the quantity the record carries.
+- `Storage` — The storage number: 0 for the current value, higher for stored ones such as a due-day value.
+- `Tariff` — The tariff number, 0 when the record belongs to no tariff.
+- `Subunit` — The subunit (device unit) number, which a meter uses for phases, channels or registers.
+- `Number` — The value as a number, scaled into the unit `Quantity` is reported in; the raw number when the record has no quantity.
+- `Timestamp` — The value as a date, or a date and time, in the meter's own time.
+- `Text` — The value as text.
+- `Dib` — The data information block as received: the DIF and its DIFEs.
+- `Vib` — The value information block as received: the VIF and its VIFEs.
+- `Data` — The data bytes as received.
+- `HasMeaningChangingExtension` — Whether a value information extension changes what the record means, so that it is not the plain value of its quantity and is reached only by its code.
+- `Code` — The data and value information blocks together: what a selector by code names, and what makes one record shadow another.
+
+---
+
+### MBusSelector
+
+Names the record a logic block wants from a readout: by meaning with , or by its exact bytes with .
+
+> Declare selectors once, as `static readonly` fields, and the block reads like the meter's datasheet. A selector prints as the C# that constructs it, which is what hands an author to paste.
+
+**Properties:**
+
+- `Quantity` — The quantity a selector by meaning names, or `null` for a selector by code.
+
+**Methods:**
+
+- `Equals(MBusSelector)` — *(no description)*
+- `Of(MBusQuantity, long, int, int, MBusFunction)` — Names a record by meaning; the defaults name the current value. A record whose value information carries an extension that changes its meaning — a limit, a rate, a future value — is never matched here and is reached with .
+  - `quantity`: What the record measures.
+  - `storage`: The storage number: 0 for the current value, higher for stored ones.
+  - `tariff`: The tariff number, 0 for none.
+  - `subunit`: The subunit number, which a meter uses for phases, channels or registers.
+  - `function`: Which value of the quantity: the current one, a maximum, a minimum, or the value during an error.
+- `ByCode(string)` — Names a record by its exact data and value information bytes, as a datasheet lists them: the DIF and its DIFEs, then the VIF and its VIFEs.
+  - `code`: The bytes as hexadecimal text, such as `"84 80 C0 40 05"`.
+- `ToString` — The C# that constructs this selector.
+- `Equals(object)` — *(no description)*
+- `GetHashCode` — *(no description)*
+
+---
+
+### MBusStatus
+
+The status byte of a meter's telegram header.
+
+**Properties:**
+
+- `Value` — The status byte as received.
+- `HasError` — Whether the meter reports an error: its application status reads "any application error" or "abnormal condition", or its permanent or temporary error bit is set. The manufacturer-specific bits and the power-low bit do not count.
+
+**Methods:**
+
+- *Constructor* — The status byte of a meter's telegram header.
+  - `Value`: The status byte as received.
+
+---
+
+### MBusTelegram
+
+One variable data telegram (RSP_UD, CI 72h) as a meter sent it, decoded into its header and data records.
+
+> renders the whole frame as hexadecimal text that reads back, which is the form a test replays a capture in.
+
+**Properties:**
+
+- `Raw` — The whole frame as received, from its start byte to its stop byte.
+- `Header` — The fixed header.
+- `Records` — The data records, in the order the telegram carries them.
+- `Address` — The address field: the primary address of the meter that answered.
+- `AnnouncesMoreRecords` — Whether the telegram ends on the marker that announces more records in a further telegram.
+
+**Methods:**
+
+- `Parse(string)` — Decodes one telegram from hexadecimal text, such as a capture from a log or a datasheet.
+  - `hex`: The frame from its start byte to its stop byte; whitespace between the bytes is ignored.
+- `Describe` — One line per record, as prints a readout of this telegram alone: the step from a captured telegram to the selectors a logic block declares.
+- `ToString` — The whole frame as hexadecimal text, two digits per byte separated by spaces.
+- `Decode(byte[])` — *(no description)*
+- `Check(byte[])` — The long-frame checks of EN 13757-2 — start bytes, the repeated length, checksum and stop byte — and the one control information this decoder reads, a variable data response with its long header.
+
+---
+
+### MBusUnit
+
+A unit converts a record's value into. Each unit belongs to one quantity's family, and only values of that family convert into it.
+
+**Fields/Values:**
+
+- `WattHour` — Wh, for energy.
+- `KilowattHour` — kWh, for energy.
+- `MegawattHour` — MWh, for energy.
+- `VarHour` — varh, for reactive energy.
+- `KilovarHour` — kvarh, for reactive energy.
+- `CubicMeter` — m³, for volume.
+- `Liter` — L, for volume.
+- `Watt` — W, for power.
+- `Kilowatt` — kW, for power.
+- `Var` — var, for reactive power.
+- `Kilovar` — kvar, for reactive power.
+- `VoltAmpere` — VA, for apparent power.
+- `KilovoltAmpere` — kVA, for apparent power.
+- `CubicMeterPerHour` — m³/h, for volume flow.
+- `LiterPerHour` — L/h, for volume flow.
+- `Volt` — V, for voltage.
+- `Ampere` — A, for current.
+- `Hertz` — Hz, for frequency.
+- `Hour` — h, for operating time.
+- `DegreeCelsius` — °C, for flow and return temperature, never for a temperature difference.
+- `Kelvin` — K, for a temperature difference, never for an absolute temperature.
 
 ---
 
