@@ -628,7 +628,7 @@ A `ResponseTopic` on an incoming request is the requester declaring it wants a r
 
 ### Serialization
 
-Every built-in contract type — DigitalIo, AnalogIo, ModbusRtu and MBus — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw`, or for M-Bus from the `Vion.Dale.Sdk.MBus` package, published with `Content-Type: application/json` and the `schema` user property set to the record's name:
+Every built-in contract type — DigitalIo, AnalogIo, ModbusRtu and MBus — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw` — for M-Bus, the JSON shape in [M-Bus Read Exchange](#m-bus-read-exchange) — published with `Content-Type: application/json` and the `schema` user property set to the record's name:
 
 | Routing segment | Records |
 |-----------------|---------|
