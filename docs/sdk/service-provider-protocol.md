@@ -194,7 +194,7 @@ Declaration payload:
 }
 ```
 
-The `type` field must match a `[ServiceProviderContractType]` known to the Dale runtime (for example, `DigitalInput`, `DigitalOutput`, `AnalogInput`, `AnalogOutput`, `ModbusRtu`, or a custom type from a third-party Dale SDK package).
+The `type` field must match a `[ServiceProviderContractType]` known to the Dale runtime (for example, `DigitalInput`, `DigitalOutput`, `AnalogInput`, `AnalogOutput`, `ModbusRtu`, `MBus`, or a custom type from a third-party Dale SDK package).
 
 ### Properties and measuring points
 
@@ -543,7 +543,7 @@ This structure enables simple broker ACL rules — a provider can be restricted 
 
 ### Built-in Contract Type Topics
 
-The built-in contract types (DigitalIo, AnalogIo, ModbusRtu) use fixed action paths that correspond to the `Topics` constants defined in the `Vion.Contracts` package:
+The built-in contract types use fixed action paths. Those of DigitalIo, AnalogIo and ModbusRtu correspond to the `Topics` constants defined in the `Vion.Contracts` package:
 
 DigitalIo provider:
 
@@ -572,11 +572,18 @@ Modbus RTU provider:
 | `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/set` | Runtime → Provider (write request) |
 | `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
 
+M-Bus provider:
+
+| Topic | Direction |
+|-------|-----------|
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/mbus/get` | Runtime → Provider (read request) |
+| `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/mbus/get/dale/response` | Provider → Runtime (read response) |
+
 ### Custom Contract Type Topics
 
 Custom service providers define their own action paths. The contract-specific path must start with a **routing segment** — a fixed, non-ambiguous topic part that the Dale runtime uses to dispatch messages to the correct handler actor. The runtime matches incoming topics using `topic.Contains(routingSegment)`, so the routing segment must be unique across all registered handler types.
 
-For example, the built-in types use `hw/di`, `hw/do`, `hw/ai`, `hw/ao`, and `hw/modbus` as routing segments. A custom CODESYS provider would define its own (e.g., `codesys`).
+For example, the built-in types use `hw/di`, `hw/do`, `hw/ai`, `hw/ao`, `hw/modbus`, and `hw/mbus` as routing segments. A custom CODESYS provider would define its own (e.g., `codesys`).
 
 ::: warning Routing Segment Uniqueness
 The routing segment must not be a substring of any other registered routing segment, and vice versa. For example, a segment `hw` would conflict with the built-in `hw/di` because one contains the other. The runtime rejects handler registrations with conflicting routing segments at startup.
@@ -621,7 +628,7 @@ A `ResponseTopic` on an incoming request is the requester declaring it wants a r
 
 ### Serialization
 
-Every built-in contract type — DigitalIo, AnalogIo and ModbusRtu — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw`, published with `Content-Type: application/json` and the `schema` user property set to the record's name:
+Every built-in contract type — DigitalIo, AnalogIo, ModbusRtu and MBus — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw`, or for MBus one the Dale SDK defines, published with `Content-Type: application/json` and the `schema` user property set to the record's name:
 
 | Routing segment | Records |
 |-----------------|---------|
@@ -630,6 +637,7 @@ Every built-in contract type — DigitalIo, AnalogIo and ModbusRtu — carries J
 | `hw/ai` | `AiStatePayload` |
 | `hw/ao` | `AoStatePayload`, `SetAoPayload` |
 | `hw/modbus` | `GetModbusPayload`, `GetModbusResponsePayload`, `SetModbusPayload`, `SetModbusResponsePayload` |
+| `hw/mbus` | `GetMBusPayload`, `GetMBusResponsePayload` |
 
 On the DigitalIo and AnalogIo state and set messages the `schema` label is load-bearing in both directions: a message whose label is missing, or that names a record other than the one its topic carries, is dropped rather than decoded. An analog value is a finite JSON number — a payload carrying `NaN` or an infinity is refused when written and undecodable when read.
 

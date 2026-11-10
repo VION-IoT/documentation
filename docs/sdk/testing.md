@@ -229,6 +229,41 @@ public sealed class WeatherStationShould : IDisposable
 
 `Respond(HttpStatusCode)` and `Fail(exception)` script the other outcomes, and `Requests` lists what the block sent. `FakeHttpServerHarness` does the same for a block that serves HTTP.
 
+## Testing M-Bus
+
+The `Vion.Dale.Sdk.MBus.TestKit` package answers a block's pending M-Bus read with telegrams captured as hex, from the debug client or a datasheet. The answer runs through the same frame checks and decoder as on the edge gateway. Keep the capture in your test project as a `string[]`, one hex string per telegram, here `MeterCapture.Telegrams`:
+
+```csharp
+using Vion.Dale.Sdk.MBus;
+using Vion.Dale.Sdk.MBus.TestKit;
+using Vion.Dale.Sdk.TestKit;
+using Xunit;
+
+public class ElectricityMeterShould
+{
+    [Fact]
+    public void PublishTheCapturedValues()
+    {
+        var block = LogicBlockTestHelper.Create<ElectricityMeter>();
+        var testContext = block.InitializeForTest();
+
+        block.Poll();
+        block.MBus.SimulateReadResponse(testContext, MeterCapture.Telegrams);
+        testContext.FlushPendingActions();
+
+        Assert.NotNull(block.Frequency);
+        Assert.Equal(MBusLinkState.Online, block.Link.State);
+    }
+}
+```
+
+- `SimulateReadResponse(testContext, telegramsHex)` answers the pending read with the given telegrams.
+- `SimulateReadError(testContext, outcome)` completes the pending read through the error callback with any outcome but `Success`.
+- `VerifyMBusReadSent(mBus, primaryAddress, maxTelegrams, times)` asserts that the block sent a read; every argument is optional.
+- A simulation completes the read it answers, so a block must call `Read` again before the next simulation; with no read pending, a simulation throws.
+
+The kit offers no telegram builder: a test replays telegrams a meter actually sent. See [M-Bus](/sdk/services#m-bus) for reading a meter and finding its telegrams.
+
 ## Flushing Pending Actions
 
 When your block uses `InvokeSynchronizedAfter` to schedule deferred work, flush those pending actions before asserting:

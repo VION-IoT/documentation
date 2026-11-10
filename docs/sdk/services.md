@@ -1,11 +1,11 @@
 ---
 title: Hardware & External Services
-description: Connecting logic blocks to hardware I/O, Modbus devices, and external APIs through service provider contract bindings and utility packages.
+description: Connecting logic blocks to hardware I/O, Modbus devices, M-Bus meters, and external APIs through service provider contract bindings and utility packages.
 ---
 
 # Hardware & External Services
 
-The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O and Modbus registers to HTTP APIs. Service provider contract bindings connect to hardware through the Dale runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
+The Dale SDK provides multiple ways to connect logic blocks to the outside world — from digital I/O, Modbus registers and M-Bus meters to HTTP APIs. Service provider contract bindings connect to hardware through the Dale runtime, while utility packages like Modbus TCP and HTTP are injected via dependency injection for direct communication.
 
 ## Built-in I/O Interfaces
 
@@ -297,6 +297,121 @@ Register the package in your `DependencyInjection` class:
 ```csharp
 services.AddDaleModbusTcpSdk();
 ```
+
+## M-Bus
+
+The `Vion.Dale.Sdk.MBus` package provides the `IMBus` interface, a service provider contract that reads wired M-Bus meters through the service provider that owns the M-Bus master. One read returns every telegram the meter sends, decoded into records, and the block picks values out of the readout with selectors.
+
+### Reading a Meter
+
+Declare the binding, enable it in `Ready()`, and read on a timer. Declare each value once as an `MBusSelector`, by meaning, and read it in the unit the property publishes:
+
+```csharp
+using System;
+using Microsoft.Extensions.Logging;
+using Vion.Dale.Sdk.Core;
+using Vion.Dale.Sdk.MBus;
+
+[LogicBlock(Name = "Electricity Meter (M-Bus)", Icon = "flashlight-line")]
+public class ElectricityMeter : LogicBlockBase
+{
+    // This meter reports its phases as subunits 1 to 3; the meter's datasheet says which subunit is which.
+    private static readonly MBusSelector EnergySel = MBusSelector.Of(MBusQuantity.Energy);
+    private static readonly MBusSelector PowerSel = MBusSelector.Of(MBusQuantity.Power);
+    private static readonly MBusSelector CurrentL1Sel = MBusSelector.Of(MBusQuantity.Current, subunit: 1);
+    private static readonly MBusSelector FrequencySel = MBusSelector.Of(MBusQuantity.Frequency);
+
+    public ElectricityMeter(ILogger logger) : base(logger)
+    {
+    }
+
+    [ServiceProviderContractBinding(Identifier = "MBus", DefaultName = "M-Bus")]
+    public IMBus MBus { get; set; } = null!;
+
+    [ServiceProperty(Title = "Primary address", Minimum = 0, Maximum = 250)]
+    [Presentation(Group = PropertyGroup.Configuration)]
+    public int PrimaryAddress { get; set; } = 1;
+
+    [ServiceProperty(Title = "Energy", Unit = "kWh")]
+    public double? Energy { get; private set; }
+
+    [ServiceProperty(Title = "Active power", Unit = "kW")]
+    public double? ActivePower { get; private set; }
+
+    [ServiceProperty(Title = "Current L1", Unit = "A")]
+    public double? CurrentL1 { get; private set; }
+
+    [ServiceProperty(Title = "Frequency", Unit = "Hz")]
+    public double? Frequency { get; private set; }
+
+    [ServiceProperty(Title = "Meter error")]
+    [Presentation(Group = PropertyGroup.Status)]
+    public bool MeterError { get; private set; }
+
+    [ServiceProperty(Title = "Last error")]
+    [Presentation(Group = PropertyGroup.Diagnostics)]
+    public string LastError { get; private set; } = string.Empty;
+
+    [ServiceProperty(Title = "Link")]
+    [Presentation(Group = PropertyGroup.Diagnostics)]
+    public MBusLinkSummary Link { get; private set; }
+
+    protected override void Ready()
+    {
+        MBus.IsEnabled = true;
+    }
+
+    [Timer(60)]
+    public void Poll()
+    {
+        // maxTelegrams is how many telegrams this meter sends.
+        MBus.Read(PrimaryAddress,
+                  maxTelegrams: 3,
+                  dispatcher: this,
+                  successCallback: (readout, receipt) =>
+                  {
+                      Energy = readout.Value(EnergySel, MBusUnit.KilowattHour);
+                      ActivePower = readout.Value(PowerSel, MBusUnit.Kilowatt);
+                      CurrentL1 = readout.Value(CurrentL1Sel, MBusUnit.Ampere);
+                      Frequency = readout.Value(FrequencySel, MBusUnit.Hertz);
+                      MeterError = readout.Header.Status.HasError;
+                      LastError = string.Empty;
+                      Link = MBus.Link;
+                  },
+                  errorCallback: OnError);
+    }
+
+    private void OnError(Exception error, MBusReceipt receipt)
+    {
+        Energy = null;
+        ActivePower = null;
+        CurrentL1 = null;
+        Frequency = null;
+        LastError = $"{receipt.Outcome}: {error.Message}";
+        Link = MBus.Link;
+    }
+}
+```
+
+- `MBusSelector.Of(quantity, storage, tariff, subunit, function)` names a record by meaning. The defaults name the current value: storage 0, tariff 0, subunit 0, instantaneous.
+- `MBusSelector.ByCode("84 80 C0 40 05")` names a record by its exact data and value information bytes, as a datasheet lists them. Use it for a record whose value information carries an extension that changes its meaning, such as a limit or a rate, which `Of` never matches, and for a record outside the decoder's table.
+- `Value(selector, unit)` returns the first matching record's value, scaled and converted into `unit`, or `null` when no record matches or the record carries no value. Publish it as a nullable property, so a missing value reads as empty rather than zero.
+- A unit outside the selected quantity's units throws an `ArgumentException` inside the success callback. Replaying a capture in a test catches it.
+- A record outside the decoder's table has no quantity, so `Value` throws on it. Read its raw number with `readout.Find(selector)?.Number`.
+- `Find(selector)` returns the record itself, for a timestamp, a raw number or the bytes.
+- Every failure reaches the error callback as an `MBusException`, and `receipt.Outcome` says how the read ended. `Link` summarises the link to the meter and is ready to publish as a diagnostics property.
+
+### Rules and Caveats
+
+- One read is in flight per binding: a `Read` while one is pending does nothing and counts in `Link.BusyCount`.
+- `DefaultOperationTimeout` is 300 seconds because it includes the wait in the provider's line queue.
+- Pass `maxTelegrams` as the number of telegrams the meter sends; fewer leaves `readout.IsComplete` `false` and the later values `null`.
+
+### Recommended Workflow
+
+1. Read the meter with the `MBusDebugClient` logic block from the [M-Bus example](https://github.com/VION-IoT/dale-sdk/tree/main/examples/Vion.Examples.MBus); it lists every record with a selector that finds it, and every telegram as hex.
+2. Paste those selectors into the block; `MBusTelegram.Parse(hex).Describe()` prints the same list for a telegram in a test.
+3. Replay the telegrams against the block, as [Testing M-Bus](/sdk/testing#testing-m-bus) shows.
 
 ## HTTP Client
 
