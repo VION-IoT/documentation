@@ -1,0 +1,1 @@
+2026-11-10 · review · sdk-mbus · The M-Bus guide section's caveat and authoring-loop subsections ran long and carried ad-hoc names ("What Bites", "Finding the Selectors"); asked to strip them down and name them generally, after the repo's existing headings.

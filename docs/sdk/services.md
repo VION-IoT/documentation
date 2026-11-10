@@ -401,30 +401,17 @@ public class ElectricityMeter : LogicBlockBase
 - `Find(selector)` returns the record itself, for a timestamp, a raw number or the bytes.
 - Every failure reaches the error callback as an `MBusException`, and `receipt.Outcome` says how the read ended. `Link` summarises the link to the meter and is ready to publish as a diagnostics property.
 
-### What Bites
+### Rules and Caveats
 
-- **One read is in flight per binding.** A `Read` while the binding's previous read is pending does nothing: it publishes nothing, invokes neither callback, and counts in `Link.BusyCount`. One read returns the whole meter, so read once per interval.
-- **The operation timeout includes the provider's line queue.** The meters on a line are read one at a time, so a read can wait minutes behind the others. The default `DefaultOperationTimeout` is 300 seconds; a shorter one can fail reads on a busy line as `Timeout`.
-- **Pass the number of telegrams the meter sends.** A smaller `maxTelegrams`, or a service provider that reads fewer telegrams, leaves the readout incomplete: `readout.IsComplete` is `false` and the values from the telegrams that were not read are `null`.
+- One read is in flight per binding: a `Read` while one is pending does nothing and counts in `Link.BusyCount`.
+- `DefaultOperationTimeout` is 300 seconds because it includes the wait in the provider's line queue.
+- Pass `maxTelegrams` as the number of telegrams the meter sends; fewer leaves `readout.IsComplete` `false` and the later values `null`.
 
-### Finding the Selectors
+### Recommended Workflow
 
-A meter's records are found from its telegrams, not guessed:
-
-1. Read the meter with the `MBusDebugClient` logic block from the M-Bus example in the [Dale SDK repository](https://github.com/VION-IoT/dale-sdk/tree/main/examples/Vion.Examples.MBus). It shows the header, one row per record with a selector that finds it, and every telegram as hex. It polls only when enabled, and no faster than every 300 seconds, because every debug read takes line time from the production meters.
-2. Describe a captured telegram in a test. `Describe()` prints one line per record: its quantity, value and unit, storage, tariff, subunit, function, its bytes, and the selector that finds it, printed as the C# to paste.
-3. Declare those selectors in the block, and test it by replaying the same telegrams.
-
-Describe one telegram, copied as hex from the debug client:
-
-```csharp
-// telegramHex holds the telegram from its 68h start byte to its 16h stop byte.
-string description = MBusTelegram.Parse(telegramHex).Describe();
-```
-
-A record whose bytes repeat an earlier record's has no selector of its own; its row names the record that shadows it.
-
-See [Testing M-Bus](/sdk/testing#testing-m-bus) to replay telegrams against a logic block.
+1. Read the meter with the `MBusDebugClient` logic block from the [M-Bus example](https://github.com/VION-IoT/dale-sdk/tree/main/examples/Vion.Examples.MBus); it lists every record with a selector that finds it, and every telegram as hex.
+2. Paste those selectors into the block; `MBusTelegram.Parse(hex).Describe()` prints the same list for a telegram in a test.
+3. Replay the telegrams against the block, as [Testing M-Bus](/sdk/testing#testing-m-bus) shows.
 
 ## HTTP Client
 
