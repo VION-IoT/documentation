@@ -231,7 +231,7 @@ public sealed class WeatherStationShould : IDisposable
 
 ## Testing M-Bus
 
-The `Vion.Dale.Sdk.MBus.TestKit` package answers a block's pending M-Bus read with telegrams captured as hex, from the debug client or a datasheet. The answer runs through the same frame checks and decoder as on the edge gateway:
+The `Vion.Dale.Sdk.MBus.TestKit` package answers a block's pending M-Bus read with telegrams captured as hex, from the debug client or a datasheet. The answer runs through the same frame checks and decoder as on the edge gateway. Keep the capture in your test project as a `string[]`, one hex string per telegram, here `MeterCapture.Telegrams`:
 
 ```csharp
 using Vion.Dale.Sdk.MBus;
@@ -241,12 +241,6 @@ using Xunit;
 
 public class ElectricityMeterShould
 {
-    // The meter's telegrams as hex, one string per telegram, copied from the debug client.
-    private static readonly string[] Capture =
-    {
-        // ...
-    };
-
     [Fact]
     public void PublishTheCapturedValues()
     {
@@ -254,7 +248,7 @@ public class ElectricityMeterShould
         var testContext = block.InitializeForTest();
 
         block.Poll();
-        block.MBus.SimulateReadResponse(testContext, Capture);
+        block.MBus.SimulateReadResponse(testContext, MeterCapture.Telegrams);
         testContext.FlushPendingActions();
 
         Assert.NotNull(block.Frequency);
