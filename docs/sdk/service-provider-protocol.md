@@ -688,7 +688,7 @@ A provider must:
 1. Serve one request at a time per line, first in, first out, and answer `LineUnavailable` with an `errorMessage` that says so when its queue is full.
 2. Run the link layer: SND_NKE, then REQ_UD2 with the frame-count bit toggled, until a telegram arrives without the more-records marker (DIF 1Fh) or `maxTelegrams` telegrams are in hand.
 3. Return every frame verbatim and decode nothing. A provider that reads fewer telegrams than asked answers `Ok` with the ones it read.
-4. Drop, unanswered, a request whose message expiry has passed before its turn.
+4. Drop, unanswered, a request whose message expiry has passed before its turn. This is the one exception to always replying: the Dale runtime fails that read as a timeout on its own.
 5. Answer every other request exactly once, including one on an action or with a member it does not implement, which it answers `NotSupported`.
 6. Keep line settings, such as the baud rate and repetitions, as its own service properties. The contract carries none.
 
