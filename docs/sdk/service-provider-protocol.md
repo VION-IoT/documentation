@@ -572,7 +572,7 @@ Modbus RTU provider:
 | `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/set` | Runtime → Provider (write request) |
 | `{installationTopic}/{serviceProviderIdentifier}/{service}/{contract}/hw/modbus/set/dale/response` | Provider → Runtime (write response) |
 
-M-Bus provider (see [M-Bus Read Exchange](#m-bus-read-exchange)):
+M-Bus provider:
 
 | Topic | Direction |
 |-------|-----------|
@@ -628,7 +628,7 @@ A `ResponseTopic` on an incoming request is the requester declaring it wants a r
 
 ### Serialization
 
-Every built-in contract type — DigitalIo, AnalogIo, ModbusRtu and MBus — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw` — for M-Bus, the JSON shape in [M-Bus Read Exchange](#m-bus-read-exchange) — published with `Content-Type: application/json` and the `schema` user property set to the record's name:
+Every built-in contract type — DigitalIo, AnalogIo, ModbusRtu and MBus — carries JSON on its `hw/*` topics. Each payload is a record from `Vion.Contracts.Hw`, or for MBus one the Dale SDK defines, published with `Content-Type: application/json` and the `schema` user property set to the record's name:
 
 | Routing segment | Records |
 |-----------------|---------|
@@ -650,47 +650,6 @@ A custom service provider chooses its own format, which the `Content-Type` prope
 | `application/octet-stream` | Custom binary format |
 
 The Dale runtime handler for each contract type must understand the serialization used by its corresponding service provider.
-
-### M-Bus Read Exchange
-
-An M-Bus provider owns the M-Bus master and reads wired meters for the Dale runtime. It returns each meter's telegrams as received; the Dale runtime checks and decodes them.
-
-The runtime publishes a read on `hw/mbus/get` with a response topic, correlation data and an MQTT message expiry set to the read's deadline:
-
-```json
-{ "primaryAddress": 1, "maxTelegrams": 5 }
-```
-
-The provider answers on the response topic, echoing the correlation data. The outcome travels in `responseCode`, by name; the runtime does not read a `status` user property on this answer. With `Ok`, `telegrams` holds every RSP_UD long frame the meter sent, from its 68h start byte to its 16h stop byte, one base64 string per frame:
-
-```json
-{ "responseCode": "Ok", "errorMessage": null, "telegrams": ["<base64>", "<base64>"] }
-```
-
-Every other code carries no telegrams and an optional `errorMessage`:
-
-```json
-{ "responseCode": "NoResponse", "errorMessage": "no answer after 2 repetitions", "telegrams": null }
-```
-
-| `responseCode` | Description |
-|----------------|-------------|
-| `Ok` | The meter answered; 1 to `maxTelegrams` telegrams follow |
-| `NoResponse` | The meter stayed silent through the provider's repetitions |
-| `Garbled` | A checksum, framing, length or collision fault on the line |
-| `LineUnavailable` | The line or terminal is not ready, or the provider's queue is full |
-| `NotSupported` | An action, or a request member, the provider does not implement |
-
-The runtime fails a read as a protocol error when an `Ok` answer carries no telegram or more than `maxTelegrams`, or a frame with a wrong start, length, checksum or stop byte, a CI other than 72h, an address other than the one asked, or an identification other than the first frame's.
-
-A provider must:
-
-1. Serve one request at a time per line, first in, first out, and answer `LineUnavailable` with an `errorMessage` that says so when its queue is full.
-2. Run the link layer: SND_NKE, then REQ_UD2 with the frame-count bit toggled, until a telegram arrives without the more-records marker (DIF 1Fh) or `maxTelegrams` telegrams are in hand.
-3. Return every frame verbatim and decode nothing. A provider that reads fewer telegrams than asked answers `Ok` with the ones it read.
-4. Drop, unanswered, a request whose message expiry has passed before its turn. This is the one exception to always replying: the Dale runtime fails that read as a timeout on its own.
-5. Answer every other request exactly once, including one on an action or with a member it does not implement, which it answers `NotSupported`.
-6. Keep line settings, such as the baud rate and repetitions, as its own service properties. The contract carries none.
 
 ### Reserved Topic Prefixes
 
