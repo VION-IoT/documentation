@@ -397,7 +397,8 @@ public class ElectricityMeter : LogicBlockBase
 - `MBusSelector.ByCode("84 80 C0 40 05")` names a record by its exact data and value information bytes, as a datasheet lists them. Use it for a record whose value information carries an extension that changes its meaning, such as a limit or a rate, which `Of` never matches, and for a record outside the decoder's table.
 - `Value(selector, unit)` returns the first matching record's value, scaled and converted into `unit`, or `null` when no record matches or the record carries no value. Publish it as a nullable property, so a missing value reads as empty rather than zero.
 - A unit outside the selected quantity's units throws an `ArgumentException` inside the success callback. Replaying a capture in a test catches it.
-- `Find(selector)` returns the record itself, for a timestamp or the raw bytes.
+- A record outside the decoder's table has no quantity, so `Value` throws on it. Read its raw number with `readout.Find(selector)?.Number`.
+- `Find(selector)` returns the record itself, for a timestamp, a raw number or the bytes.
 - Every failure reaches the error callback as an `MBusException`, and `receipt.Outcome` says how the read ended. `Link` summarises the link to the meter and is ready to publish as a diagnostics property.
 
 ### What Bites
