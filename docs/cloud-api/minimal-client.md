@@ -19,25 +19,26 @@ Seven things decide whether a client sees values at all. The example gets each o
 
 | Rule | What happens when it is wrong |
 |------|-------------------------------|
-| The subscriber ID is your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore — and the MQTT client ID is that same string | any other value connects, then has its subscription refused, which closes the connection |
-| Register a last will on `cloud/subscriber/lastWill/{identityProviderUserId}/{subscriberId}` — the example uses QoS 1 | without one, VION Cloud keeps forwarding values after your client disconnects: the last will is what tears the subscription down |
-| Subscribe at QoS 0 | a subscription at QoS 1 is refused exactly like a malformed subscriber ID, and looks identical from the client |
+| Take the subscriber ID from `POST /me/subscribers`, and use that same string as the MQTT client ID | any other value connects, then has its subscription refused, which closes the connection |
+| Register the `lastWill` that answer names, at its `qos` | without one, VION Cloud keeps forwarding values after your client disconnects: the last will is what tears the subscription down |
+| Subscribe at the answer's `subscribeQos` | a subscription at any other QoS is refused exactly like a wrong subscriber ID, and looks identical from the client |
 | Subscribe on MQTT **before** calling `subscribeProperties` | you miss the initial value and see nothing until the property next changes on its own |
-| Connect with MQTT 5, an empty username and the access token as the password, and set the password again on every reconnect | a reconnect after the token expired presents the expired token and is refused |
+| Connect to the answer's `brokerUrl` with its `protocolVersion`, an empty username and the access token as the password, and set the password again on every reconnect | a reconnect after the token expired presents the expired token and is refused |
 | Read a message only when its `schema` user property is `PropertiesStatePayload` | a client that skips the check parses whatever arrives on the topic as property state |
 | Take each service's topic from its row in the services list, `meta.topics` under `tenant.serviceProperty.state`, never build it — and skip a service that has none there yet | a hand-built topic does not match the one values are published on, and a subscription the broker refuses closes the connection |
 
-Your identity provider user ID is the `user.identityProviderUserId` field of `GET /me`. Read it from there rather than typing it in — it is one half of both the subscriber ID and the last will topic.
+`POST /me/subscribers` answers a new subscriber on every call and stores nothing: call it once per connection, and keep its answer for that connection's reconnects. A token with no broker user to connect as is answered `409`.
 
 A clean MQTT `DISCONNECT` tells the broker *not* to fire the will, so a client that exits politely leaves its registration standing and the edge gateway publishing to nobody. Publish an empty message to the last will topic yourself before disconnecting; the example's **Sign out** does that, then discards the token.
 
 ## The order that matters
 
-1. Connect to the MQTT broker at `wss://ws.vion.swiss/ws`, with the last will above.
-2. Subscribe to the topics, and wait for the broker to acknowledge them.
-3. Only then `POST` to `subscribeProperties`.
+1. `POST /me/subscribers` for a subscriber.
+2. Connect to the MQTT broker at its `brokerUrl`, with its last will.
+3. Subscribe to the topics, and wait for the broker to acknowledge them.
+4. Only then `POST` to `subscribeProperties`.
 
-Inverting steps 2 and 3 still returns `200 OK`, which is why the order is worth stating: the failure is a silent empty screen, not an error. The same order applies after every reconnect — the last will has by then removed the registration, so a reconnecting client has to re-subscribe and re-register, in that order.
+Inverting steps 3 and 4 still returns `200 OK`, which is why the order is worth stating: the failure is a silent empty screen, not an error. The same order applies after every reconnect — the last will has by then removed the registration, so a reconnecting client has to re-subscribe and re-register, in that order.
 
 ## Getting an access token
 

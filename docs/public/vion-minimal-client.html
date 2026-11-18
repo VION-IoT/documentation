@@ -413,9 +413,9 @@ code { font-family: var(--mono); font-size: 0.92em; background: var(--bg-3); pad
     <span class="stage-summary" id="s3sum"></span>
   </button>
   <div class="stage-body">
-    <p><code>GET /me</code> returns your memberships and your identity provider user id. That id is
-       one half of both the subscriber id and the last will topic, so it is read here rather than
-       typed anywhere.</p>
+    <p><code>GET /me</code> returns who you are and your memberships; pick the tenant whose services
+       you want to watch. The subscriber to connect as comes later, from
+       <code>POST /me/subscribers</code>, so nothing here is copied into a client id or a topic.</p>
     <p class="wire-label">The call this makes</p>
     <pre class="wire" id="s3wire"></pre>
     <div class="msg error" id="s3err"></div>
@@ -510,6 +510,7 @@ const S = {
   topics: new Map(),     // mqtt topic -> { edgeGatewayId, serviceProviderIdentifier, serviceIdentifier }
   withoutTopic: 0,       // services with properties whose row hands out no topic yet
   subscriberId: null,
+  subscriber: null,      // the POST /me/subscribers answer: id, broker, protocol, QoS and last will
   client: null,
   writeConfirmed: false,
   refreshTimer: null,
@@ -519,7 +520,9 @@ const api = () => 'https://api.' + S.baseDomain
 const authBase = () => 'https://auth.' + S.baseDomain + '/realms/vion'
 const tokenUrl = () => authBase() + '/protocol/openid-connect/token'
 const authUrl = () => authBase() + '/protocol/openid-connect/auth'
-const broker = () => 'wss://ws.' + S.baseDomain + '/ws'
+// The broker is the one the environment's own API answers in POST /me/subscribers, so it always
+// matches the environment chosen in stage 1; nothing here derives it from the base domain.
+const broker = () => (S.subscriber ? S.subscriber.brokerUrl : '<brokerUrl from POST /me/subscribers>')
 // The key under which a service row's meta.topics holds the topic its property values arrive on.
 const PROPERTY_STATE = 'tenant.serviceProperty.state'
 const redirectUri = () => location.origin + location.pathname
@@ -832,17 +835,23 @@ function pickTenant(t) {
 }
 
 // ── Stage 4 · Connect & subscribe ───────────────────────────────────────────────────────────
-// The subscriber id is not free-form: it has to be <identityProviderUserId>_<6 alphanumeric>_,
-// and the MQTT client id has to be that same string. Anything else connects and is then refused
-// at SUBSCRIBE, which closes the connection.
-function newSubscriberId(oid) {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  const r = crypto.getRandomValues(new Uint8Array(6))
-  let suffix = ''
-  for (const n of r) suffix += alphabet[n % alphabet.length]
-  return oid + '_' + suffix + '_'
+// Every connection detail the broker checks comes from POST /me/subscribers: the subscriber id,
+// which is also the MQTT client id, the broker, the protocol version, the subscribe QoS and the last
+// will. Get any of them wrong and the connection is refused at SUBSCRIBE, naming nothing. Each call
+// answers a new subscriber and stores nothing, so one is created per connection.
+async function createSubscriber() {
+  const r = await fetch(api() + '/me/subscribers', { method: 'POST', headers: { Authorization: 'Bearer ' + S.token } })
+  const text = await r.text()
+  if (r.status === 409) {
+    throw {
+      message: 'POST /me/subscribers returned 409: this token holds no broker user to connect as.',
+      detail: 'A platform service account has none, and a newly created account may not have one yet.',
+    }
+  }
+  if (!r.ok) throw { message: 'POST /me/subscribers returned ' + r.status + ' ' + r.statusText, detail: text.slice(0, 600) }
+  return JSON.parse(text)
 }
-const lastWillTopic = () => 'cloud/subscriber/lastWill/' + S.me.user.identityProviderUserId + '/' + S.subscriberId
+const lastWillTopic = () => S.subscriber.lastWill.topic
 
 function subscribeBody() {
   return {
@@ -865,23 +874,23 @@ function renderS4Wire(counts) {
     '<b>GET</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/services\n' +
     '<i># the gateway names — labels only; a gateway missing here keeps its id</i>\n' +
     '<b>GET</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/edgeGateways\n\n' +
-    '<i># 2. MQTT 5 CONNECT</i>\n' +
+    '<i># the subscriber — every connection detail below comes from its answer</i>\n' +
+    '<b>POST</b> ' + esc(api()) + '/me/subscribers\n\n' +
+    '<i># 2. MQTT CONNECT</i>\n' +
     '<b>url</b>              ' + esc(broker()) + '\n' +
-    '<b>clientId</b>         ' + (S.subscriberId ? esc(S.subscriberId) : '&lt;identityProviderUserId&gt;_&lt;6 chars&gt;_') + '\n' +
-    '<b>protocolVersion</b>  5\n' +
+    '<b>clientId</b>         ' + (S.subscriberId ? esc(S.subscriberId) : '&lt;subscriberId&gt;') + '\n' +
+    '<b>protocolVersion</b>  ' + (S.subscriber ? esc(String(S.subscriber.protocolVersion)) : '&lt;protocolVersion&gt;') + '\n' +
     '<b>username</b>         "" <i>(empty — the token is the password)</i>\n' +
     '<b>password</b>         &lt;access token&gt;\n' +
     '<b>clean</b>            true\n' +
-    '<b>will.topic</b>       ' + (S.me && S.subscriberId
-      ? esc(lastWillTopic())
-      : 'cloud/subscriber/lastWill/&lt;identityProviderUserId&gt;/&lt;subscriberId&gt;') + '\n' +
-    '<b>will.qos</b>         1\n\n' +
-    '<i># 3. SUBSCRIBE at qos 0 — and wait for the SUBACK before step 4</i>\n' +
-    '<b>SUBSCRIBE</b> ' + (n.topics !== undefined ? n.topics + ' topic(s)' : '&lt;one per service&gt;') + ' <b>qos</b> 0\n\n' +
+    '<b>will.topic</b>       ' + (S.subscriber ? esc(lastWillTopic()) : '&lt;lastWill.topic&gt;') + '\n' +
+    '<b>will.qos</b>         ' + (S.subscriber ? esc(String(S.subscriber.lastWill.qos)) : '&lt;lastWill.qos&gt;') + '\n\n' +
+    '<i># 3. SUBSCRIBE at subscribeQos — and wait for the SUBACK before step 4</i>\n' +
+    '<b>SUBSCRIBE</b> ' + (n.topics !== undefined ? n.topics + ' topic(s)' : '&lt;one per service&gt;') + ' <b>qos</b> ' + (S.subscriber ? esc(String(S.subscriber.subscribeQos)) : '&lt;subscribeQos&gt;') + '\n\n' +
     '<i># 4. only now register with VION Cloud</i>\n' +
     '<b>POST</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/services/subscribeProperties\n' +
     esc(JSON.stringify({
-      subscriberId: S.subscriberId || '<identityProviderUserId>_<6 chars>_',
+      subscriberId: S.subscriberId || '<subscriberId>',
       properties: [{
         edgeGatewayId: '<guid>', serviceProviderIdentifier: '<sp>',
         serviceIdentifier: '<service>', propertyIdentifier: '<property>',
@@ -998,7 +1007,9 @@ $('s4go').addEventListener('click', async () => {
           + ' a separate endpoint and are not shown here.',
       }
     }
-    S.subscriberId = newSubscriberId(S.me.user.identityProviderUserId)
+    log('POST /me/subscribers…')
+    S.subscriber = await createSubscriber()
+    S.subscriberId = S.subscriber.subscriberId
     $('subIdOut').textContent = S.subscriberId
     const topics = [...S.topics.keys()]
     renderS4Wire({ topics: topics.length, props: S.props.size })
@@ -1022,14 +1033,14 @@ function connectAndSubscribe(topics) {
     setLink('connecting')
     const client = mqtt.connect(broker(), {
       clientId: S.subscriberId,
-      protocolVersion: 5,
+      protocolVersion: S.subscriber.protocolVersion,
       clean: true,
       username: '',
       password: S.token,
       reconnectPeriod: 2000,
       connectTimeout: 10000,
       resubscribe: false,
-      will: { topic: lastWillTopic(), payload: '', qos: 1, retain: false },
+      will: { topic: lastWillTopic(), payload: '', qos: S.subscriber.lastWill.qos, retain: false },
       // Re-set the password on every reconnect. mqtt.js keeps the options object it was handed, so
       // without this a reconnect after the access token expired presents the expired one and is
       // refused — the connection then loops forever with no visible cause.
@@ -1052,9 +1063,9 @@ function connectAndSubscribe(topics) {
       try {
         setLink('subscribing')
         try {
-          // QoS 0, explicitly: a subscription at QoS 1 is refused the same way a malformed
-          // subscriber id is, and mqtt.js's default would hide which of the two you relied on.
-          const granted = await client.subscribeAsync(topics, { qos: 0 })
+          // The answered QoS, explicitly: a subscription at any other is refused the same way a
+          // wrong subscriber id is, and mqtt.js's default would hide which of the two you relied on.
+          const granted = await client.subscribeAsync(topics, { qos: S.subscriber.subscribeQos })
           // A compliant broker can also refuse one filter in the SUBACK rather than dropping the
           // socket. Unchecked, that reads as success and the page sits empty with a green dot.
           const refused = (granted || []).filter((g) => g.qos === 128).map((g) => g.topic)
@@ -1380,7 +1391,7 @@ $('forceRefresh').addEventListener('click', async (e) => {
 async function teardownSubscription() {
   if (!S.client) return
   try {
-    if (S.client.connected) await S.client.publishAsync(lastWillTopic(), '', { qos: 1 })
+    if (S.client.connected) await S.client.publishAsync(lastWillTopic(), '', { qos: S.subscriber.lastWill.qos })
   } catch { /* the socket may already be gone; the broker fires the will in that case */ }
   try { await S.client.endAsync(true) } catch { }
   S.client = null
