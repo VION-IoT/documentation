@@ -26,7 +26,7 @@ A stable operation changes in two ways:
 - **It gains something**, for example an optional member in an answer, an enum value or a kind of a union. A [tolerant client](#write-a-tolerant-client) keeps working without a change.
 - **It, or a part of it, is deprecated, then removed.** The deprecation publishes its sunset, the first day the deprecated part may be gone, and nothing is removed before it. The sunset is at least 8 weeks (56 days) after the day the deprecation began.
 
-There is one exception. A break that cannot wait for a sunset, for example one that closes a security hole, is made without one. It is published in the [changelog](#follow-the-changelog) with its reason, and it is announced.
+There is one exception. A break that cannot wait for a sunset, for example one that closes a security hole, is made without one. It is published in the [changelog](#follow-the-changelog) with its reason, and is [announced](#notification) by default.
 
 ### What the Document Cannot Show
 
@@ -80,7 +80,7 @@ Each environment lists what it has deployed. The [test environment's changelog](
 
 ### Notification
 
-A release is announced when it carries an entry that deprecates or removes something of a stable operation, an entry that makes a break under the exception above, or an entry that removes an operation. VION can mark any other entry to be announced too.
+By default, a release is announced when it carries an entry that deprecates or removes something of a stable operation, an entry that makes a break under the exception above, or an entry that removes an operation. VION can mark any entry to be announced or not, which overrides the default. An environment can also have announcements switched off: an entry listed in its changelog is not by itself announced.
 
 Everyone who may manage the service accounts of a tenant or an integrator that has at least one service account receives one notification per announced release, in their inbox and by mail. Each recipient can switch the mail off.
 
