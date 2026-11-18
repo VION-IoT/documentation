@@ -63,9 +63,7 @@ The changelog lists every release, newest first, each change with what to do abo
 | An Atom feed, for a feed reader or your team's chat | [`/changelog/v1.atom`](https://api.vion.swiss/changelog/v1.atom) |
 | JSON, for your own tooling | [`/changelog/v1.json`](https://api.vion.swiss/changelog/v1.json) |
 
-The [test environment's changelog](https://api.test.vion.swiss/changelog) shows what is coming before production has it.
-
-If you manage service accounts for a tenant or an integrator, VION also notifies you, in your inbox and by mail, of a release worth acting on, such as one that deprecates something of a stable operation. You can switch the mail off.
+If you manage service accounts for a tenant or an integrator, VION also notifies you, in your inbox and by mail, of a release worth acting on, such as one that deprecates something of a stable operation. You can switch the mail off in your preferences in the [Dashboard](https://dashboard.vion.swiss/).
 
 ## Next Steps
 
