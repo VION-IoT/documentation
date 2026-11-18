@@ -1,0 +1,1 @@
+2026-11-18 · brief · stability page · The brief said a break under `override` always notifies; cloud-api AC-CHLOG-004.1 lets an entry with `notify: false` suppress it. The page states the default and says no "always". (self)
