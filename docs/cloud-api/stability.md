@@ -22,7 +22,7 @@ An operation is beta until it is declared stable, and stays stable once it is. I
 |--------|--------|-------------|
 | A new response member, enum value or union kind | None | Nothing, if your client [tolerates additions](#tolerate-additions) |
 | A new operation | None | Nothing |
-| Removing an operation, a parameter or a response member | A deprecation, at least 8 weeks before its sunset | Move off it before the sunset |
+| Removing an operation, a parameter, or a member of a request or response | A deprecation, at least 8 weeks before its sunset | Move off it before the sunset |
 | A change the OpenAPI document cannot show, such as what a value means or which status code answers | A changelog entry | Read the entry |
 | An urgent fix, such as closing a security hole | A changelog entry with its reason, without a sunset | Read the entry |
 
@@ -51,7 +51,7 @@ A client generated from the OpenAPI document needs the same: check that its gene
 | `Sunset` | The first day the operation may be gone, as an HTTP date | `Mon, 01 Mar 2027 00:00:00 GMT` |
 | `Link` | The changelog | `</changelog>; rel="deprecation"` |
 
-A deprecated member sends no header, and a browser does not let a page's script read these headers.
+A deprecated member, of a request or a response, sends no header, and a browser does not let a page's script read these headers.
 
 ## Follow the Changelog
 
