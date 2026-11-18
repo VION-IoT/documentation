@@ -51,7 +51,7 @@ A client generated from the OpenAPI document needs the same: check that its gene
 | `Sunset` | The first day the operation may be gone, as an HTTP date | `Mon, 01 Mar 2027 00:00:00 GMT` |
 | `Link` | The changelog | `</changelog>; rel="deprecation"` |
 
-A deprecated member, of a request or a response, sends no header, and a browser does not let a page's script read these headers.
+A deprecated member, of a request or a response, sends no header. A page's script in a browser can read these three headers.
 
 ## Follow the Changelog
 
