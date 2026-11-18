@@ -42,4 +42,4 @@ GET /tenant/{tenantId}/services
 POST /integrator/{integratorId}/logicBlockLibraryVersions
 ```
 
-For practical examples using `curl`, see [Integration Examples](/cloud-api/examples).
+For practical examples using `curl`, see [Integration Examples](/cloud-api/examples). Which operations hold still, and how a change is announced, is in [Stability and Changes](/cloud-api/stability).

@@ -44,7 +44,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   $API/tenant/$TENANT_ID/services
 ```
 
-The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier`, `name` and `displayName`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. Show a service by its `name`, and a gateway or a logic block instance by its `displayName`. The list holds only the services your token may read. To label a gateway, `GET /tenant/{tenantId}/edgeGateways` lists the gateways your token may read, each with the `displayName` to show; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
+The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier`, `name` and `displayName`, its `properties`, its `measuringPoints`, its `relations` to other services, and in `meta.topics` the topic its property values arrive on. Show a service by its `name`, and a gateway or a logic block instance by its `displayName`. The list holds only the services your token may read. To label a gateway, `GET /tenant/{tenantId}/edgeGateways` lists the gateways your token may read, each with the `displayName` to show; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
 
 ## Set a Property Value
 
@@ -66,24 +66,60 @@ Subscribing tells the edge gateway to start publishing property values to the VI
 
 The snippets below are the summary. For a version of this flow you can run instead of read, see [Minimal Client](/cloud-api/minimal-client).
 
+**Before you start: create a subscriber**
+
+Ask VION Cloud for a subscriber to connect as. Each call answers a new one and stores nothing, so call it once per connection:
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" $API/me/subscribers
+```
+
+The answer holds everything the broker checks:
+
+```json
+{
+  "subscriberId": "<identityProviderUserId>_a1B2c3_",
+  "brokerUrl": "wss://ws.vion.swiss/ws",
+  "protocolVersion": 5,
+  "subscribeQos": 0,
+  "lastWill": {
+    "topic": "cloud/subscriber/lastWill/<identityProviderUserId>/<subscriberId>",
+    "qos": 1
+  }
+}
+```
+
+A token that has no broker user to connect as, such as a platform service account's, is answered `409`.
+
 **Step 1: Connect to the MQTT broker and subscribe**
 
-Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the services list that tells you exactly which topic to subscribe to — use that value; a topic built by hand does not match.
+Connect an MQTT client to the VION Cloud broker and subscribe to the property state topics. Each service row in the services list carries its topic in `meta.topics`, keyed by the channel id `tenant.serviceProperty.state` — use that value; a topic built by hand does not match. One topic carries every property of the service.
 
-Three details decide whether this works. The `clientId` must be the same string you send as `subscriberId` in step 2, and it must be your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore. Subscribe at QoS 0. Register the last will — it is what tears the subscription down when your client goes away, and without it the edge gateway keeps publishing after you close the tab. Get any of the three wrong and the broker refuses the subscription and closes the connection, naming nothing.
+A service whose topic the broker does not let your token read yet has no entry there, and `meta.topics` is `{}`. Leave that service out of both steps — the broker answers a subscription it refuses by closing the connection — and list the services again later.
 
-Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `me` is the `GET /me` response and `services` is the `items` array of the `GET /tenant/{tenantId}/services` response:
+Take every connection detail from the subscriber, never from a string of your own:
+
+- Connect to `brokerUrl` with `protocolVersion`.
+- Use `subscriberId` as the MQTT client ID, and send the same string as `subscriberId` in step 2.
+- Subscribe at `subscribeQos`.
+- Register `lastWill` — it is what tears the subscription down when your client goes away, and without it the edge gateway keeps publishing after you close the tab.
+
+Get any of them wrong and the broker refuses the subscription and closes the connection, naming nothing.
+
+Here is a minimal example using [mqtt.js](https://github.com/mqttjs/MQTT.js), where `subscriber` is the `POST /me/subscribers` response and `services` is the `items` array of the `GET /tenant/{tenantId}/services` response:
 
 ```js
 import mqtt from "mqtt";
 
-const identityProviderUserId = me.user.identityProviderUserId;
-const suffix = Math.random().toString(36).slice(2, 8); // six alphanumeric characters
-const subscriberId = `${identityProviderUserId}_${suffix}_`;
+// Every connection detail comes from the subscriber. Never assemble one by hand.
+const { subscriberId, brokerUrl, protocolVersion, subscribeQos, lastWill } = subscriber;
 
 // Topics and properties both come from the services list. Never assemble a topic by hand.
-const topics = [...new Set(services.flatMap((s) => s.properties.map((p) => p.topic)))];
-const properties = services.flatMap((s) =>
+// A service without a topic in meta.topics is not readable on the broker yet: skip it.
+const PROPERTY_STATE = "tenant.serviceProperty.state";
+const subscribable = services.filter((s) => s.meta?.topics?.[PROPERTY_STATE]);
+const topics = subscribable.map((s) => s.meta.topics[PROPERTY_STATE]);
+const properties = subscribable.flatMap((s) =>
   s.properties.map((p) => ({
     edgeGatewayId: s.edgeGatewayId,
     serviceProviderIdentifier: s.serviceProviderIdentifier,
@@ -100,24 +136,21 @@ const registerSubscription = () =>
     body: JSON.stringify({ subscriberId, properties }),
   });
 
-const client = mqtt.connect("wss://ws.vion.swiss/ws", {
+const client = mqtt.connect(brokerUrl, {
   clientId: subscriberId,
-  protocolVersion: 5,
+  protocolVersion,
   clean: true,
   resubscribe: false,
   username: "",
   password: TOKEN, // JWT access token from authentication
-  will: {
-    topic: `cloud/subscriber/lastWill/${identityProviderUserId}/${subscriberId}`,
-    payload: "",
-    qos: 1,
-  },
+  will: { topic: lastWill.topic, payload: "", qos: lastWill.qos },
 });
 
 // Runs on the first connect and on every reconnect, which is what you want: the last will has by
 // then removed the registration, so both have to subscribe and then register, in that order.
 client.on("connect", async () => {
-  await client.subscribeAsync(topics, { qos: 0 });
+  if (topics.length === 0) return; // no service hands out a topic yet: list the services again later
+  await client.subscribeAsync(topics, { qos: subscribeQos });
   await registerSubscription();
 });
 
@@ -140,7 +173,7 @@ curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "subscriberId": "<identityProviderUserId>_<six-alphanumeric>_",
+    "subscriberId": "<subscriberId from POST /me/subscribers>",
     "properties": [
       {
         "edgeGatewayId": "<gateway-id>",

@@ -1,0 +1,2 @@
+2026-11-18 · brief · stability page · The brief said a break under `override` always notifies; cloud-api AC-CHLOG-004.1 lets an entry with `notify: false` suppress it. The page states the default and says no "always". (self)
+2026-11-18 · review · stability page · The stability page read as requirements stated from the platform side; asked for a client maintainer's page: concise, tables and do/don't over prose, no library advice, no header-logging section since clients are often generated, and the changelog linked from the nav.
