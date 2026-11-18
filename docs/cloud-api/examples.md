@@ -122,6 +122,7 @@ const client = mqtt.connect("wss://ws.vion.swiss/ws", {
 // Runs on the first connect and on every reconnect, which is what you want: the last will has by
 // then removed the registration, so both have to subscribe and then register, in that order.
 client.on("connect", async () => {
+  if (topics.length === 0) return; // no service hands out a topic yet: list the services again later
   await client.subscribeAsync(topics, { qos: 0 });
   await registerSubscription();
 });
