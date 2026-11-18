@@ -508,6 +508,7 @@ const S = {
   gateways: new Map(),
   props: new Map(),      // key -> property record
   topics: new Map(),     // mqtt topic -> { edgeGatewayId, serviceProviderIdentifier, serviceIdentifier }
+  withoutTopic: 0,       // services with properties whose row hands out no topic yet
   subscriberId: null,
   client: null,
   writeConfirmed: false,
@@ -519,6 +520,8 @@ const authBase = () => 'https://auth.' + S.baseDomain + '/realms/vion'
 const tokenUrl = () => authBase() + '/protocol/openid-connect/token'
 const authUrl = () => authBase() + '/protocol/openid-connect/auth'
 const broker = () => 'wss://ws.' + S.baseDomain + '/ws'
+// The key under which a service row's meta.topics holds the topic its property values arrive on.
+const PROPERTY_STATE = 'tenant.serviceProperty.state'
 const redirectUri = () => location.origin + location.pathname
 
 const $ = (id) => document.getElementById(id)
@@ -858,7 +861,7 @@ const tenantSegment = () => (S.tenantId ? esc(S.tenantId) : '&lt;tenantId&gt;')
 function renderS4Wire(counts) {
   const n = counts || {}
   $('s4wire').innerHTML =
-    '<i># 1. the topics — never built by hand, always properties[].topic</i>\n' +
+    '<i># 1. the topics — never built by hand, always the service row&#39;s meta.topics</i>\n' +
     '<b>GET</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/services\n' +
     '<i># the gateway names — labels only; a gateway missing here keeps its id</i>\n' +
     '<b>GET</b> ' + esc(api()) + '/tenant/' + tenantSegment() + '/edgeGateways\n\n' +
@@ -894,7 +897,20 @@ function indexServices(services, gateways) {
   S.gateways = new Map(S.services.map((s) => [s.edgeGatewayId, { id: s.edgeGatewayId, name: names.get(s.edgeGatewayId) || s.edgeGatewayId }]))
   S.props.clear()
   S.topics.clear()
+  S.withoutTopic = 0
   for (const svc of S.services) {
+    // One topic carries every property of the service. A service whose topic the broker does not let
+    // this account read yet hands out none, and subscribing to it anyway would close the connection.
+    const topic = svc.meta && svc.meta.topics && svc.meta.topics[PROPERTY_STATE]
+    if (!topic) {
+      if ((svc.properties || []).length) S.withoutTopic++
+      continue
+    }
+    S.topics.set(topic, {
+      edgeGatewayId: svc.edgeGatewayId,
+      serviceProviderIdentifier: svc.serviceProviderIdentifier,
+      serviceIdentifier: svc.identifier,
+    })
     for (const p of svc.properties || []) {
       const key = propKey(svc.edgeGatewayId, svc.serviceProviderIdentifier, svc.identifier, p.identifier)
       S.props.set(key, {
@@ -906,18 +922,11 @@ function indexServices(services, gateways) {
         identifier: p.identifier,
         schema: p.schema || {},
         presentation: p.presentation || {},
-        topic: p.topic,
+        topic,
         value: undefined,
         updatedAt: null,
         raw: null,
       })
-      if (p.topic) {
-        S.topics.set(p.topic, {
-          edgeGatewayId: svc.edgeGatewayId,
-          serviceProviderIdentifier: svc.serviceProviderIdentifier,
-          serviceIdentifier: svc.identifier,
-        })
-      }
     }
   }
 }
@@ -974,6 +983,14 @@ $('s4go').addEventListener('click', async () => {
           + ' carry it.',
       }
     }
+    if (!S.props.size && S.withoutTopic) {
+      throw {
+        message: 'This tenant returned ' + S.services.length + ' service(s), but none of them hands out'
+          + ' its topic in meta.topics yet: the broker does not let this account read them so far.',
+        detail: 'A topic is handed out once the broker holds this account\'s read permission for it.'
+          + ' Run this stage again later; it reads the services anew.',
+      }
+    }
     if (!S.props.size) {
       throw {
         message: 'This tenant returned ' + S.services.length + ' service(s), but none of them'
@@ -986,6 +1003,7 @@ $('s4go').addEventListener('click', async () => {
     const topics = [...S.topics.keys()]
     renderS4Wire({ topics: topics.length, props: S.props.size })
     log(S.services.length + ' services · ' + S.props.size + ' properties · ' + topics.length + ' topics')
+    if (S.withoutTopic) log(S.withoutTopic + ' service(s) skipped: no topic in meta.topics yet')
     log('MQTT CONNECT ' + broker() + '…')
     await connectAndSubscribe(topics)
     completeStage('s4', S.props.size + ' properties subscribed', 's5')

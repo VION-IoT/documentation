@@ -44,7 +44,7 @@ curl -H "Authorization: Bearer $TOKEN" \
   $API/tenant/$TENANT_ID/services
 ```
 
-The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier`, `name` and `displayName`, its `properties` (each with the `topic` to subscribe on), its `measuringPoints` and its `relations` to other services. Show a service by its `name`, and a gateway or a logic block instance by its `displayName`. The list holds only the services your token may read. To label a gateway, `GET /tenant/{tenantId}/edgeGateways` lists the gateways your token may read, each with the `displayName` to show; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
+The rows are under `items`, one per service: its `edgeGatewayId`, `serviceProviderIdentifier`, `identifier`, `name` and `displayName`, its `properties`, its `measuringPoints`, its `relations` to other services, and in `meta.topics` the topic its property values arrive on. Show a service by its `name`, and a gateway or a logic block instance by its `displayName`. The list holds only the services your token may read. To label a gateway, `GET /tenant/{tenantId}/edgeGateways` lists the gateways your token may read, each with the `displayName` to show; a gateway's `id` there is the `edgeGatewayId` here, and a service whose gateway is not listed has only that id.
 
 ## Set a Property Value
 
@@ -68,7 +68,9 @@ The snippets below are the summary. For a version of this flow you can run inste
 
 **Step 1: Connect to the MQTT broker and subscribe**
 
-Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the property state topics. Each service property includes a `topic` field in the services list that tells you exactly which topic to subscribe to — use that value; a topic built by hand does not match.
+Connect an MQTT 5.0 client to the VION Cloud broker and subscribe to the property state topics. Each service row in the services list carries its topic in `meta.topics`, keyed by the channel id `tenant.serviceProperty.state` — use that value; a topic built by hand does not match. One topic carries every property of the service.
+
+A service whose topic the broker does not let your token read yet has no entry there, and `meta.topics` is `{}`. Leave that service out of both steps — the broker answers a subscription it refuses by closing the connection — and list the services again later.
 
 Three details decide whether this works. The `clientId` must be the same string you send as `subscriberId` in step 2, and it must be your identity provider user ID, an underscore, six alphanumeric characters and a closing underscore. Subscribe at QoS 0. Register the last will — it is what tears the subscription down when your client goes away, and without it the edge gateway keeps publishing after you close the tab. Get any of the three wrong and the broker refuses the subscription and closes the connection, naming nothing.
 
@@ -82,8 +84,11 @@ const suffix = Math.random().toString(36).slice(2, 8); // six alphanumeric chara
 const subscriberId = `${identityProviderUserId}_${suffix}_`;
 
 // Topics and properties both come from the services list. Never assemble a topic by hand.
-const topics = [...new Set(services.flatMap((s) => s.properties.map((p) => p.topic)))];
-const properties = services.flatMap((s) =>
+// A service without a topic in meta.topics is not readable on the broker yet: skip it.
+const PROPERTY_STATE = "tenant.serviceProperty.state";
+const subscribable = services.filter((s) => s.meta?.topics?.[PROPERTY_STATE]);
+const topics = subscribable.map((s) => s.meta.topics[PROPERTY_STATE]);
+const properties = subscribable.flatMap((s) =>
   s.properties.map((p) => ({
     edgeGatewayId: s.edgeGatewayId,
     serviceProviderIdentifier: s.serviceProviderIdentifier,

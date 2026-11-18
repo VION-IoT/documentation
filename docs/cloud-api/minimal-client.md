@@ -25,7 +25,7 @@ Seven things decide whether a client sees values at all. The example gets each o
 | Subscribe on MQTT **before** calling `subscribeProperties` | you miss the initial value and see nothing until the property next changes on its own |
 | Connect with MQTT 5, an empty username and the access token as the password, and set the password again on every reconnect | a reconnect after the token expired presents the expired token and is refused |
 | Read a message only when its `schema` user property is `PropertiesStatePayload` | a client that skips the check parses whatever arrives on the topic as property state |
-| Take the topic from each property's `topic` field in the services list, never build it | a hand-built topic does not match the one values are published on |
+| Take each service's topic from its row in the services list, `meta.topics` under `tenant.serviceProperty.state`, never build it — and skip a service that has none there yet | a hand-built topic does not match the one values are published on, and a subscription the broker refuses closes the connection |
 
 Your identity provider user ID is the `user.identityProviderUserId` field of `GET /me`. Read it from there rather than typing it in — it is one half of both the subscriber ID and the last will topic.
 
