@@ -145,11 +145,16 @@ Pass credentials via `--client-id` and `--client-secret`:
 dale upload \
   --client-id <your-client-id> \
   --client-secret <your-client-secret> \
-  --release-notes "Build ${BUILD_NUMBER}" \
+  --release-notes-file release-notes/<version>.md \
   --skip-duplicate
 ```
 
 The `--skip-duplicate` flag treats an *already-published version* conflict (409) as success instead of failure — this makes CI pipelines safe to re-run without failing on a version that is already up. It does not suppress the other 409: a package id registered by another integrator still fails the command. See [Package Id Uniqueness](#package-id-uniqueness).
+
+The examples on this page read each version's notes from `release-notes/<version>.md`, named after
+the version or tag being uploaded, so each version carries its own notes. A missing file
+fails the upload: commit an empty one for a version without notes. See
+[Library Release Notes](/sdk/release-notes) for what to write.
 
 ### Cross-Environment Deployment
 
@@ -190,7 +195,7 @@ jobs:
             --client-id ${{ secrets.DALE_CLIENT_ID }} \
             --client-secret ${{ secrets.DALE_CLIENT_SECRET }} \
             --version ${{ github.ref_name }} \
-            --release-notes "Release ${{ github.ref_name }}" \
+            --release-notes-file "release-notes/${{ github.ref_name }}.md" \
             --skip-duplicate
 ```
 
@@ -216,7 +221,7 @@ steps:
       dale upload \
         --client-id $(DALE_CLIENT_ID) \
         --client-secret $(DALE_CLIENT_SECRET) \
-        --release-notes "Release $(Build.SourceBranchName)" \
+        --release-notes-file "release-notes/$(Build.SourceBranchName).md" \
         --skip-duplicate
     displayName: 'Upload to VION Cloud'
 ```
