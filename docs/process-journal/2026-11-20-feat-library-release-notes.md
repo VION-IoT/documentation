@@ -1,0 +1,1 @@
+2026-11-20 · brief · library-release-notes · The brief named the branch `docs/library-release-notes`; the repo's pull-request convention takes only `feat/`, `fix/` or `chore/`, so the work moved to `feat/library-release-notes` after the `docs/` branch was already pushed. (self)
