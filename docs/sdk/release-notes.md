@@ -5,11 +5,11 @@ description: Write release notes for a logic block library version, upload them 
 
 # Library Release Notes
 
-Release notes tell the organizations that use your library what changed in a version. They are optional: a version uploaded without them has none.
+Release notes tell the organizations that use your library what changed in a version.
 
 ## Who Reads Them
 
-Every organization that can see the library, integrators and their tenants alike — see [Library Visibility & Sharing](/sdk/library-sharing). Nobody is notified of a new version: consumers read the notes in the Dashboard where they pick a version.
+Every organization that can see the library, integrators and their tenants alike — see [Library Visibility & Sharing](/sdk/library-sharing). They read the notes in the Dashboard where they pick a version.
 
 ## Writing Them
 
@@ -39,14 +39,10 @@ Group the entries by the kinds [Keep a Changelog](https://keepachangelog.com/) u
 dale upload --release-notes-file release-notes/1.2.0.md
 ```
 
-| The file | The upload |
-|----------|------------|
-| Holds notes | Sends its text unchanged |
-| Is empty or holds only whitespace | Uploads the version without notes |
-| Is missing | Fails before anything is packed |
+A missing file fails the upload: for a version without notes, pass an empty file.
 
 Test and production each keep their own copy: pass the file to the upload for each environment, as [CI/CD Publishing](/sdk/publishing#ci-cd-publishing) does.
 
 ## Correcting Them
 
-The library's owner edits a version's notes on the library page in the [Dashboard](https://dashboard.vion.swiss/). The edit notifies nobody and applies to the environment it is made in only.
+The library's owner edits a version's notes on the library page in the [Dashboard](https://dashboard.vion.swiss/). The edit applies to the environment it is made in only.
