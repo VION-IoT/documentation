@@ -284,6 +284,7 @@ Options:
 | `--client-id` | Keycloak client ID (for CI) |
 | `--client-secret` | Keycloak client secret (for CI) |
 | `--release-notes` | Release notes for this version |
+| `--release-notes-file` | File holding the release notes for this version (Markdown); an empty file sends none |
 | `-e`, `--environment` | Target environment (overrides stored config) |
 | `--integrator-id` | Integrator ID (overrides stored config) |
 | `--version <version>` | Override the package version, e.g. from a tag or CI. |
