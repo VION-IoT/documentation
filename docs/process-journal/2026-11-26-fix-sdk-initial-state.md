@@ -1,0 +1,1 @@
+2026-11-26 · gate · pnpm · `pnpm install` refused in the new worktree: host Node 26.7.0 and pnpm 11.20.0 sit outside package.json engines (node ^22, pnpm ^10 || 11.13.0), recurring after retro-1 recorded the host as Node 22; `pnpm check` and `pnpm build` were run as their node scripts against the main checkout's node_modules through a junction. (self)
