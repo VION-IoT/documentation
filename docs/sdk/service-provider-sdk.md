@@ -21,7 +21,7 @@ The package targets `net10.0` and is AOT-compatible.
 
 ## Client lifecycle
 
-A provider builds a `ServiceProviderClientConfiguration`, constructs a `ServiceProviderClient`, and starts it. `StartAsync` runs the full flow — register, connect operationally, declare, subscribe, publish initial state — and re-runs it on every reconnect until the token is cancelled.
+A provider builds a `ServiceProviderClientConfiguration`, constructs a `ServiceProviderClient`, and starts it. `StartAsync` runs the full flow — register, connect operationally, declare, subscribe, publish the provider's `online` state and log level — and re-runs it on every reconnect until the token is cancelled. The SDK publishes no property or measuring-point values itself: publish them from `WithOnOperationalReady` on every (re)connect, as the [operational connection](/sdk/service-provider-protocol#operational-connection) requires.
 
 ```csharp
 using System.Threading;
@@ -51,7 +51,7 @@ await client.StartAsync(stoppingToken);
 
 Three inputs are always supplied: `connectionData` (the local broker host and port, and this provider's identifier), `secret` (the pairing secret, generated on first run and persisted — see [Registration](/sdk/service-provider-protocol#registration)), and `RegistrationCredentials.WellKnown` (from `Vion.Contracts.Mqtt`) — the fixed, public credentials the registration connection authenticates with. The SDK uses them only to complete registration; Mesh issues the operational broker credentials on acceptance and the SDK reconnects with those.
 
-`WithReconnectDelay(TimeSpan)` overrides the delay before the SDK re-runs its startup flow after the operational connection ends (default 5 seconds). `WithOnOperationalReady(...)` registers an async callback that fires once the provider is fully operational after each (re)connect — use it to re-publish state the broker may have lost while offline.
+`WithReconnectDelay(TimeSpan)` overrides the delay before the SDK re-runs its startup flow after the operational connection ends (default 5 seconds). `WithOnOperationalReady(...)` registers an async callback that fires once the provider is fully operational after each (re)connect.
 
 ## Declaration
 
