@@ -1,0 +1,1 @@
+2026-11-27 · gate · pnpm check · An Edit replacing a line-ending sentence with nothing also removed the blank line after it, merging two paragraphs on one page and joining a heading to the text on another; `pnpm check` and `pnpm build` both passed, and the review reader found it. (self)
