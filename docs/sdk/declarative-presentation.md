@@ -106,7 +106,7 @@ public double ActivePower { get; private set; }
 public double NetPower { get; private set; }
 ```
 
-The preset is plain C# inheritance — `GetCustomAttribute<ServicePropertyAttribute>()` returns the subclass instance, refactor tools work as expected, and there is no magic.
+The preset is plain C# inheritance — `GetCustomAttribute<ServicePropertyAttribute>()` returns the subclass instance, and refactor tools work as expected.
 
 ## Property Ordering
 

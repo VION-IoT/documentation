@@ -197,7 +197,7 @@ The Player is the DevHost web UI view for a scenario: ordered steps with acks an
 
 ## ScenarioWireAttribute
 
-`ScenarioWireAttribute` marks a service provider handler with the wire struct its contract carries, letting the DevHost drive an input contract or assert an output contract through the generic handler. It is a DevHost-only declarative marker for scenario testing — the production runtime never reads it and it carries no runtime behavior. Apply it once to a `ServiceProviderHandlerBase`, naming the inbound struct a scenario drives, the outbound struct a scenario asserts, or both:
+`ScenarioWireAttribute` marks a service provider handler with the wire struct its contract carries, letting the DevHost drive an input contract or assert an output contract through the generic handler. It is a DevHost-only declarative marker for scenario testing. Apply it once to a `ServiceProviderHandlerBase`, naming the inbound struct a scenario drives, the outbound struct a scenario asserts, or both:
 
 ```csharp
 using Vion.Dale.Sdk.Abstractions;

@@ -66,8 +66,7 @@ A microSD card in the enclosure's slot is ignored on a module with eMMC — leav
 
 ## Step 4: Boot the device
 
-Insert the SD card or eMMC into the board and apply power; a module with on-module eMMC needs only power, with the USB-C cable disconnected. The first boot runs auto-commissioning: it starts Docker, registers the Mender client, and enrolls a device certificate with Step CA. These tools are baked into the image, so nothing is installed over the network at this stage.
-
+Insert the SD card or eMMC into the board and apply power; a module with on-module eMMC needs only power, with the USB-C cable disconnected. The first boot runs auto-commissioning: it starts Docker, registers the Mender client, and enrolls a device certificate with Step CA.
 Allow about two and a half minutes on the IPCBox-CM5-B, which gives no sign of progress while it boots.
 
 Reach the commissioning prompt on the IPCBox-CM5-B over SSH:

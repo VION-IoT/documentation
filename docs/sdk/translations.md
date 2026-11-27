@@ -7,8 +7,7 @@ description: Optional per-language translation of a logic block library's displa
 
 Translation is optional. A library that ships one language declares its display strings in code — `[LogicBlock(Name = …)]`, `Title`, `Description`, `[EnumLabel]` — and needs nothing else; those strings are what the Dashboard renders.
 
-For more than one language, the VION Cloud translates the same strings per language, without a code change or a re-upload. There is nothing to annotate and no SDK feature to enable.
-
+For more than one language, the VION Cloud translates the same strings per language, without a code change or a re-upload.
 ## Using It
 
 [Upload a library version](/sdk/publishing). The VION Cloud catalogs every translatable string it declares, keyed by the identifiers around it.

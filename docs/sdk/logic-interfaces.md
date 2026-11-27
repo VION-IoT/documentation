@@ -255,7 +255,7 @@ public class ChargingStation : LogicBlockBase
 
 ## Link Multiplicity
 
-A logic block expresses a relationship by implementing the C# interface for a role and the contract that targets it — there is no separate "dependency" attribute. `[LogicBlockInterfaceBinding]` then optionally annotates that role with how many counterparts it expects to be wired to: its **link multiplicity**.
+A logic block expresses a relationship by implementing the C# interface for a role and the contract that targets it. `[LogicBlockInterfaceBinding]` then optionally annotates that role with how many counterparts it expects to be wired to: its **link multiplicity**.
 
 Set `Multiplicity` to a `LinkMultiplicity` value on the binding. Multiplicity is per-implementer — the same contract role can be optional on one block and required on another:
 
@@ -279,7 +279,7 @@ public class ToggleLight : LogicBlockBase, IToggleable
 | `OneOrMore` | Required and many — at least one counterpart (1..n). |
 | `ZeroOrMore` | Optional and many — any number, including none (0..n). The default. |
 
-`ZeroOrMore` is the default, so a binding without an explicit `Multiplicity` places no constraint — the same behaviour as before multiplicity existed. Set a stricter value only where the logic genuinely depends on it; a forgotten annotation never wedges a configuration.
+`ZeroOrMore` is the default, so a binding without an explicit `Multiplicity` places no constraint. Set a stricter value only where the logic genuinely depends on it; a forgotten annotation never wedges a configuration.
 
 The same `LinkMultiplicity` vocabulary applies to hardware and external-service bindings — see [Hardware & External Services](/sdk/services#link-multiplicity).
 

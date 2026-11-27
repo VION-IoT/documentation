@@ -133,7 +133,7 @@ dale upload --release-notes "Added temperature monitoring"
 
 ### Library visibility & sharing
 
-A new library is Private (your integrator only). Make it Public or share it with a named integrator by slug from the Dashboard under Integrator → Libraries — the Dale CLI does not set visibility. See [Library Visibility & Sharing](/sdk/library-sharing).
+A new library is Private (your integrator only). Make it Public or share it with a named integrator by slug from the Dashboard under Integrator → Libraries. See [Library Visibility & Sharing](/sdk/library-sharing).
 
 ## CI/CD Publishing
 
