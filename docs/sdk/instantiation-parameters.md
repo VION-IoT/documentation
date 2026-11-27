@@ -36,7 +36,7 @@ A parameter is read-only at runtime — the Dale runtime rejects writes to it. C
 
 ## `IncludedWhenAttribute`
 
-A gate is a predicate over the block's instantiation parameters. When it is **true**, the member is part of the configured instance; when **false**, the member does not exist for that instance — unbound, not wireable, no MQTT topic, and no cloud read-model row. A member with no gate is unconditional, so every block that ships today is unaffected.
+A gate is a predicate over the block's instantiation parameters. When it is **true**, the member is part of the configured instance; when **false**, the member does not exist for that instance — unbound, not wireable, no MQTT topic, and no cloud read-model row. A member with no gate is unconditional.
 
 ```csharp
 [LogicBlockInterfaceBinding(typeof(IChargePoint), Multiplicity = LinkMultiplicity.ZeroOrMore)]

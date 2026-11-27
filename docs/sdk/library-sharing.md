@@ -5,7 +5,7 @@ description: How logic block library visibility and integrator-to-integrator gra
 
 # Library Visibility & Sharing
 
-Logic block libraries are owned by the integrator that uploads them, and they are Private by default. There are two orthogonal ways to widen who can use a library: make it Public, or grant it to a specific integrator. Both are managed in the Dashboard under Integrator → Libraries; the [Dale CLI](/sdk/publishing) has no visibility flag.
+Logic block libraries are owned by the integrator that uploads them, and they are Private by default. There are two orthogonal ways to widen who can use a library: make it Public, or grant it to a specific integrator. Both are managed in the Dashboard under Integrator → Libraries.
 
 ## Visibility (Private and Public)
 
