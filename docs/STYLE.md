@@ -240,6 +240,7 @@ Write the shortest version that lets the reader act.
 - **Omit rationale.** Why a design was chosen belongs in the architecture repo. Document what the reader can do, how to do it, and what will bite them.
 - **Never restate a table in prose.** If a table already carries the detail, point at it ("any identifier in the table above") instead of enumerating the cases again.
 - **Cut mechanism and degraded cases.** The reader needs to know *that* something is validated, not how the validator works or what happens when it fails. Internal machinery, fallback behaviour and design reasoning are the first things to delete — and the most common thing left in.
+- **Skip what does not happen.** A guide page states what the reader can do, the do-nothing path included, and what will bite them, such as a limit or absence they would otherwise build on; any other absent feature, default that does nothing or notification nobody gets is neither, so leave it out.
 - **More code, less explanation.** When a code example makes the point, the surrounding prose is one sentence, not three. Not every feature needs a worked narrative.
 
 ### Referring to Code in Prose
